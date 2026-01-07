@@ -1,0 +1,20 @@
+{
+  "name": "altij-ai-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:web": "bun run --filter web dev",
+    "dev:api": "bun run --filter api dev",
+    "build": "bun run --filter '*' build",
+    "db:generate": "cd apps/api && drizzle-kit generate",
+    "db:migrate": "cd apps/api && drizzle-kit migrate",
+    "db:studio": "cd apps/api && drizzle-kit studio",
+    "db:push": "cd apps/api && drizzle-kit push"
+  }
+}

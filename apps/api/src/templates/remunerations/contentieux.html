@@ -1,0 +1,18 @@
+<ul class="fees-list">
+  <li><strong>Phase I – Au titre de la phase contentieuse :</strong>
+    <ul>
+      {{#if is_forfait}}
+      <li><strong>Des honoraires forfaitaires d'un montant de <span class="amount">{{formatNumber honoraires_montant_ht}} euros HT</span>, <span class="amount">soit {{honoraires_ttc}} euros TTC, hors frais</span></strong><sup>1</sup> ;</li>
+      <li><strong><span class="amount">Des honoraires complémentaires et forfaitaires de résultat</span>, calculés comme suit : <span class="amount">15 % HT des sommes effectivement recouvrées</span> (que ces sommes soient payées en exécution d'une décision de justice ou d'une transaction).</strong></li>
+      {{else}}
+      <li><strong>Prise en charge du dossier et suivi administratif : <span class="amount">des honoraires forfaitaires d'un montant de 1 000 euros HT, soit 1 200 euros TTC, hors frais</span></strong><sup>1</sup>,</li>
+      <li><strong>Rédaction des actes de procédure (conclusions, etc.) : <span class="amount">des honoraires au temps passé, sur la base d'un taux horaire préférentiel de {{formatNumber taux_horaire}} euros HT de l'heure.</span></strong></li>
+      <li><strong>Préparation du dossier de plaidoirie : <span class="amount">des honoraires au temps passé, sur la base d'un taux horaire préférentiel de {{formatNumber taux_horaire}} euros HT de l'heure.</span></strong></li>
+      <li><strong>Assistance à l'audience de plaidoiries : <span class="amount">des honoraires au temps passé, sur la base d'un taux horaire préférentiel de {{formatNumber taux_horaire}} euros HT de l'heure.</span></strong></li>
+      <li><strong>Cas échéant, assistance aux opérations d'expertises et rédaction de dire : <span class="amount">des honoraires au temps passé, sur la base d'un taux horaire préférentiel de {{formatNumber taux_horaire}} euros HT de l'heure.</span></strong></li>
+      {{/if}}
+    </ul>
+  </li>
+</ul>
+
+<p class="footnote"><sup>1</sup> cf. article 5 des Conditions générales d'intervention – Frais, débours et dépens.</p>

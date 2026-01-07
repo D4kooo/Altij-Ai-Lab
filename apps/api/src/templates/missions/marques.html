@@ -1,0 +1,119 @@
+<table class="mission-table">
+  <tr>
+    <th style="width: 25%;">Objectifs</th>
+    <th style="width: 45%;">Missions</th>
+    <th style="width: 30%;">Livrables</th>
+  </tr>
+  <tr>
+    <td colspan="3" class="section-header"><strong>I. PROPRIÉTÉ INTELLECTUELLE</strong></td>
+  </tr>
+  {{#if is_depot_fr}}
+  <tr>
+    <td><strong>1. Dépôt d'une demande d'enregistrement d'une marque {{type_marque_nature}} française portant sur le signe « {{nom_marque}} »</strong></td>
+    <td>
+      <ul>
+        <li>Rédaction d'un libellé sur-mesure</li>
+        <li>Réalisation des démarches pour le dépôt</li>
+        <li>Suivi de la procédure d'enregistrement de la marque (hors opposition et hors cas complexes)</li>
+      </ul>
+    </td>
+    <td>
+      <ul>
+        <li>Remise du certificat du dépôt de la marque</li>
+        <li>Remise du certificat d'enregistrement de la marque</li>
+      </ul>
+    </td>
+  </tr>
+  {{/if}}
+  {{#if is_depot_eu}}
+  <tr>
+    <td><strong>{{#if is_depot_fr}}2{{else}}1{{/if}}. Dépôt d'une demande d'enregistrement d'une marque {{type_marque_nature}} de l'Union européenne portant sur le signe « {{nom_marque}} »</strong></td>
+    <td>
+      <ul>
+        <li>Rédaction d'un libellé sur-mesure</li>
+        <li>Réalisation des démarches pour le dépôt</li>
+        <li>Suivi de la procédure d'enregistrement de la marque (hors opposition et hors cas complexes)</li>
+      </ul>
+    </td>
+    <td>
+      <ul>
+        <li>Remise du certificat du dépôt de la marque</li>
+        <li>Remise du certificat d'enregistrement de la marque</li>
+      </ul>
+    </td>
+  </tr>
+  {{/if}}
+  {{#if is_depot_intl}}
+  <tr>
+    <td><strong>1. Dépôt d'une demande d'enregistrement d'une marque {{type_marque_nature}} internationale portant sur le signe « {{nom_marque}} »</strong></td>
+    <td>
+      <ul>
+        <li>Rédaction d'un libellé sur-mesure</li>
+        <li>Réalisation des démarches pour le dépôt via le système de Madrid</li>
+        <li>Suivi de la procédure d'enregistrement de la marque (hors opposition et hors cas complexes)</li>
+      </ul>
+    </td>
+    <td>
+      <ul>
+        <li>Remise du certificat du dépôt de la marque</li>
+        <li>Remise du certificat d'enregistrement de la marque</li>
+      </ul>
+    </td>
+  </tr>
+  {{/if}}
+  {{#if is_opposition}}
+  <tr>
+    <td><strong>1. Procédure d'opposition à l'enregistrement d'une marque portant sur le signe « {{nom_marque}} »</strong></td>
+    <td>
+      <ul>
+        <li>Analyse de la demande de marque adverse</li>
+        <li>Rédaction et dépôt d'une opposition devant l'INPI ou l'EUIPO</li>
+        <li>Suivi de la procédure d'opposition</li>
+        <li>Rédaction des observations en réponse</li>
+      </ul>
+    </td>
+    <td>
+      <ul>
+        <li>Remise de la décision d'opposition</li>
+      </ul>
+      <p style="margin-top: 10px;"><em>Vacation prévisionnelle :</em></p>
+      <p><em>{{vacation_heures}} heures</em></p>
+    </td>
+  </tr>
+  {{/if}}
+  {{#if is_renouvellement}}
+  <tr>
+    <td><strong>1. Renouvellement de la marque « {{nom_marque}} »</strong></td>
+    <td>
+      <ul>
+        <li>Vérification de l'étendue de la protection actuelle</li>
+        <li>Réalisation des démarches pour le renouvellement</li>
+        <li>Suivi de la procédure de renouvellement</li>
+      </ul>
+    </td>
+    <td>
+      <ul>
+        <li>Remise du certificat de renouvellement de la marque</li>
+      </ul>
+    </td>
+  </tr>
+  {{/if}}
+  {{#if is_surveillance}}
+  <tr>
+    <td><strong>1. Mise en place d'une surveillance de la marque « {{nom_marque}} »</strong></td>
+    <td>
+      <ul>
+        <li>Définition du périmètre de surveillance</li>
+        <li>Mise en place de la surveillance (identique et/ou similaire)</li>
+        <li>Rapport périodique des résultats de surveillance</li>
+      </ul>
+    </td>
+    <td>
+      <ul>
+        <li>Rapports de surveillance</li>
+        <li>Alertes en cas de dépôt conflictuel</li>
+      </ul>
+    </td>
+  </tr>
+  {{/if}}
+</table>

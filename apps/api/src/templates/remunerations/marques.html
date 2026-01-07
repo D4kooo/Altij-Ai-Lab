@@ -1,0 +1,73 @@
+<ul class="fees-list">
+  <li><strong>Phase I – Au titre du dépôt de demande d'enregistrement de marque :</strong></li>
+</ul>
+
+{{#if is_depot_fr}}
+<ul class="fees-list" style="margin-left: 20px;">
+  <li><strong><span class="amount">Pour le dépôt d'une demande d'enregistrement d'une marque {{type_marque_nature}} française portant sur le signe « {{nom_marque}} » :</span></strong>
+    <ul>
+      <li><strong>Des redevances à percevoir de l'INPI</strong>, pour la marque, de 190 euros HT (au titre de la première classe de produits ou services désignée) + 40 euros HT (par classe supplémentaire) + 60 euros HT (au titre de l'extension de la protection en Polynésie française) ;</li>
+      <li><strong>Des honoraires forfaitaires préférentiels d'un montant de <span class="amount">400 euros HT</span> pour la marque, <span class="amount">soit 480 euros TTC, hors frais</span></strong><sup>1</sup><strong>.</strong></li>
+    </ul>
+  </li>
+</ul>
+{{/if}}
+
+{{#if is_depot_eu}}
+<ul class="fees-list" style="margin-left: 20px;">
+  <li><strong><span class="amount">Pour le dépôt d'une demande d'enregistrement d'une marque {{type_marque_nature}} de l'Union européenne portant sur le signe « {{nom_marque}} » :</span></strong>
+    <ul>
+      <li><strong>Des redevances à percevoir de l'EUIPO</strong>, pour la marque, de 850 euros HT (au titre de la première classe de produits ou services désignée) + 50 euros HT (au titre de la seconde classe) + 150 euros HT (par classe supplémentaire) ;</li>
+      <li><strong>Des honoraires forfaitaires préférentiels d'un montant de <span class="amount">600 euros HT</span> pour la marque, <span class="amount">soit 720 euros TTC, hors frais</span></strong><sup>1</sup><strong>.</strong></li>
+    </ul>
+  </li>
+</ul>
+{{/if}}
+
+{{#if is_depot_intl}}
+<ul class="fees-list" style="margin-left: 20px;">
+  <li><strong><span class="amount">Pour le dépôt d'une demande d'enregistrement d'une marque {{type_marque_nature}} internationale portant sur le signe « {{nom_marque}} » :</span></strong>
+    <ul>
+      <li><strong>Des redevances à percevoir de l'OMPI</strong>, variables selon les pays désignés ;</li>
+      <li><strong>Des honoraires forfaitaires préférentiels d'un montant de <span class="amount">{{formatNumber honoraires_montant_ht}} euros HT</span>, <span class="amount">soit {{honoraires_ttc}} euros TTC, hors frais</span></strong><sup>1</sup><strong>.</strong></li>
+    </ul>
+  </li>
+</ul>
+{{/if}}
+
+{{#if is_opposition}}
+<ul class="fees-list" style="margin-left: 20px;">
+  <li><strong><span class="amount">Pour la procédure d'opposition :</span></strong>
+    <ul>
+      {{#if is_forfait}}
+      <li><strong>Des honoraires forfaitaires préférentiels d'un montant de <span class="amount">{{formatNumber honoraires_montant_ht}} euros HT</span>, <span class="amount">soit {{honoraires_ttc}} euros TTC, hors frais</span></strong><sup>1</sup><strong>, pour une vacation prévisionnelle de {{vacation_heures}} heures.</strong></li>
+      {{else}}
+      <li><strong>Des honoraires au temps passé, sur la base d'un taux horaire préférentiel de <span class="amount">{{formatNumber taux_horaire}} euros HT</span>, pour une vacation prévisionnelle de {{vacation_heures}} heures.</strong></li>
+      {{/if}}
+    </ul>
+  </li>
+</ul>
+{{/if}}
+
+{{#if is_renouvellement}}
+<ul class="fees-list" style="margin-left: 20px;">
+  <li><strong><span class="amount">Pour le renouvellement de la marque :</span></strong>
+    <ul>
+      <li><strong>Des redevances à percevoir de l'office compétent</strong> (variables selon l'office et le nombre de classes) ;</li>
+      <li><strong>Des honoraires forfaitaires préférentiels d'un montant de <span class="amount">{{formatNumber honoraires_montant_ht}} euros HT</span>, <span class="amount">soit {{honoraires_ttc}} euros TTC, hors frais</span></strong><sup>1</sup><strong>.</strong></li>
+    </ul>
+  </li>
+</ul>
+{{/if}}
+
+{{#if is_surveillance}}
+<ul class="fees-list" style="margin-left: 20px;">
+  <li><strong><span class="amount">Pour la mise en place de la surveillance :</span></strong>
+    <ul>
+      <li><strong>Des honoraires annuels forfaitaires d'un montant de <span class="amount">{{formatNumber honoraires_montant_ht}} euros HT</span>, <span class="amount">soit {{honoraires_ttc}} euros TTC</span></strong><sup>1</sup><strong>.</strong></li>
+    </ul>
+  </li>
+</ul>
+{{/if}}
+
+<p class="footnote"><sup>1</sup> cf. article 5 des Conditions générales d'intervention – Frais, débours et dépens.</p>

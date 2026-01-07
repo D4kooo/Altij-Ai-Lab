@@ -1,0 +1,50 @@
+<table class="mission-table">
+  <tr>
+    <th style="width: 25%;">Objectifs</th>
+    <th style="width: 45%;">Missions</th>
+    <th style="width: 30%;">Livrables</th>
+  </tr>
+  <tr>
+    <td colspan="3" class="section-header"><strong>I. {{type_contrat_label}}</strong></td>
+  </tr>
+  <tr>
+    <td><strong>1. Rédaction d'un {{type_contrat_label_lower}} entre {{#if is_societe}}{{societe_nom}}{{else}}{{personne_nom}}{{/if}} et {{cocontractant}}</strong></td>
+    <td>
+      <ul>
+        {{#if is_marque_contrat}}
+        <li>Vérification des marques objet de la {{type_contrat_action}} et de l'exhaustivité du portefeuille de marques à considérer</li>
+        {{/if}}
+        <li>Rendez-vous ou entretien de démarrage</li>
+        <li>Rédaction du projet de {{type_contrat_label_lower}}</li>
+        <li>Échanges avec {{cocontractant}}</li>
+        <li>Finalisation du projet de {{type_contrat_label_lower}}</li>
+      </ul>
+    </td>
+    <td>
+      <ul>
+        <li>Projet de {{type_contrat_label_lower}} entre {{#if is_societe}}{{societe_nom}}{{else}}{{personne_nom}}{{/if}} et {{cocontractant}}</li>
+      </ul>
+      <p style="margin-top: 10px;"><em>Vacation prévisionnelle :</em></p>
+      <p><em>{{vacation_heures}} heures</em></p>
+    </td>
+  </tr>
+  {{#if is_marque_contrat}}
+  <tr>
+    <td colspan="3" class="section-header"><strong>II. INSCRIPTION DE LA {{type_contrat_inscription}}</strong></td>
+  </tr>
+  <tr>
+    <td><strong>2. Inscription de la {{type_contrat_action}} auprès de l'INPI et EUIPO</strong></td>
+    <td>
+      <ul>
+        <li>Préparation et présentation de l'inscription de la {{type_contrat_action}} objet du contrat devant l'INPI et l'EUIPO</li>
+      </ul>
+    </td>
+    <td>
+      <ul>
+        <li>Transmission de la notification d'inscription</li>
+        <li>Transmission de la notification officielle de publication rendant la {{type_contrat_action}} publique et opposable aux tiers</li>
+      </ul>
+    </td>
+  </tr>
+  {{/if}}
+</table>

@@ -1,0 +1,13 @@
+<ul class="fees-list">
+  <li><strong>Phase I – Au titre de {{mission_title}} :</strong>
+    <ul>
+      {{#if is_forfait}}
+      <li><strong>Des honoraires forfaitaires préférentiels d'un montant de <span class="amount">{{formatNumber honoraires_montant_ht}} euros HT</span>, <span class="amount">soit {{honoraires_ttc}} euros TTC</span>, <span class="amount">hors frais</span></strong><sup>1</sup><strong>, pour une <span class="amount">vacation prévisionnelle de {{vacation_heures}} heures.</span></strong></li>
+      {{else}}
+      <li><strong>Des honoraires au temps passé, sur la base d'un taux horaire préférentiel de <span class="amount">{{formatNumber taux_horaire}} euros HT</span>, <span class="amount">soit {{taux_horaire_ttc}} euros TTC</span>, <span class="amount">hors frais</span></strong><sup>1</sup><strong>, pour une <span class="amount">vacation prévisionnelle de {{vacation_heures}} heures.</span></strong></li>
+      {{/if}}
+    </ul>
+  </li>
+</ul>
+
+<p class="footnote"><sup>1</sup> cf. article 5 des Conditions générales d'intervention – Frais, débours et dépens.</p>

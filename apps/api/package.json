@@ -1,0 +1,36 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start": "bun run dist/index.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "bun run src/db/seed.ts"
+  },
+  "dependencies": {
+    "@altij/shared": "workspace:*",
+    "@hono/zod-validator": "^0.4.0",
+    "drizzle-orm": "^0.36.0",
+    "handlebars": "^4.7.8",
+    "hono": "^4.6.0",
+    "jose": "^5.9.0",
+    "nanoid": "^5.0.0",
+    "openai": "^4.70.0",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.4.449",
+    "postgres": "^3.4.0",
+    "puppeteer": "^24.34.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "drizzle-kit": "^0.28.0",
+    "typescript": "^5.6.0"
+  }
+}

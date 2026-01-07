@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lettre de Mission - {{mission_type_label}}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 15mm 20mm 20mm 20mm;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Calibri', 'Arial', sans-serif;
+      font-size: 10pt;
+      line-height: 1.4;
+      color: #000;
+      background: white;
+    }
+
+    .document {
+      max-width: 170mm;
+      margin: 0 auto;
+    }
+
+    /* Header with logo and sidebar */
+    .header-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      width: 200px;
+      margin-bottom: 15px;
+    }
+
+    .logo img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .sidebar-img {
+      position: absolute;
+      right: -30mm;
+      top: 0;
+      width: 50mm;
+      height: auto;
+    }
+
+    /* Client info header */
+    .client-header {
+      margin-bottom: 15px;
+    }
+
+    .client-name {
+      font-weight: bold;
+      font-size: 11pt;
+    }
+
+    .client-address {
+      font-size: 10pt;
+    }
+
+    /* Date and confidentiality */
+    .date-line {
+      text-align: left;
+      margin: 15px 0;
+      font-size: 10pt;
+    }
+
+    .confidential {
+      font-weight: bold;
+      text-decoration: underline;
+      margin: 10px 0;
+    }
+
+    .email-line {
+      font-style: italic;
+      font-size: 9pt;
+      margin-bottom: 20px;
+    }
+
+    /* Main title */
+    .main-title {
+      text-align: center;
+      font-weight: bold;
+      font-size: 12pt;
+      margin: 20px 0;
+      text-decoration: underline;
+    }
+
+    .pole-title {
+      text-align: center;
+      font-style: italic;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    /* Introduction text */
+    .intro-text {
+      margin-bottom: 20px;
+      text-align: justify;
+    }
+
+    /* Client designation block */
+    .client-block {
+      margin: 15px 0 15px 30px;
+    }
+
+    .client-block .company-name {
+      font-weight: bold;
+      text-decoration: underline;
+    }
+
+    .client-block p {
+      margin: 3px 0;
+      font-style: italic;
+    }
+
+    .client-block .highlight {
+      background-color: #ffff00;
+    }
+
+    /* Section titles */
+    .section-title {
+      font-weight: bold;
+      text-decoration: underline;
+      margin: 25px 0 15px 0;
+      font-size: 11pt;
+    }
+
+    .section-number {
+      margin-right: 10px;
+    }
+
+    /* Cabinet presentation */
+    .cabinet-text {
+      text-align: justify;
+      margin-bottom: 15px;
+    }
+
+    .services-image {
+      width: 100%;
+      max-width: 160mm;
+      margin: 15px auto;
+      display: block;
+    }
+
+    /* Mission tables */
+    .mission-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 9pt;
+    }
+
+    .mission-table th {
+      background-color: #f0f0f0;
+      border: 1px solid #000;
+      padding: 8px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .mission-table td {
+      border: 1px solid #000;
+      padding: 8px;
+      vertical-align: top;
+    }
+
+    .mission-table .section-header {
+      background-color: #f0f0f0;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .mission-table ul {
+      margin: 0;
+      padding-left: 15px;
+    }
+
+    .mission-table li {
+      margin: 3px 0;
+    }
+
+    /* Execution team */
+    .team-member {
+      margin: 8px 0 8px 30px;
+    }
+
+    .team-member::before {
+      content: "✓ ";
+      font-weight: bold;
+    }
+
+    .team-member .name {
+      font-weight: bold;
+    }
+
+    .team-member .title {
+      font-style: italic;
+    }
+
+    /* Fees section */
+    .fees-list {
+      margin: 10px 0 10px 20px;
+    }
+
+    .fees-list li {
+      margin: 8px 0;
+    }
+
+    .fees-list .amount {
+      text-decoration: underline;
+    }
+
+    /* Provision box */
+    .provision-box {
+      margin: 15px 30px;
+      font-weight: bold;
+    }
+
+    /* Signature section */
+    .signature-section {
+      margin-top: 30px;
+      page-break-inside: avoid;
+    }
+
+    .signature-intro {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .signature-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .signature-table td {
+      width: 50%;
+      padding: 10px;
+      vertical-align: top;
+      border: 1px solid #000;
+    }
+
+    .signature-box {
+      min-height: 100px;
+    }
+
+    .signature-box .name {
+      font-weight: bold;
+    }
+
+    .signature-img {
+      max-width: 150px;
+      height: auto;
+    }
+
+    /* Page break */
+    .page-break {
+      page-break-before: always;
+    }
+
+    /* Annexe / Conditions générales */
+    .annexe-title {
+      text-align: center;
+      font-style: italic;
+      text-decoration: underline;
+      margin: 20px 0;
+    }
+
+    .cg-title {
+      text-align: center;
+      font-weight: bold;
+      text-decoration: underline;
+      margin: 20px 0;
+    }
+
+    .cg-intro {
+      text-align: justify;
+      margin-bottom: 15px;
+      font-size: 9pt;
+    }
+
+    .cg-article {
+      margin: 15px 0;
+      text-align: justify;
+      font-size: 9pt;
+    }
+
+    .cg-article-title {
+      font-weight: bold;
+      text-decoration: underline;
+    }
+
+    /* Tarif table */
+    .tarif-table {
+      width: 80%;
+      margin: 15px auto;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+
+    .tarif-table th, .tarif-table td {
+      border: 1px solid #000;
+      padding: 5px 10px;
+    }
+
+    .tarif-table th {
+      text-decoration: underline;
+    }
+
+    /* Highlight for placeholders */
+    mark {
+      background-color: #ffff00;
+      padding: 0 2px;
+    }
+
+    /* Footer note */
+    .footnote {
+      font-size: 8pt;
+      margin-top: 5px;
+    }
+
+    sup {
+      font-size: 7pt;
+    }
+  </style>
+</head>
+<body>
+  <div class="document">
+    <!-- Header with logo -->
+    <div class="header-container">
+      <div class="logo">
+        <img src="{{logo_base64}}" alt="ALTIJ">
+      </div>
+    </div>
+
+    <!-- Client info -->
+    <div class="client-header">
+      {{#if is_societe}}
+      <div class="client-name">{{societe_nom}}</div>
+      <div class="client-address">{{adresse_rue}}</div>
+      <div class="client-address">{{adresse_cp}} {{adresse_ville}}</div>
+      {{else}}
+      <div class="client-name">{{personne_civilite}} {{personne_nom}}</div>
+      <div class="client-address">{{adresse_rue}}</div>
+      <div class="client-address">{{adresse_cp}} {{adresse_ville}}</div>
+      {{/if}}
+    </div>
+
+    <!-- Date -->
+    <div class="date-line">
+      Toulouse, le {{date_lettre_formatted}}
+    </div>
+
+    <!-- Confidentiality -->
+    <div class="confidential">PERSONNEL ET CONFIDENTIEL</div>
+    <div class="email-line">
+      Envoi par courriel : {{#if is_societe}}{{representant_email}}{{else}}{{personne_email}}{{/if}}
+    </div>
+
+    <!-- Main title -->
+    <div class="main-title">CONDITIONS PARTICULIÈRES D'INTERVENTION</div>
+    <div class="pole-title">Pôle Propriété Intellectuelle</div>
+
+    <!-- Introduction -->
+    <div class="intro-text">
+      Nous vous remercions de la confiance que vous nous témoignez et nous vous confirmons notre accord et notre disponibilité afin de vous accompagner :
+    </div>
+
+    <!-- Client designation -->
+    <div class="client-block">
+      {{#if is_societe}}
+      <p>La société <span class="company-name">{{societe_nom}}</span>,</p>
+      <p>Société {{societe_forme}} au capital de {{formatNumber societe_capital}} euros,</p>
+      <p>Immatriculée au RCS de {{societe_rcs_ville}} sous le numéro {{societe_rcs_numero}},</p>
+      <p>Dont le siège social est sis {{adresse_rue}}, à {{adresse_ville}} ({{adresse_cp}}),</p>
+      <p>Représentée par {{representant_civilite}} {{representant_nom}}, {{representant_fonction}}, dûment habilité(e) au titre des présentes,</p>
+      {{else}}
+      <p>{{personne_civilite}} <span class="company-name">{{personne_nom}}</span>,</p>
+      <p>Né(e) le {{personne_date_naissance_formatted}}, à {{personne_lieu_naissance}},</p>
+      <p>Domicilié(e) {{adresse_rue}}, {{adresse_ville}} ({{adresse_cp}}),</p>
+      {{#if personne_activite}}
+      <p>Exerçant l'activité de {{personne_activite}},</p>
+      {{/if}}
+      {{/if}}
+    </div>
+
+    <div class="intro-text">
+      Dans le cadre d'un accompagnement juridique, en matière de droit de la propriété intellectuelle pour les prestations définies ci-après.
+    </div>
+    <div class="intro-text">
+      Nos prestations se dérouleront en diverses étapes, décrites ci-dessous.
+    </div>
+
+    <!-- Section 1: Présentation du cabinet -->
+    <div class="section-title"><span class="section-number">1.</span>PRÉSENTATION DU CABINET</div>
+
+    <div class="cabinet-text">
+      ALTIJ est un cabinet de droit des affaires, qui réunit une équipe d'avocats et de juristes regroupés au sein de pôles spécialisés.
+    </div>
+    <div class="cabinet-text">
+      Cette organisation rend possible la large capacité d'intervention, facilitant le travail en synergie des différents pôles quand des problématiques spécifiques apparaissent.
+    </div>
+    <div class="cabinet-text">
+      Cette mise en commun des compétences permet de rendre le cabinet dynamique, réactif et apte à répondre le plus précisément possible aux différentes problématiques rencontrées par les opérateurs économiques aussi bien dans le cadre des missions de conseil que de contentieux.
+    </div>
+    <div class="cabinet-text">
+      Ainsi, nous pouvons vous accompagner dans les domaines suivants :
+    </div>
+
+    <img src="{{services_base64}}" alt="Services ALTIJ" class="services-image">
+
+    <!-- Section 2: Objet de la mission -->
+    <div class="section-title"><span class="section-number">2 –</span>OBJET DE LA MISSION</div>
+
+    {{{mission_content}}}
+
+    <div class="cabinet-text">
+      Notre mission s'achèvera à la remise des livrables, tels que définis ci-dessus.
+    </div>
+    <div class="cabinet-text">
+      Les actes rédigés dans le cadre de la mission qui nous est confiée le sont selon la réglementation applicable à la date de remise des livrables et conformément à l'ensemble de vos demandes spécifiques exprimées préalablement à cette remise. Toute demande nouvelle exprimée postérieurement fera l'objet d'une tarification additionnelle à définir entre les parties.
+    </div>
+
+    <!-- Section 3: Assistance complémentaire -->
+    <div class="section-title"><span class="section-number">3 –</span>ASSISTANCE COMPLÉMENTAIRE</div>
+
+    <div class="cabinet-text">
+      Pour toute autre mission, les prestations seront facturées au temps passé.
+    </div>
+    <div class="cabinet-text">
+      Dans les cas complexes et/ou contentieux, sur votre demande expresse, un devis préalable pour intervention vous sera transmis.
+    </div>
+    <div class="cabinet-text">
+      Compte tenu de la multiplicité des matières juridiques et de la nécessité de spécialisation par secteur, il ne nous est pas possible de couvrir tous les domaines du droit.
+    </div>
+    <div class="cabinet-text">
+      Aussi, à l'occasion de toute consultation, nous vous ferons rapidement savoir si nous ne sommes pas en mesure de répondre à la question posée et vous aiderons, le cas échéant, à trouver le bon interlocuteur.
+    </div>
+
+    <!-- Section 4: Exécution de la mission -->
+    <div class="section-title"><span class="section-number">4 –</span>EXÉCUTION DE LA MISSION</div>
+
+    <div class="cabinet-text">
+      Les Avocats d'<strong>ALTIJ</strong> chargés de l'exécution de la mission seront :
+    </div>
+
+    <div class="team-member">
+      <span class="name">Maître France CHARRUYER,</span> <span class="title">Avocat Associé Fondateur, Direction ALTIJ, Pôles Droit des Affaires, IT / DATA, et Propriété intellectuelle.</span>
+    </div>
+    <div class="team-member">
+      <span class="name">Morgane CUETO,</span> <span class="title">Juriste, Pôle Propriété intellectuelle.</span>
+    </div>
+    <div class="team-member">
+      <span class="name">Margo HAUTESSERRE,</span> <span class="title">Juriste, Pôle Propriété intellectuelle.</span>
+    </div>
+
+    <div class="cabinet-text">
+      Tout autre avocat de la société <strong>ALTIJ</strong>, clerc ou juriste, pourra leur être adjoint, notamment en raison de l'importance des prestations demandées ou de leurs particularités.
+    </div>
+
+    <!-- Section 5: Rémunération -->
+    <div class="section-title"><span class="section-number">5 –</span>RÉMUNÉRATION DE LA MISSION</div>
+
+    <div class="cabinet-text">
+      La mission spécifiquement définie à l'article 1 des <em>« Conditions Particulières »</em> donnera lieu au versement de la rémunération suivante :
+    </div>
+
+    {{{remuneration_content}}}
+
+    <!-- Section 6: Règlement des honoraires -->
+    <div class="section-title"><span class="section-number">6 –</span>RÈGLEMENT DES HONORAIRES</div>
+
+    <div class="cabinet-text">
+      Le règlement des honoraires définis à l'article 3 des « <em>Conditions Particulières</em> » s'effectuera selon les modalités prévues à l'article 3 des « <em>Conditions Générales</em> » ci-annexées.
+    </div>
+
+    <div class="provision-box">
+      <p style="text-decoration: underline;">Provision</p>
+      <p style="margin-top: 10px;">
+        Selon nos règles déontologiques et en vertu de l'article 11-4 de la décision du 12 juillet 2007 relative au règlement intérieur national de la profession d'avocat, le versement d'une provision est exigé pour valider la prise en charge du dossier.
+      </p>
+      <p style="margin-top: 10px;">
+        Une provision d'un montant de {{formatNumber provision_montant}}€ HT, sera donc exigée pour valider la prise en charge du dossier.
+      </p>
+    </div>
+
+    <!-- Section 7: Conditions générales -->
+    <div class="section-title"><span class="section-number">7 –</span>CONDITIONS GÉNÉRALES D'INTERVENTION</div>
+
+    <div class="cabinet-text">
+      Pour toute disposition non prévue par les présentes, la mission, telle que définie ci-dessus, s'appliquera conformément à nos conditions générales d'intervention dont un exemplaire figure en annexe et dont la signature des présentes emporte l'acceptation.
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <strong>* *</strong><br>
+      <strong>*</strong>
+    </div>
+
+    <!-- Signature section -->
+    <div class="signature-section">
+      <div class="signature-intro">
+        Réalisé en deux (2) exemplaires, dont un (1) remis à chaque partie,
+      </div>
+
+      <table class="signature-table">
+        <tr>
+          <td class="signature-box">
+            <div class="name">Maître France CHARRUYER</div>
+            <div>Avocat Associé – Direction ALTIJ</div>
+            <div style="margin: 20px 0;">
+              <img src="{{signature_base64}}" alt="Signature" class="signature-img">
+            </div>
+            <div>À TOULOUSE,</div>
+            <div>Le {{date_lettre_formatted}}.</div>
+          </td>
+          <td class="signature-box">
+            <div class="name">{{#if is_societe}}{{representant_civilite}} {{representant_nom}}{{else}}{{personne_civilite}} {{personne_nom}}{{/if}}</div>
+            {{#if is_societe}}
+            <div>Société {{societe_nom}}</div>
+            {{/if}}
+            <div style="margin-top: 40px;">À _______________________,</div>
+            <div style="margin-top: 10px;">Le _______________________.</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Page break for annexe -->
+    <div class="page-break"></div>
+
+    <!-- Annexe: Conditions générales -->
+    <div class="annexe-title">Annexe : Conditions générales d'intervention 2024</div>
+
+    <div class="cg-title">CONDITIONS GÉNÉRALES D'INTERVENTION 2024</div>
+
+    <div class="cg-intro">
+      Les présentes Conditions générales d'intervention et les Conditions particulières d'intervention forment ensemble la lettre de mission (ci-après la « Lettre de mission ») régissant les relations entre la société d'avocats ALTIJ (ci-après « ALTIJ ») et le client (ci-après le « Client »), pour les besoins de la réalisation des différentes prestations confiées à ALTIJ (ci-après la « Mission »).
+    </div>
+    <div class="cg-intro">
+      En cas de contradiction entre les Conditions générales d'intervention et les Conditions particulières d'intervention, ces dernières sont réputées prévaloir.
+    </div>
+    <div class="cg-intro">
+      Le Client dispose d'une période d'un mois calendaire pour signer la Lettre de mission à compter de la date d'envoi indiquée dans les Conditions particulières d'intervention. Passé ce délai et en l'absence de signature par le Client, les termes de la Lettre de mission ne sont plus valables.
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">1. EXÉCUTION DE LA MISSION</span> – La Mission sera exercée dans les conditions générales fixées par les textes réglementant l'exercice de la profession d'avocat et les usages professionnels. L'assistance apportée au Client est fournie sur la base des textes et de la jurisprudence publiée à la date de l'exécution de la Mission. Elle est le fruit de l'expertise et du savoir-faire spécifiques d'ALTIJ. En tant que professionnel indépendant, aucune exclusivité n'est accordée sur les services d'ALTIJ, la Mission ou son contenu. Dans l'accomplissement de sa mission, ALTIJ s'oblige à une obligation de moyens pour l'exécution de laquelle ALTIJ s'engage à effectuer toutes les diligences qu'impose la sauvegarde des intérêts de son Client. ALTIJ pourra avoir recours à tout logiciel, plateforme, Intelligence Artificielle ou tout autre outil digital à cet effet pour assurer l'efficacité de la Mission et notamment ses interactions avec le Client. Il revient alors à ce dernier d'en accepter et respecter les conditions d'utilisation.
+    </div>
+    <div class="cg-article">
+      Les rapports entre l'avocat et le Client sont fondés sur une confiance réciproque. Pour assurer l'efficacité du concours attendu, le Client s'engage à faire connaître à ALTIJ, sans restriction ni délai et avec exactitude, tous les évènements, données, opérations ou décisions susceptibles d'avoir une incidence sur l'exécution de la Mission confiée. Il appartient au Client de vérifier lui-même l'authenticité des informations et données transmises à ALTIJ et/ou prises en compte par ALTIJ dans l'exécution de la Mission confiée, et ce quel que soit le support et/ou l'outil utilisé. La bonne exécution de la Mission nécessite en conséquence une transparence et une collaboration totales du Client, ainsi qu'une coopération complète des autres conseils et intervenants qui ont été ou seraient sollicités par le Client. <strong>Par ailleurs nous vous rappelons le secret professionnel absolu attaché à nos échanges et correspondances.</strong>
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">2. COMMUNICATION ÉLECTRONIQUE</span> – ALTIJ privilégie les échanges par voie électronique. Il appartient en conséquence au Client de communiquer une adresse valide et sécurisée. Les factures d'honoraires seront notamment adressées par voie électronique à l'adresse mail transmise ; la réception de cet envoi électronique vaudra réception de la facture.
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">3. HONORAIRES</span> – Les honoraires sont assujettis à la TVA au taux en vigueur. Sauf dispositions contraires prévues dans les Conditions particulières d'intervention, les honoraires au temps passé sont calculés par application du barème ci-dessous.
+    </div>
+
+    <table class="tarif-table">
+      <tr>
+        <th>Intitulé</th>
+        <th>Tarif horaire HT</th>
+      </tr>
+      <tr><td>Avocat Associé Senior</td><td>350 €</td></tr>
+      <tr><td>Avocat Associé Junior</td><td>310 €</td></tr>
+      <tr><td>Avocat Senior</td><td>285 €</td></tr>
+      <tr><td>Avocat Junior</td><td>250 €</td></tr>
+      <tr><td>Juriste</td><td>200 €</td></tr>
+      <tr><td>Clerc</td><td>110 €</td></tr>
+      <tr><td>Secrétaire</td><td>70 €</td></tr>
+    </table>
+
+    <div class="cg-article">
+      Aucun escompte pour paiement anticipé n'est accordé. En cas de bénéfice d'une garantie Protection juridique ou Défense recours, il appartient au Client d'effectuer les démarches nécessaires pour obtenir sa mise en œuvre et le remboursement des honoraires à hauteur de son barème.
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">4. MODALITÉS DE RÈGLEMENT DES HONORAIRES</span>
+    </div>
+    <div class="cg-article">
+      <strong>→ Honoraires forfaitaires :</strong> La provision définie aux Conditions particulières d'intervention sera facturée dès la signature de la Lettre de mission. Le règlement de cette provision conditionne la prise en charge du dossier et le commencement des diligences à intervenir.
+    </div>
+    <div class="cg-article">
+      <strong>→ Honoraires au temps passé :</strong> Le règlement de la provision d'usage définie aux Conditions particulières d'intervention conditionne la prise en charge du dossier. Une facture de reddition de temps vous sera adressée en fonction des diligences accomplies.
+    </div>
+    <div class="cg-article">
+      <strong>→ Honoraires de résultat :</strong> Les éventuels honoraires complémentaires de résultat convenus seront exigibles dès exécution d'une décision définitive ou d'une transaction.
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">5. FRAIS, DÉBOURS ET DÉPENS</span> – Les honoraires définis aux Conditions particulières d'intervention ne couvrent ni les débours, ni les dépens, ni les autres frais qu'ALTIJ pourrait être conduit à débourser pour le compte du Client (frais d'ouverture de dossier, frais de dépôts, frais postaux, frais de déplacement, frais d'huissier et de greffe, frais de postulation...).
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">6. DÉFAUT DE RÈGLEMENT ET SUSPENSION DE LA MISSION</span> – Les diligences d'ALTIJ ne commenceront qu'à compter de la réception du règlement de la provision sur honoraires. Les sommes non réglées à l'échéance donneront lieu à l'application d'intérêts de retard au taux de trois fois celui de l'intérêt légal. En cas de non-paiement, ALTIJ se réserve le droit de suspendre l'exécution de toute Mission en cours.
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">7. RUPTURE DU CONTRAT</span> – La présente Mission devant s'appliquer pour une durée indéterminée, chaque partie pourra y mettre un terme à tout moment par courrier recommandé avec demande d'avis de réception. Les honoraires prévus resteront dus dans la limite du travail accompli.
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">8. PROPRIÉTÉ INTELLECTUELLE</span> – ALTIJ est et reste seul titulaire de l'intégralité des droits d'auteur attachés aux actes juridiques rédigés par ses avocats et salariés. Le Client bénéficie d'une simple licence d'utilisation lui permettant de reproduire et représenter les actes juridiques rédigés par ALTIJ dans les limites définies par la nature de son activité.
+    </div>
+    <div class="cg-article">
+      <strong>ALTIJ exerce sa faculté d'opposition sur toute extraction et/ou collecte des données relative à toute information communiquée. Il est strictement interdit d'utiliser ledit Patrimoine Informationnel pour servir de données d'entrainement ou d'apprentissage à un quelconque système algorithmique.</strong>
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">9. LUTTE CONTRE LE BLANCHIMENT ET LE FINANCEMENT DU TERRORISME</span> – Il est rappelé que la provenance des fonds versés doit être licite. ALTIJ peut être amené à demander toute justification à première demande. Le défaut d'identification du Client et/ou du bénéficiaire effectif mettra un terme à la Mission.
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">10. DONNÉES PERSONNELLES</span> – Dans le cadre de l'exécution de la Mission, ALTIJ pourrait être amené à collecter des données à caractère personnel concernant le Client. La finalité de ce traitement est la gestion du dossier du Client et l'accomplissement de la Mission. Les personnes physiques concernées bénéficient du droit de demander à ALTIJ l'accès, la rectification et/ou l'effacement de leurs données. Elles peuvent exercer ces droits en s'adressant à : ALTIJ, DPO, 40 rue du Japon, CS 94133, 31030 TOULOUSE Cedex 4, ou à : dpo@altij.com.
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">11. RESPONSABILITÉ</span> – En sa qualité de professionnel réglementé, ALTIJ est titulaire d'une assurance de responsabilité civile professionnelle souscrite auprès de COVEA RISKS. La garantie s'applique aux conséquences pécuniaires de la responsabilité civile professionnelle encourue par ALTIJ vis-à-vis de ses clients à raison des négligences ou fautes commises dans l'exercice de ses activités professionnelles. Le Client bénéficie du service de médiation des avocats pour tout litige relatif à l'intervention du cabinet (cnma-mediation.fr).
+    </div>
+
+    <div class="cg-article">
+      <span class="cg-article-title">12. LOI APPLICABLE / ATTRIBUTION DE JURIDICTION</span> – La Lettre de mission est soumise au droit français. En cas de litige relatif à l'interprétation et/ou l'exécution de la Lettre de mission, les parties conviennent de soumettre leur différend à la juridiction compétente du ressort du Tribunal judiciaire de Toulouse.
+    </div>
+
+  </div>
+</body>
+</html>
