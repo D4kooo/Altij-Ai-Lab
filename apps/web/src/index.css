@@ -147,8 +147,9 @@
   @apply text-primary underline underline-offset-2 hover:text-primary/80;
 }
 
+/* Enhanced table styles */
 .markdown table {
-  @apply w-full border-collapse mb-3;
+  @apply w-full border-collapse mb-3 text-sm;
 }
 
 .markdown th,
@@ -157,7 +158,31 @@
 }
 
 .markdown th {
-  @apply bg-muted font-medium;
+  @apply bg-muted/50 font-medium text-foreground;
+}
+
+.markdown tr:hover {
+  @apply bg-muted/30;
+}
+
+/* Table wrapper for horizontal scroll */
+.markdown .table-wrapper {
+  @apply overflow-x-auto -mx-1 px-1;
+}
+
+/* Bold text enhancement */
+.markdown strong {
+  @apply font-semibold text-foreground;
+}
+
+/* Strikethrough for GFM */
+.markdown del {
+  @apply text-muted-foreground line-through;
+}
+
+/* Task lists for GFM */
+.markdown input[type="checkbox"] {
+  @apply mr-2 accent-primary;
 }
 
 /* Typing cursor */

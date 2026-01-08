@@ -8,6 +8,7 @@ import { useChatStore } from '@/stores/chatStore';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { SkeletonMessage, ProgressiveStatus, CopyButton } from '@/components/chat';
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 
@@ -180,9 +181,9 @@ export function AssistantDetail() {
       </div>
 
       {/* Chat */}
-      <div className="flex flex-1 flex-col rounded-lg border bg-card">
-        {/* Header */}
-        <div className="flex items-center gap-3 border-b p-3">
+      <div className="flex flex-1 flex-col rounded-lg border bg-card overflow-hidden">
+        {/* Header Persistant - Sticky */}
+        <div className="sticky top-0 z-10 flex items-center gap-3 border-b bg-card/95 backdrop-blur-sm p-3">
           <Button variant="ghost" size="icon" asChild className="lg:hidden h-8 w-8">
             <Link to="/assistants"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
@@ -237,11 +238,11 @@ export function AssistantDetail() {
               )}
 
               <Button onClick={() => createConversation.mutate()} disabled={createConversation.isPending} className="mt-6">
-                Démarrer une conversation
+                Demarrer une conversation
               </Button>
             </div>
           ) : (
-            <div className="space-y-4 max-w-3xl mx-auto">
+            <div className="space-y-6 max-w-[800px] mx-auto" style={{ lineHeight: '1.6' }}>
               {conversation?.messages.map((msg) => (
                 <div key={msg.id} className={cn('flex gap-3', msg.role === 'user' && 'justify-end')}>
                   {msg.role === 'assistant' && (
@@ -254,12 +255,20 @@ export function AssistantDetail() {
                   )}
                   <div
                     className={cn(
-                      'max-w-[80%] rounded-lg px-3 py-2 text-sm',
-                      msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                      'max-w-[80%] rounded-lg px-4 py-3 text-sm',
+                      msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-white border shadow-sm'
                     )}
                   >
                     {msg.role === 'assistant' ? (
-                      <div className="markdown"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                      <div className="group/message">
+                        <div className="markdown">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                        {/* Bouton Copier discret en bas a droite */}
+                        <div className="flex justify-end mt-3 pt-2 border-t border-border/50 opacity-0 group-hover/message:opacity-100 transition-opacity">
+                          <CopyButton content={msg.content} />
+                        </div>
+                      </div>
                     ) : (
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     )}
@@ -267,46 +276,26 @@ export function AssistantDetail() {
                 </div>
               ))}
 
-              {isStreaming && streamingMessage && (
-                <div className="flex gap-3">
-                  <div
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-                    style={{ backgroundColor: `${assistant.color}15`, color: assistant.color }}
-                  >
-                    <DynamicIcon name={assistant.icon} className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="max-w-[80%] rounded-lg bg-muted px-3 py-2 text-sm">
-                    <div className="markdown typing-cursor"><ReactMarkdown>{streamingMessage}</ReactMarkdown></div>
-                  </div>
-                </div>
-              )}
-
-              {isThinking && (
+              {/* Progressive Status puis Streaming message */}
+              {isStreaming && (
                 <div className="flex gap-3 animate-fade-in">
                   <div
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md animate-pulse"
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                      !streamingMessage && "animate-pulse"
+                    )}
                     style={{ backgroundColor: `${assistant.color}15`, color: assistant.color }}
                   >
                     <DynamicIcon name={assistant.icon} className="h-3.5 w-3.5" />
                   </div>
-                  <div className="rounded-lg bg-muted px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1">
-                        <span
-                          className="h-2 w-2 rounded-full animate-bounce"
-                          style={{ backgroundColor: assistant.color, animationDelay: '0ms', animationDuration: '0.6s' }}
-                        />
-                        <span
-                          className="h-2 w-2 rounded-full animate-bounce"
-                          style={{ backgroundColor: assistant.color, animationDelay: '150ms', animationDuration: '0.6s' }}
-                        />
-                        <span
-                          className="h-2 w-2 rounded-full animate-bounce"
-                          style={{ backgroundColor: assistant.color, animationDelay: '300ms', animationDuration: '0.6s' }}
-                        />
+                  <div className="max-w-[80%] rounded-lg bg-white border shadow-sm px-4 py-3 text-sm">
+                    {streamingMessage ? (
+                      <div className="markdown typing-cursor">
+                        <ReactMarkdown>{streamingMessage}</ReactMarkdown>
                       </div>
-                      <span className="text-xs text-muted-foreground ml-1">En train de réfléchir...</span>
-                    </div>
+                    ) : (
+                      <ProgressiveStatus isActive={true} color={assistant.color} />
+                    )}
                   </div>
                 </div>
               )}
@@ -319,7 +308,7 @@ export function AssistantDetail() {
         {/* Input */}
         {conversationId && (
           <div className="border-t p-3">
-            <div className="flex gap-2 max-w-3xl mx-auto">
+            <div className="flex gap-2 max-w-[800px] mx-auto">
               <Textarea
                 ref={textareaRef}
                 value={message}
