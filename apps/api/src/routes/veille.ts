@@ -207,7 +207,7 @@ veilleRoutes.delete('/feeds/:id', async (c) => {
   return c.json({ success: true });
 });
 
-// POST /api/veille/feeds/refresh - Refresh all feeds
+// POST /api/veille/feeds/refresh - Refresh all feeds for current user
 veilleRoutes.post('/feeds/refresh', async (c) => {
   const user = c.get('user');
 
@@ -231,6 +231,53 @@ veilleRoutes.post('/feeds/refresh', async (c) => {
   }
 
   return c.json({ success: true });
+});
+
+// POST /api/veille/feeds/refresh-all - Refresh all feeds for all users (admin only)
+veilleRoutes.post('/feeds/refresh-all', async (c) => {
+  const user = c.get('user');
+
+  if (user.role !== 'admin') {
+    return c.json({ success: false, error: 'Admin access required' }, 403);
+  }
+
+  const feeds = await db
+    .select()
+    .from(schema.feeds);
+
+  console.log(`[Admin] Refreshing ${feeds.length} feeds...`);
+
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (const feed of feeds) {
+    try {
+      if (feed.type === 'rss') {
+        await fetchFeedArticles(feed.id, feed.url);
+      } else {
+        await scrapeWebPage(feed.id, feed.url);
+      }
+
+      await db
+        .update(schema.feeds)
+        .set({ lastFetchedAt: new Date() })
+        .where(eq(schema.feeds.id, feed.id));
+
+      successCount++;
+    } catch (error) {
+      console.error(`[Admin] Error refreshing feed ${feed.id}:`, error);
+      errorCount++;
+    }
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      total: feeds.length,
+      success: successCount,
+      errors: errorCount,
+    },
+  });
 });
 
 // ============================================
@@ -768,4 +815,6 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+// Export helper functions for scheduler
+export { fetchFeedArticles, scrapeWebPage };
 export { veilleRoutes };

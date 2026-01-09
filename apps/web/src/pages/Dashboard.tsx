@@ -1,20 +1,20 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  MessageSquare,
-  Zap,
-  Clock,
   ArrowRight,
   Bot,
   Star,
-  TrendingUp,
+  Newspaper,
+  Sparkles,
+  FileText,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { dashboardApi, favoritesApi } from '@/lib/api';
+import { dashboardApi, assistantsApi, veilleApi, veilleIaApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatRelativeTime, formatDuration } from '@/lib/utils';
+import { formatRelativeTime } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 
 function DynamicIcon({ name, className, strokeWidth = 1.5 }: { name: string; className?: string; strokeWidth?: number }) {
@@ -24,245 +24,305 @@ function DynamicIcon({ name, className, strokeWidth = 1.5 }: { name: string; cla
 
 export function Dashboard() {
   const { user } = useAuthStore();
-
-  const { data: stats } = useQuery({
-    queryKey: ['dashboard', 'stats'],
-    queryFn: dashboardApi.getStats,
-  });
+  const navigate = useNavigate();
 
   const { data: recentActivity } = useQuery({
     queryKey: ['dashboard', 'recent'],
     queryFn: dashboardApi.getRecentActivity,
   });
 
-  const { data: favorites } = useQuery({
-    queryKey: ['favorites'],
-    queryFn: favoritesApi.list,
+  const { data: assistants } = useQuery({
+    queryKey: ['assistants'],
+    queryFn: assistantsApi.list,
+  });
+
+  const { data: articles } = useQuery({
+    queryKey: ['veille', 'articles'],
+    queryFn: () => veilleApi.listArticles(),
+  });
+
+  const { data: veillesIa } = useQuery({
+    queryKey: ['veille-ia'],
+    queryFn: veilleIaApi.list,
   });
 
   const currentHour = new Date().getHours();
   const greeting =
     currentHour < 12 ? 'Bonjour' : currentHour < 18 ? 'Bon après-midi' : 'Bonsoir';
 
+  // Raccourcis rapides
+  const quickActions = [
+    {
+      title: 'Automatisations',
+      description: 'Lancez un workflow automatisé',
+      icon: 'Zap',
+      color: '#f59e0b',
+      href: '/automations',
+    },
+    {
+      title: 'Anonymiseur',
+      description: 'Anonymisez vos documents',
+      icon: 'Shield',
+      color: '#8b5cf6',
+      href: '/anonymiseur',
+    },
+    {
+      title: 'Veille juridique',
+      description: 'Consultez les actualités',
+      icon: 'Newspaper',
+      color: '#06b6d4',
+      href: '/veille',
+    },
+  ];
+
   return (
     <div className="space-y-8">
-      {/* Header - Premium serif greeting */}
+      {/* Header */}
       <div className="space-y-1">
         <h1 className="text-2xl font-serif tracking-tight">
           {greeting}, <span className="font-medium">{user?.firstName}</span>
         </h1>
         <p className="text-muted-foreground">
-          Voici un aperçu de votre activité
+          Que souhaitez-vous faire aujourd'hui ?
         </p>
       </div>
 
-      {/* Stats - Premium cards with refined styling */}
-      <div className="grid gap-5 md:grid-cols-3">
-        <Card className="group hover:shadow-premium hover:-translate-y-0.5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Conversations ce mois
-            </CardTitle>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/[0.03]">
-              <MessageSquare className="h-4 w-4 text-foreground" strokeWidth={1.5} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-semibold tracking-tight">{stats?.conversationsThisMonth || 0}</p>
-              <span className="flex items-center text-xs text-emerald-600 font-medium">
-                <TrendingUp className="h-3 w-3 mr-0.5" strokeWidth={2} />
-                +12%
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Accès rapide aux assistants */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Bot className="h-5 w-5" strokeWidth={1.5} />
+            Assistants IA
+          </h2>
+          <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground -mr-2">
+            <Link to="/assistants">
+              Voir tout
+              <ArrowRight className="ml-1 h-3.5 w-3.5" strokeWidth={1.5} />
+            </Link>
+          </Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {assistants?.slice(0, 4).map((assistant) => (
+            <Card
+              key={assistant.id}
+              className="group cursor-pointer hover:shadow-premium hover:-translate-y-0.5 transition-all"
+              onClick={() => navigate(`/assistants/${assistant.id}`)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105"
+                    style={{
+                      backgroundColor: `${assistant.color}15`,
+                      color: assistant.color,
+                    }}
+                  >
+                    <DynamicIcon name={assistant.icon || 'Bot'} className="h-5 w-5" strokeWidth={1.5} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{assistant.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{assistant.specialty}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
 
-        <Card className="group hover:shadow-premium hover:-translate-y-0.5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Automatisations lancées
-            </CardTitle>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/[0.03]">
-              <Zap className="h-4 w-4 text-foreground" strokeWidth={1.5} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-semibold tracking-tight">{stats?.automationsThisMonth || 0}</p>
-              <span className="flex items-center text-xs text-emerald-600 font-medium">
-                <TrendingUp className="h-3 w-3 mr-0.5" strokeWidth={2} />
-                +8%
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="group hover:shadow-premium hover:-translate-y-0.5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Temps estimé gagné
-            </CardTitle>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/[0.03]">
-              <Clock className="h-4 w-4 text-foreground" strokeWidth={1.5} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold tracking-tight">{formatDuration(stats?.estimatedTimeSaved || 0)}</p>
-          </CardContent>
-        </Card>
+      {/* Raccourcis rapides */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {quickActions.map((action) => (
+          <Link key={action.href} to={action.href} className="group">
+            <Card className="hover:shadow-premium hover:-translate-y-0.5 transition-all h-full">
+              <CardContent className="flex items-center gap-4 p-4">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105"
+                  style={{
+                    backgroundColor: `${action.color}15`,
+                    color: action.color,
+                  }}
+                >
+                  <DynamicIcon name={action.icon} className="h-5 w-5" strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{action.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{action.description}</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={1.5} />
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        {/* Favorites */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <Star className="h-4 w-4" strokeWidth={1.5} />
-              Favoris
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {favorites && favorites.length > 0 ? (
-              <div className="space-y-1">
-                {favorites.slice(0, 5).map((favorite) => (
-                  <Link
-                    key={favorite.id}
-                    to={
-                      favorite.itemType === 'assistant'
-                        ? `/assistants/${favorite.itemId}`
-                        : `/automations/${favorite.itemId}`
-                    }
-                    className="group flex items-center gap-3 rounded-xl p-2.5 -mx-2.5 hover:bg-primary/[0.02] transition-colors"
-                  >
-                    <div
-                      className="flex h-9 w-9 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105"
-                      style={{
-                        backgroundColor: `${(favorite as any).item?.color}12`,
-                        color: (favorite as any).item?.color,
-                      }}
-                    >
-                      <DynamicIcon name={(favorite as any).item?.icon || 'Star'} className="h-4 w-4" strokeWidth={1.5} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{(favorite as any).item?.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {favorite.itemType === 'assistant'
-                          ? (favorite as any).item?.specialty
-                          : (favorite as any).item?.category}
-                      </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="py-10 text-center">
-                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                  <Star className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-                </div>
-                <p className="text-sm text-muted-foreground">Aucun favori</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity */}
+        {/* Veille Juridique - Articles RSS */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-semibold">Activité récente</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <Newspaper className="h-4 w-4" strokeWidth={1.5} />
+              Actualités juridiques
+            </CardTitle>
             <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground -mr-2">
-              <Link to="/history">
+              <Link to="/veille">
                 Voir tout
                 <ArrowRight className="ml-1 h-3.5 w-3.5" strokeWidth={1.5} />
               </Link>
             </Button>
           </CardHeader>
           <CardContent>
-            {recentActivity && recentActivity.length > 0 ? (
+            {articles && articles.length > 0 ? (
               <div className="space-y-1">
-                {recentActivity.slice(0, 5).map((activity) => (
-                  <Link
-                    key={`${activity.type}-${activity.id}`}
-                    to={
-                      activity.type === 'conversation'
-                        ? `/assistants/chat/${activity.id}`
-                        : `/automations/runs/${activity.id}`
-                    }
-                    className="group flex items-center gap-3 rounded-xl p-2.5 -mx-2.5 hover:bg-primary/[0.02] transition-colors"
+                {articles.slice(0, 4).map((article) => (
+                  <a
+                    key={article.id}
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-start gap-3 rounded-xl p-2.5 -mx-2.5 hover:bg-primary/[0.02] transition-colors"
                   >
-                    <div
-                      className="flex h-9 w-9 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105"
-                      style={{
-                        backgroundColor: `${(activity as any).color || '#18181b'}12`,
-                        color: (activity as any).color || '#18181b',
-                      }}
-                    >
-                      <DynamicIcon
-                        name={(activity as any).icon || (activity.type === 'conversation' ? 'MessageSquare' : 'Zap')}
-                        className="h-4 w-4"
-                        strokeWidth={1.5}
-                      />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600">
+                      <FileText className="h-4 w-4" strokeWidth={1.5} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{activity.title}</p>
-                      <p className="text-xs text-muted-foreground">{formatRelativeTime(activity.timestamp)}</p>
+                      <p className="text-sm font-medium line-clamp-2">{article.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-muted-foreground">{article.feedName}</span>
+                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-xs text-muted-foreground">{formatRelativeTime(article.publishedAt)}</span>
+                      </div>
                     </div>
-                    {activity.status && (
-                      <Badge
-                        variant={activity.status === 'completed' ? 'success' : activity.status === 'failed' ? 'destructive' : 'secondary'}
-                        className="font-medium"
-                      >
-                        {activity.status === 'completed' ? 'Terminé' : activity.status === 'failed' ? 'Échec' : 'En cours'}
-                      </Badge>
-                    )}
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" strokeWidth={1.5} />
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div className="py-10 text-center">
+                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                  <Newspaper className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+                </div>
+                <p className="text-sm text-muted-foreground">Aucun article disponible</p>
+                <Button variant="link" size="sm" asChild className="mt-2">
+                  <Link to="/veille">Configurer la veille</Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Veille IA */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <Sparkles className="h-4 w-4" strokeWidth={1.5} />
+              Veille IA
+            </CardTitle>
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground -mr-2">
+              <Link to="/veille?tab=ia">
+                Voir tout
+                <ArrowRight className="ml-1 h-3.5 w-3.5" strokeWidth={1.5} />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {veillesIa && veillesIa.length > 0 ? (
+              <div className="space-y-1">
+                {veillesIa.filter(v => v.latestEdition).slice(0, 4).map((veille) => (
+                  <Link
+                    key={veille.id}
+                    to={`/veille?tab=ia&id=${veille.id}`}
+                    className="group flex items-start gap-3 rounded-xl p-2.5 -mx-2.5 hover:bg-primary/[0.02] transition-colors"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600">
+                      <Sparkles className="h-4 w-4" strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{veille.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {veille.latestEdition?.newItemsCount !== undefined && veille.latestEdition.newItemsCount > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {veille.latestEdition.newItemsCount} nouveau{veille.latestEdition.newItemsCount > 1 ? 'x' : ''}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {veille.latestEdition && formatRelativeTime(veille.latestEdition.generatedAt)}
+                        </span>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" strokeWidth={1.5} />
                   </Link>
                 ))}
               </div>
             ) : (
               <div className="py-10 text-center">
                 <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                  <Clock className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+                  <Sparkles className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
                 </div>
-                <p className="text-sm text-muted-foreground">Aucune activité récente</p>
+                <p className="text-sm text-muted-foreground">Aucune veille IA configurée</p>
+                <Button variant="link" size="sm" asChild className="mt-2">
+                  <Link to="/veille?tab=ia">Créer une veille IA</Link>
+                </Button>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions - Premium minimalist style */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Link to="/assistants" className="group">
-          <Card className="hover:shadow-premium hover:-translate-y-0.5">
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/[0.04] transition-transform duration-200 group-hover:scale-105">
-                <Bot className="h-5 w-5 text-foreground" strokeWidth={1.5} />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold tracking-tight">Assistants</p>
-                <p className="text-sm text-muted-foreground">Discutez avec un assistant IA</p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={1.5} />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/automations" className="group">
-          <Card className="hover:shadow-premium hover:-translate-y-0.5">
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/[0.04] transition-transform duration-200 group-hover:scale-105">
-                <Zap className="h-5 w-5 text-foreground" strokeWidth={1.5} />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold tracking-tight">Automatisations</p>
-                <p className="text-sm text-muted-foreground">Lancez un workflow automatisé</p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={1.5} />
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
+      {/* Activité récente */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <Star className="h-4 w-4" strokeWidth={1.5} />
+            Activité récente
+          </CardTitle>
+          <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground -mr-2">
+            <Link to="/history">
+              Voir tout
+              <ArrowRight className="ml-1 h-3.5 w-3.5" strokeWidth={1.5} />
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {recentActivity && recentActivity.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {recentActivity.slice(0, 6).map((activity) => (
+                <Link
+                  key={`${activity.type}-${activity.id}`}
+                  to={
+                    activity.type === 'conversation'
+                      ? `/assistants/chat/${activity.id}`
+                      : `/automations/runs/${activity.id}`
+                  }
+                  className="group flex items-center gap-3 rounded-xl p-3 hover:bg-primary/[0.02] transition-colors border"
+                >
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105"
+                    style={{
+                      backgroundColor: `${(activity as any).color || '#18181b'}12`,
+                      color: (activity as any).color || '#18181b',
+                    }}
+                  >
+                    <DynamicIcon
+                      name={(activity as any).icon || (activity.type === 'conversation' ? 'MessageSquare' : 'Zap')}
+                      className="h-4 w-4"
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{activity.title}</p>
+                    <p className="text-xs text-muted-foreground">{formatRelativeTime(activity.timestamp)}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground">Aucune activité récente</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

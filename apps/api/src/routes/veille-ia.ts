@@ -537,6 +537,103 @@ RÈGLES DE CONTENU :
   return { content, sources };
 }
 
+// POST /api/veille-ia/generate-all - Generate all active veilles IA (admin only)
+veilleIaRoutes.post('/generate-all', requireAdmin, async (c) => {
+  const veilles = await db
+    .select()
+    .from(schema.veillesIa)
+    .where(eq(schema.veillesIa.isActive, true));
+
+  console.log(`[Admin] Generating ${veilles.length} veilles IA...`);
+
+  let successCount = 0;
+  let errorCount = 0;
+  const results: { id: string; name: string; success: boolean; error?: string }[] = [];
+
+  for (const veille of veilles) {
+    try {
+      // Récupérer les items précédents pour la déduplication
+      let previousTopics: string[] = [];
+      let previousHashes = new Set<string>();
+
+      try {
+        const previousItems = await db
+          .select({
+            title: schema.veilleIaItems.title,
+            contentHash: schema.veilleIaItems.contentHash,
+          })
+          .from(schema.veilleIaItems)
+          .where(eq(schema.veilleIaItems.veilleIaId, veille.id))
+          .orderBy(desc(schema.veilleIaItems.createdAt))
+          .limit(100);
+
+        previousTopics = previousItems.map(item => item.title).filter(Boolean);
+        previousHashes = new Set(previousItems.map(item => item.contentHash));
+      } catch (e) {
+        console.error(`Error fetching previous items for ${veille.id}:`, e);
+      }
+
+      const result = await generateWithPerplexityDedup(veille.prompt, previousTopics);
+
+      const [edition] = await db
+        .insert(schema.veilleIaEditions)
+        .values({
+          veilleIaId: veille.id,
+          content: result.content,
+          sources: result.sources,
+        })
+        .returning();
+
+      // Save items
+      try {
+        const newItems = extractItemsFromContent(result.content, result.sources);
+        const uniqueItems = newItems.filter(item => {
+          const hash = generateContentHash(item.title + (item.summary || ''));
+          return !previousHashes.has(hash);
+        });
+
+        if (uniqueItems.length > 0) {
+          await db.insert(schema.veilleIaItems).values(
+            uniqueItems.map(item => ({
+              veilleIaId: veille.id,
+              editionId: edition.id,
+              title: item.title,
+              summary: item.summary || null,
+              sourceUrl: item.sourceUrl || null,
+              contentHash: generateContentHash(item.title + (item.summary || '')),
+              category: item.category || null,
+            }))
+          );
+        }
+      } catch (e) {
+        console.error(`Error saving items for ${veille.id}:`, e);
+      }
+
+      successCount++;
+      results.push({ id: veille.id, name: veille.name, success: true });
+    } catch (error) {
+      console.error(`[Admin] Error generating veille ${veille.id}:`, error);
+      errorCount++;
+      results.push({
+        id: veille.id,
+        name: veille.name,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      total: veilles.length,
+      success: successCount,
+      errors: errorCount,
+      results,
+    },
+  });
+});
+
 // GET /api/veille-ia/:id/items - Get all items for a veille (for admin/debug)
 veilleIaRoutes.get('/:id/items', async (c) => {
   const user = c.get('user');
@@ -568,4 +665,6 @@ veilleIaRoutes.get('/:id/items', async (c) => {
   return c.json({ success: true, data: items });
 });
 
+// Export helper functions for scheduler
+export { generateWithPerplexityDedup, extractItemsFromContent, generateContentHash };
 export { veilleIaRoutes };

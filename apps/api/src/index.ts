@@ -16,8 +16,12 @@ import { anonymiseurRoutes } from './routes/anonymiseur';
 import { lettreMissionRoutes } from './routes/lettre-mission';
 import { rolesRoutes } from './routes/roles';
 import { permissionsRoutes } from './routes/permissions';
+import { initScheduler } from './services/scheduler';
 
 const app = new Hono();
+
+// Initialize scheduler for automatic tasks (RSS refresh, Veilles IA generation)
+initScheduler();
 
 // Global middleware
 app.use('*', logger());
