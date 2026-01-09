@@ -8,6 +8,7 @@ export const messageRoleEnum = pgEnum('message_role', ['user', 'assistant']);
 export const outputTypeEnum = pgEnum('automation_output_type', ['file', 'text', 'json', 'redirect']);
 export const runStatusEnum = pgEnum('automation_run_status', ['pending', 'running', 'completed', 'failed']);
 export const favoriteTypeEnum = pgEnum('favorite_item_type', ['assistant', 'automation']);
+export const assistantTypeEnum = pgEnum('assistant_type', ['openai', 'webhook']);
 
 // Utilisateurs
 export const users = pgTable('users', {
@@ -25,13 +26,17 @@ export const users = pgTable('users', {
 // Assistants IA
 export const assistants = pgTable('assistants', {
   id: uuid('id').primaryKey().defaultRandom(),
-  openaiAssistantId: text('openai_assistant_id').notNull(),
+  type: assistantTypeEnum('type').default('openai').notNull(),
+  openaiAssistantId: text('openai_assistant_id'), // Optional for webhook type
+  webhookUrl: text('webhook_url'), // For webhook type assistants (n8n, etc.)
   name: text('name').notNull(),
   description: text('description').notNull(),
   specialty: text('specialty').notNull(),
   icon: text('icon').notNull(),
   color: text('color').notNull(),
   suggestedPrompts: jsonb('suggested_prompts').$type<string[]>().default([]),
+  isPinned: boolean('is_pinned').default(false).notNull(),
+  pinOrder: integer('pin_order').default(0),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -42,7 +47,7 @@ export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   assistantId: uuid('assistant_id').notNull().references(() => assistants.id, { onDelete: 'cascade' }),
-  openaiThreadId: text('openai_thread_id').notNull(),
+  openaiThreadId: text('openai_thread_id'), // Optional - only for OpenAI assistants
   title: text('title'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

@@ -80,8 +80,11 @@ chatRoutes.post('/conversations', zValidator('json', createConversationSchema), 
     return c.json({ success: false, error: 'Assistant not found' }, 404);
   }
 
-  // Create OpenAI thread
-  const openaiThreadId = await createThread();
+  // Create OpenAI thread only for OpenAI assistants
+  let openaiThreadId: string | null = null;
+  if (assistant.type === 'openai' && assistant.openaiAssistantId) {
+    openaiThreadId = await createThread();
+  }
 
   const now = new Date();
 
@@ -192,6 +195,71 @@ chatRoutes.delete('/conversations/:id', async (c) => {
   return c.json({ success: true });
 });
 
+// Helper function to call webhook assistant
+async function callWebhookAssistant(
+  webhookUrl: string,
+  message: string,
+  conversationId: string,
+  previousMessages: { role: string; content: string }[]
+): Promise<string> {
+  const payload = {
+    message,
+    conversationId,
+    history: previousMessages,
+  };
+
+  console.log('[Webhook Assistant] Calling webhook:', webhookUrl);
+  console.log('[Webhook Assistant] Payload:', JSON.stringify(payload, null, 2));
+
+  // Create AbortController with 5 minute timeout for AI agents
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log('[Webhook Assistant] Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Webhook Assistant] Error response:', errorText);
+      throw new Error(`Webhook error: ${response.status} ${response.statusText}`);
+    }
+
+    const responseText = await response.text();
+    console.log('[Webhook Assistant] Raw response:', responseText.substring(0, 500));
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      // If not JSON, return the text directly
+      console.log('[Webhook Assistant] Response is not JSON, returning as text');
+      return responseText;
+    }
+
+    console.log('[Webhook Assistant] Parsed response data:', JSON.stringify(data, null, 2).substring(0, 500));
+
+    // Support both direct response and nested output format from n8n
+    return data.output || data.response || data.message || data.text || JSON.stringify(data);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Webhook timeout: l\'agent IA prend trop de temps à répondre');
+    }
+    throw error;
+  }
+}
+
 // POST /api/chat/conversations/:id/messages - Send a message (with streaming response)
 chatRoutes.post(
   '/conversations/:id/messages',
@@ -234,9 +302,6 @@ chatRoutes.post(
       createdAt: userMessageTime,
     });
 
-    // Add message to OpenAI thread
-    await addMessageToThread(conversation.openaiThreadId, content, attachments);
-
     // Update conversation title if this is the first message
     if (!conversation.title) {
       const title = content.length > 50 ? content.substring(0, 50) + '...' : content;
@@ -246,14 +311,93 @@ chatRoutes.post(
         .where(eq(schema.conversations.id, conversationId));
     }
 
+    // Handle webhook assistants differently
+    if (assistant.type === 'webhook' && assistant.webhookUrl) {
+      // Get previous messages for context
+      const previousMessages = await db
+        .select({ role: schema.messages.role, content: schema.messages.content })
+        .from(schema.messages)
+        .where(eq(schema.messages.conversationId, conversationId))
+        .orderBy(schema.messages.createdAt);
+
+      return streamSSE(c, async (stream) => {
+        // Send heartbeat to keep connection alive while waiting for webhook
+        const heartbeatInterval = setInterval(async () => {
+          try {
+            await stream.writeSSE({
+              data: JSON.stringify({ heartbeat: true }),
+            });
+            console.log('[Webhook Assistant] Heartbeat sent');
+          } catch {
+            // Stream might be closed, ignore
+          }
+        }, 5000); // Every 5 seconds
+
+        try {
+          console.log('[Webhook Assistant] Starting webhook call...');
+          const fullResponse = await callWebhookAssistant(
+            assistant.webhookUrl!,
+            content,
+            conversationId,
+            previousMessages
+          );
+          console.log('[Webhook Assistant] Webhook call completed');
+
+          clearInterval(heartbeatInterval);
+
+          // Send the full response as a single chunk (webhooks don't stream)
+          await stream.writeSSE({
+            data: JSON.stringify({ chunk: fullResponse }),
+          });
+
+          // Save assistant message to DB
+          const [assistantMessage] = await db.insert(schema.messages).values({
+            conversationId,
+            role: 'assistant',
+            content: fullResponse,
+            createdAt: new Date(),
+          }).returning();
+
+          // Update conversation timestamp
+          await db
+            .update(schema.conversations)
+            .set({ updatedAt: new Date() })
+            .where(eq(schema.conversations.id, conversationId));
+
+          await stream.writeSSE({
+            data: JSON.stringify({
+              done: true,
+              messageId: assistantMessage.id,
+              content: fullResponse,
+            }),
+          });
+        } catch (error) {
+          clearInterval(heartbeatInterval);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error('[Webhook Assistant] Error:', errorMessage);
+          await stream.writeSSE({
+            data: JSON.stringify({ error: errorMessage }),
+          });
+        }
+      });
+    }
+
+    // OpenAI assistant flow
+    if (!conversation.openaiThreadId || !assistant.openaiAssistantId) {
+      return c.json({ success: false, error: 'Invalid assistant configuration' }, 400);
+    }
+
+    // Add message to OpenAI thread
+    await addMessageToThread(conversation.openaiThreadId, content, attachments);
+
     // Stream response
     return streamSSE(c, async (stream) => {
       let fullResponse = '';
 
       try {
         for await (const chunk of runAssistantStream(
-          conversation.openaiThreadId,
-          assistant.openaiAssistantId
+          conversation.openaiThreadId!,
+          assistant.openaiAssistantId!
         )) {
           fullResponse += chunk;
           await stream.writeSSE({

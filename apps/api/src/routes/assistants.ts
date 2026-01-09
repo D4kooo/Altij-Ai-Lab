@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { eq, desc, asc } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
@@ -9,17 +9,33 @@ import { listOpenAIAssistants, getOpenAIAssistant } from '../services/openai';
 
 const assistantsRoutes = new Hono<Env>();
 
-const createAssistantSchema = z.object({
-  openaiAssistantId: z.string().min(1),
+// Base schema without refinement (for partial updates)
+const assistantBaseSchema = z.object({
+  type: z.enum(['openai', 'webhook']).optional().default('openai'),
+  openaiAssistantId: z.string().optional(),
+  webhookUrl: z.string().url().optional(),
   name: z.string().min(1),
   description: z.string().min(1),
   specialty: z.string().min(1),
   icon: z.string().min(1),
   color: z.string().min(1),
   suggestedPrompts: z.array(z.string()).optional(),
+  isPinned: z.boolean().optional().default(false),
+  pinOrder: z.number().optional(),
 });
 
-const updateAssistantSchema = createAssistantSchema.partial();
+// Create schema with validation refinement
+const createAssistantSchema = assistantBaseSchema.refine(
+  (data) => {
+    if (data.type === 'openai') return !!data.openaiAssistantId;
+    if (data.type === 'webhook') return !!data.webhookUrl;
+    return true;
+  },
+  { message: 'openaiAssistantId required for openai type, webhookUrl required for webhook type' }
+);
+
+// Update schema - partial version of base schema
+const updateAssistantSchema = assistantBaseSchema.partial();
 
 // Apply auth middleware to all routes
 assistantsRoutes.use('*', authMiddleware);
@@ -65,25 +81,33 @@ assistantsRoutes.get('/openai/:id', adminMiddleware, async (c) => {
   }
 });
 
-// GET /api/assistants - List all active assistants
+// GET /api/assistants - List all active assistants (pinned first, then by name)
 assistantsRoutes.get('/', async (c) => {
   const assistants = await db
     .select()
     .from(schema.assistants)
     .where(eq(schema.assistants.isActive, true))
-    .orderBy(schema.assistants.name);
+    .orderBy(
+      desc(schema.assistants.isPinned),
+      asc(schema.assistants.pinOrder),
+      asc(schema.assistants.name)
+    );
 
   return c.json({
     success: true,
     data: assistants.map((a) => ({
       id: a.id,
+      type: a.type,
       openaiAssistantId: a.openaiAssistantId,
+      webhookUrl: a.webhookUrl,
       name: a.name,
       description: a.description,
       specialty: a.specialty,
       icon: a.icon,
       color: a.color,
       suggestedPrompts: a.suggestedPrompts || [],
+      isPinned: a.isPinned,
+      pinOrder: a.pinOrder,
       isActive: a.isActive,
       createdAt: a.createdAt,
       updatedAt: a.updatedAt,
@@ -109,13 +133,17 @@ assistantsRoutes.get('/:id', async (c) => {
     success: true,
     data: {
       id: assistant.id,
+      type: assistant.type,
       openaiAssistantId: assistant.openaiAssistantId,
+      webhookUrl: assistant.webhookUrl,
       name: assistant.name,
       description: assistant.description,
       specialty: assistant.specialty,
       icon: assistant.icon,
       color: assistant.color,
       suggestedPrompts: assistant.suggestedPrompts || [],
+      isPinned: assistant.isPinned,
+      pinOrder: assistant.pinOrder,
       isActive: assistant.isActive,
       createdAt: assistant.createdAt,
       updatedAt: assistant.updatedAt,
@@ -129,13 +157,17 @@ assistantsRoutes.post('/', adminMiddleware, zValidator('json', createAssistantSc
   const now = new Date();
 
   const [assistant] = await db.insert(schema.assistants).values({
-    openaiAssistantId: data.openaiAssistantId,
+    type: data.type || 'openai',
+    openaiAssistantId: data.openaiAssistantId || null,
+    webhookUrl: data.webhookUrl || null,
     name: data.name,
     description: data.description,
     specialty: data.specialty,
     icon: data.icon,
     color: data.color,
     suggestedPrompts: data.suggestedPrompts || [],
+    isPinned: data.isPinned || false,
+    pinOrder: data.pinOrder || 0,
     isActive: true,
     createdAt: now,
     updatedAt: now,
@@ -146,13 +178,17 @@ assistantsRoutes.post('/', adminMiddleware, zValidator('json', createAssistantSc
       success: true,
       data: {
         id: assistant.id,
+        type: assistant.type,
         openaiAssistantId: assistant.openaiAssistantId,
+        webhookUrl: assistant.webhookUrl,
         name: assistant.name,
         description: assistant.description,
         specialty: assistant.specialty,
         icon: assistant.icon,
         color: assistant.color,
         suggestedPrompts: assistant.suggestedPrompts || [],
+        isPinned: assistant.isPinned,
+        pinOrder: assistant.pinOrder,
         isActive: assistant.isActive,
         createdAt: assistant.createdAt,
         updatedAt: assistant.updatedAt,
@@ -195,13 +231,17 @@ assistantsRoutes.put('/:id', adminMiddleware, zValidator('json', updateAssistant
     success: true,
     data: {
       id: assistant.id,
+      type: assistant.type,
       openaiAssistantId: assistant.openaiAssistantId,
+      webhookUrl: assistant.webhookUrl,
       name: assistant.name,
       description: assistant.description,
       specialty: assistant.specialty,
       icon: assistant.icon,
       color: assistant.color,
       suggestedPrompts: assistant.suggestedPrompts || [],
+      isPinned: assistant.isPinned,
+      pinOrder: assistant.pinOrder,
       isActive: assistant.isActive,
       createdAt: assistant.createdAt,
       updatedAt: assistant.updatedAt,
