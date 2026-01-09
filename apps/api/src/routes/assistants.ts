@@ -1,11 +1,12 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { eq, desc, asc } from 'drizzle-orm';
+import { eq, desc, asc, inArray } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { listOpenAIAssistants, getOpenAIAssistant } from '../services/openai';
+import { getAccessibleResourceIds } from '../services/permissions';
 
 const assistantsRoutes = new Hono<Env>();
 
@@ -82,8 +83,20 @@ assistantsRoutes.get('/openai/:id', adminMiddleware, async (c) => {
 });
 
 // GET /api/assistants - List all active assistants (pinned first, then by name)
+// Filters by user permissions (admins see all)
 assistantsRoutes.get('/', async (c) => {
-  const assistants = await db
+  const user = c.get('user')!;
+
+  // Récupérer les IDs accessibles (null = admin, tout accessible)
+  const accessibleIds = await getAccessibleResourceIds(user.id, user.role, 'assistant');
+
+  // Si aucune permission et pas admin, retourner liste vide
+  if (accessibleIds !== null && accessibleIds.length === 0) {
+    return c.json({ success: true, data: [] });
+  }
+
+  // Construire la requête
+  let query = db
     .select()
     .from(schema.assistants)
     .where(eq(schema.assistants.isActive, true))
@@ -93,9 +106,16 @@ assistantsRoutes.get('/', async (c) => {
       asc(schema.assistants.name)
     );
 
+  const assistants = await query;
+
+  // Filtrer par permissions si pas admin
+  const filteredAssistants = accessibleIds === null
+    ? assistants
+    : assistants.filter((a) => accessibleIds.includes(a.id));
+
   return c.json({
     success: true,
-    data: assistants.map((a) => ({
+    data: filteredAssistants.map((a) => ({
       id: a.id,
       type: a.type,
       openaiAssistantId: a.openaiAssistantId,

@@ -24,20 +24,15 @@ export function CopyButton({ content, className }: CopyButtonProps) {
     <button
       onClick={handleCopy}
       className={cn(
-        'flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors',
+        'p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all',
         className
       )}
+      title={copied ? 'Copié !' : 'Copier'}
     >
       {copied ? (
-        <>
-          <Check className="h-3.5 w-3.5 text-green-600" />
-          <span className="text-green-600">Copie!</span>
-        </>
+        <Check className="h-4 w-4 text-green-600" />
       ) : (
-        <>
-          <Copy className="h-3.5 w-3.5" />
-          <span>Copier</span>
-        </>
+        <Copy className="h-4 w-4" />
       )}
     </button>
   );

@@ -165,7 +165,7 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
 
   const handleEdit = (assistant: Assistant) => {
     setEditingAssistant(assistant);
-    setSelectedOpenAIId(assistant.openaiAssistantId);
+    setSelectedOpenAIId(assistant.openaiAssistantId || '');
     setName(assistant.name);
     setDescription(assistant.description);
     setSpecialty(assistant.specialty);
@@ -297,7 +297,7 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
                         </p>
                       </div>
                       <Badge variant="outline" className="shrink-0 text-xs">
-                        {assistant.openaiAssistantId.slice(0, 12)}...
+                        {assistant.type === 'webhook' ? 'Webhook' : assistant.openaiAssistantId?.slice(0, 12) + '...'}
                       </Badge>
                       <div className="flex gap-1">
                         <Button

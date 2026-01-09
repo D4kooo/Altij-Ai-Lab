@@ -14,6 +14,7 @@ import { History } from '@/pages/History';
 import { Veille } from '@/pages/Veille';
 import { Anonymiseur } from '@/pages/Anonymiseur';
 import { Settings } from '@/pages/Settings';
+import { AdminPermissions } from '@/pages/AdminPermissions';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 const queryClient = new QueryClient({
@@ -97,6 +98,7 @@ function AppContent() {
         <Route path="/veille" element={<Veille />} />
         <Route path="/anonymiseur" element={<Anonymiseur />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/admin/permissions" element={<AdminPermissions />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

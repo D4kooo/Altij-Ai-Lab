@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Lock, User, Shield, Bot, Users, Zap, BarChart3 } from 'lucide-react';
+import { Lock, User, Shield, Bot, Users, Zap, BarChart3, KeyRound } from 'lucide-react';
 import { AssistantManagement } from '@/components/admin/AssistantManagement';
 import { UserManagement } from '@/components/admin/UserManagement';
 
 export function Settings() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -185,6 +187,14 @@ export function Settings() {
               >
                 <Bot className="h-4 w-4 mr-2" />
                 Gérer les assistants
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={() => navigate('/admin/permissions')}
+              >
+                <KeyRound className="h-4 w-4 mr-2" />
+                Gérer les accès
               </Button>
               <Button variant="outline" className="justify-start">
                 <Zap className="h-4 w-4 mr-2" />

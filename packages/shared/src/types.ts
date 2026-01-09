@@ -29,28 +29,38 @@ export interface AuthResponse {
 }
 
 // Assistant types
+export type AssistantType = 'openai' | 'webhook';
+
 export interface Assistant {
   id: string;
-  openaiAssistantId: string;
+  type: AssistantType;
+  openaiAssistantId: string | null;
+  webhookUrl: string | null;
   name: string;
   description: string;
   specialty: string;
   icon: string;
   color: string;
   suggestedPrompts: string[];
+  isPinned: boolean;
+  pinOrder: number | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface CreateAssistantRequest {
-  openaiAssistantId: string;
+  type?: AssistantType;
+  openaiAssistantId?: string;
+  webhookUrl?: string;
   name: string;
   description: string;
   specialty: string;
   icon: string;
   color: string;
   suggestedPrompts?: string[];
+  isPinned?: boolean;
+  pinOrder?: number;
 }
 
 // Conversation types
@@ -58,7 +68,7 @@ export interface Conversation {
   id: string;
   userId: string;
   assistantId: string;
-  openaiThreadId: string;
+  openaiThreadId: string | null;
   title: string | null;
   createdAt: Date;
   updatedAt: Date;

@@ -9,6 +9,7 @@ export const outputTypeEnum = pgEnum('automation_output_type', ['file', 'text', 
 export const runStatusEnum = pgEnum('automation_run_status', ['pending', 'running', 'completed', 'failed']);
 export const favoriteTypeEnum = pgEnum('favorite_item_type', ['assistant', 'automation']);
 export const assistantTypeEnum = pgEnum('assistant_type', ['openai', 'webhook']);
+export const resourceTypeEnum = pgEnum('resource_type', ['assistant', 'automation']);
 
 // Utilisateurs
 export const users = pgTable('users', {
@@ -110,6 +111,42 @@ export const refreshTokens = pgTable('refresh_tokens', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Rôles personnalisés pour la gestion des accès
+export const roles = pgTable('roles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  color: text('color').default('#6366f1'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Association utilisateur -> rôles (many-to-many)
+export const userRoles = pgTable('user_roles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  roleId: uuid('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Permissions des rôles sur les ressources
+export const rolePermissions = pgTable('role_permissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  roleId: uuid('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  resourceType: resourceTypeEnum('resource_type').notNull(),
+  resourceId: uuid('resource_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Permissions individuelles utilisateur (en plus des rôles)
+export const userPermissions = pgTable('user_permissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  resourceType: resourceTypeEnum('resource_type').notNull(),
+  resourceId: uuid('resource_id').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -224,3 +261,11 @@ export type VeilleIaEditionSelect = typeof veilleIaEditions.$inferSelect;
 export type VeilleIaEditionInsert = typeof veilleIaEditions.$inferInsert;
 export type VeilleIaItemSelect = typeof veilleIaItems.$inferSelect;
 export type VeilleIaItemInsert = typeof veilleIaItems.$inferInsert;
+export type RoleSelect = typeof roles.$inferSelect;
+export type RoleInsert = typeof roles.$inferInsert;
+export type UserRoleSelect = typeof userRoles.$inferSelect;
+export type UserRoleInsert = typeof userRoles.$inferInsert;
+export type RolePermissionSelect = typeof rolePermissions.$inferSelect;
+export type RolePermissionInsert = typeof rolePermissions.$inferInsert;
+export type UserPermissionSelect = typeof userPermissions.$inferSelect;
+export type UserPermissionInsert = typeof userPermissions.$inferInsert;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Star, ArrowRight } from 'lucide-react';
+import { Bot, Star, ArrowRight, Pin } from 'lucide-react';
 import { assistantsApi, favoritesApi } from '@/lib/api';
 import { Card, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,8 +110,21 @@ export function Assistants() {
         {filteredAssistants?.map((assistant) => (
           <Card
             key={assistant.id}
-            className="group relative overflow-hidden hover:shadow-premium hover:-translate-y-0.5"
+            className={cn(
+              "group relative overflow-hidden hover:shadow-premium hover:-translate-y-0.5",
+              assistant.isPinned && "ring-2 ring-primary/20"
+            )}
           >
+            {/* Pinned indicator */}
+            {assistant.isPinned && (
+              <div className="absolute left-4 top-4 z-10">
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">
+                  <Pin className="h-3 w-3 mr-1" strokeWidth={2} />
+                  Recommande
+                </Badge>
+              </div>
+            )}
+
             {/* Favorite button - refined */}
             <button
               onClick={(e) => {
@@ -134,7 +147,7 @@ export function Assistants() {
               />
             </button>
 
-            <CardContent className="p-6">
+            <CardContent className={cn("p-6", assistant.isPinned && "pt-12")}>
               {/* Icon with refined container */}
               <div className="flex items-start gap-4 mb-4">
                 <div

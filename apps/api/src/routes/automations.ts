@@ -2,11 +2,12 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { triggerWorkflow, buildCallbackUrl, validateCallbackPayload } from '../services/n8n';
+import { getAccessibleResourceIds } from '../services/permissions';
 import type { InputField } from '@altij/shared';
 
 const automationsRoutes = new Hono<Env>();
@@ -99,16 +100,32 @@ automationsRoutes.post('/callback', async (c) => {
 automationsRoutes.use('*', authMiddleware);
 
 // GET /api/automations - List all active automations
+// Filters by user permissions (admins see all)
 automationsRoutes.get('/', async (c) => {
+  const user = c.get('user')!;
+
+  // Récupérer les IDs accessibles (null = admin, tout accessible)
+  const accessibleIds = await getAccessibleResourceIds(user.id, user.role, 'automation');
+
+  // Si aucune permission et pas admin, retourner liste vide
+  if (accessibleIds !== null && accessibleIds.length === 0) {
+    return c.json({ success: true, data: [] });
+  }
+
   const automations = await db
     .select()
     .from(schema.automations)
     .where(eq(schema.automations.isActive, true))
     .orderBy(schema.automations.name);
 
+  // Filtrer par permissions si pas admin
+  const filteredAutomations = accessibleIds === null
+    ? automations
+    : automations.filter((a) => accessibleIds.includes(a.id));
+
   return c.json({
     success: true,
-    data: automations.map((a) => ({
+    data: filteredAutomations.map((a) => ({
       id: a.id,
       n8nWorkflowId: a.n8nWorkflowId,
       name: a.name,
