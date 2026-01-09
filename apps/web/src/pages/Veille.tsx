@@ -151,8 +151,12 @@ function RssSection() {
 
   const refreshFeedsMutation = useMutation({
     mutationFn: () => veilleApi.refreshFeeds(),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['feeds'] });
       queryClient.invalidateQueries({ queryKey: ['articles'] });
+      // Refetch immédiatement pour mettre à jour l'affichage
+      queryClient.refetchQueries({ queryKey: ['articles'] });
+      console.log('Feeds refreshed:', data);
     },
   });
 

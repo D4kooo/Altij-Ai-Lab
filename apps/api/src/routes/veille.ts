@@ -211,26 +211,51 @@ veilleRoutes.delete('/feeds/:id', async (c) => {
 veilleRoutes.post('/feeds/refresh', async (c) => {
   const user = c.get('user');
 
-  const feeds = await db
-    .select()
-    .from(schema.feeds)
-    .where(eq(schema.feeds.userId, user.id));
+  try {
+    const feeds = await db
+      .select()
+      .from(schema.feeds)
+      .where(eq(schema.feeds.userId, user.id));
 
-  for (const feed of feeds) {
-    if (feed.type === 'rss') {
-      await fetchFeedArticles(feed.id, feed.url);
-    } else {
-      await scrapeWebPage(feed.id, feed.url);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const feed of feeds) {
+      try {
+        if (feed.type === 'rss') {
+          await fetchFeedArticles(feed.id, feed.url);
+        } else {
+          await scrapeWebPage(feed.id, feed.url);
+        }
+
+        // Update last fetched
+        await db
+          .update(schema.feeds)
+          .set({ lastFetchedAt: new Date() })
+          .where(eq(schema.feeds.id, feed.id));
+
+        successCount++;
+      } catch (feedError) {
+        console.error(`Error refreshing feed ${feed.id} (${feed.name}):`, feedError);
+        errorCount++;
+      }
     }
 
-    // Update last fetched
-    await db
-      .update(schema.feeds)
-      .set({ lastFetchedAt: new Date() })
-      .where(eq(schema.feeds.id, feed.id));
+    return c.json({
+      success: true,
+      data: {
+        total: feeds.length,
+        success: successCount,
+        errors: errorCount,
+      }
+    });
+  } catch (error) {
+    console.error('Error in feeds refresh:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to refresh feeds'
+    }, 500);
   }
-
-  return c.json({ success: true });
 });
 
 // POST /api/veille/feeds/refresh-all - Refresh all feeds for all users (admin only)
