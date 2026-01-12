@@ -2,7 +2,9 @@ import cron from 'node-cron';
 import { db, schema } from '../db';
 import { eq, desc } from 'drizzle-orm';
 import { fetchFeedArticles, scrapeWebPage } from '../routes/veille';
-import { generateWithPerplexityDedup, extractItemsFromContent, generateContentHash } from '../routes/veille-ia';
+import { generateNewsletter } from '../routes/veille-ia';
+
+// Note: Les tables veilleIaItems ne sont plus utilisées (plus de tracking de sujets)
 
 // ============================================
 // SCHEDULER SERVICE
@@ -179,73 +181,23 @@ function shouldGenerateNewEdition(
 }
 
 /**
- * Génère une nouvelle édition pour une veille IA
+ * Génère une nouvelle édition pour une veille IA (newsletter quotidienne)
  */
 async function generateVeilleIaEdition(veilleId: string, prompt: string) {
   try {
-    // Récupérer les items précédents pour la déduplication
-    let previousTopics: string[] = [];
-    let previousHashes = new Set<string>();
-
-    try {
-      const previousItems = await db
-        .select({
-          title: schema.veilleIaItems.title,
-          summary: schema.veilleIaItems.summary,
-          contentHash: schema.veilleIaItems.contentHash,
-        })
-        .from(schema.veilleIaItems)
-        .where(eq(schema.veilleIaItems.veilleIaId, veilleId))
-        .orderBy(desc(schema.veilleIaItems.createdAt))
-        .limit(100);
-
-      previousTopics = previousItems.map(item => item.title).filter(Boolean);
-      previousHashes = new Set(previousItems.map(item => item.contentHash));
-    } catch (itemsError) {
-      console.error('[Scheduler] Error fetching previous items (continuing without dedup):', itemsError);
-    }
-
-    // Appeler Perplexity avec contexte de déduplication
-    const result = await generateWithPerplexityDedup(prompt, previousTopics);
+    // Générer la newsletter avec Perplexity
+    const result = await generateNewsletter(prompt);
 
     // Sauvegarder l'édition
-    const [edition] = await db
+    await db
       .insert(schema.veilleIaEditions)
       .values({
         veilleIaId: veilleId,
         content: result.content,
         sources: result.sources,
-      })
-      .returning();
-
-    // Extraire et sauvegarder les items individuels
-    try {
-      const newItems = extractItemsFromContent(result.content, result.sources);
-
-      // Filtrer les items déjà existants (par hash)
-      const uniqueItems = newItems.filter(item => {
-        const hash = generateContentHash(item.title + (item.summary || ''));
-        return !previousHashes.has(hash);
       });
 
-      if (uniqueItems.length > 0) {
-        await db.insert(schema.veilleIaItems).values(
-          uniqueItems.map(item => ({
-            veilleIaId: veilleId,
-            editionId: edition.id,
-            title: item.title,
-            summary: item.summary || null,
-            sourceUrl: item.sourceUrl || null,
-            contentHash: generateContentHash(item.title + (item.summary || '')),
-            category: item.category || null,
-          }))
-        );
-      }
-
-      console.log(`[Scheduler] Generated edition for veille ${veilleId}: ${uniqueItems.length} new items`);
-    } catch (itemError) {
-      console.error('[Scheduler] Error saving items (non-critical):', itemError);
-    }
+    console.log(`[Scheduler] Generated newsletter for veille ${veilleId}`);
   } catch (error) {
     console.error(`[Scheduler] Error generating veille IA edition for ${veilleId}:`, error);
     throw error;

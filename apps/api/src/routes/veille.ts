@@ -217,29 +217,42 @@ veilleRoutes.post('/feeds/refresh', async (c) => {
       .from(schema.feeds)
       .where(eq(schema.feeds.userId, user.id));
 
-    let successCount = 0;
-    let errorCount = 0;
+    // Process feeds in parallel with individual timeouts
+    const results = await Promise.allSettled(
+      feeds.map(async (feed) => {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Feed refresh timeout')), 15000)
+        );
 
-    for (const feed of feeds) {
-      try {
-        if (feed.type === 'rss') {
-          await fetchFeedArticles(feed.id, feed.url);
-        } else {
-          await scrapeWebPage(feed.id, feed.url);
-        }
+        const fetchPromise = (async () => {
+          if (feed.type === 'rss') {
+            await fetchFeedArticles(feed.id, feed.url);
+          } else {
+            await scrapeWebPage(feed.id, feed.url);
+          }
 
-        // Update last fetched
-        await db
-          .update(schema.feeds)
-          .set({ lastFetchedAt: new Date() })
-          .where(eq(schema.feeds.id, feed.id));
+          // Update last fetched
+          await db
+            .update(schema.feeds)
+            .set({ lastFetchedAt: new Date() })
+            .where(eq(schema.feeds.id, feed.id));
 
-        successCount++;
-      } catch (feedError) {
-        console.error(`Error refreshing feed ${feed.id} (${feed.name}):`, feedError);
-        errorCount++;
+          return feed.name;
+        })();
+
+        return Promise.race([fetchPromise, timeoutPromise]);
+      })
+    );
+
+    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    const errorCount = results.filter(r => r.status === 'rejected').length;
+
+    // Log errors for debugging
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`Error refreshing feed ${feeds[index].id} (${feeds[index].name}):`, result.reason);
       }
-    }
+    });
 
     return c.json({
       success: true,
@@ -492,13 +505,18 @@ veilleRoutes.post('/newsletters/:id/send', async (c) => {
 // Scrape a web page for articles/links
 async function scrapeWebPage(feedId: string, pageUrl: string) {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(pageUrl, {
       // @ts-ignore - Bun supports this option
       tls: { rejectUnauthorized: false },
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       },
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     const html = await response.text();
 
     console.log(`Scraping web page: ${pageUrl}`);
@@ -675,13 +693,18 @@ function isValidArticleUrl(url: string, baseUrl: URL): boolean {
 
 async function fetchFeedArticles(feedId: string, feedUrl: string) {
   try {
-    // Fetch with SSL verification disabled for problematic certificates
+    // Fetch with SSL verification disabled and timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(feedUrl, {
       // @ts-ignore - Bun supports this option
       tls: {
         rejectUnauthorized: false,
       },
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     const text = await response.text();
 
     console.log(`Fetching feed: ${feedUrl}`);

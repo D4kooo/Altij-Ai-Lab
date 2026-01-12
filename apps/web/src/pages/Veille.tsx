@@ -594,6 +594,9 @@ function VeilleIaSection({ isAdmin }: { isAdmin: boolean }) {
 const CATEGORY_LABELS: Record<string, string> = {
   jurisprudence: 'Jurisprudence',
   legislation: 'Législation',
+  regulation: 'Régulation',
+  cybersecurite: 'Cybersécurité',
+  data: 'Data/RGPD',
   doctrine: 'Doctrine',
   actualite: 'Actualité',
 };
@@ -601,6 +604,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 const CATEGORY_COLORS: Record<string, string> = {
   jurisprudence: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   legislation: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  regulation: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+  cybersecurite: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  data: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
   doctrine: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
   actualite: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
 };
@@ -615,7 +621,7 @@ function VeilleIaDetail({
   onBack: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'content' | 'items' | 'history'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'history'>('content');
 
   const { data: fullVeille, isLoading } = useQuery({
     queryKey: ['veille-ia', veille.id],
@@ -625,11 +631,6 @@ function VeilleIaDetail({
   const { data: editions } = useQuery({
     queryKey: ['veille-ia-editions', veille.id],
     queryFn: () => veilleIaApi.getEditions(veille.id),
-  });
-
-  const { data: items } = useQuery({
-    queryKey: ['veille-ia-items', veille.id],
-    queryFn: () => veilleIaApi.getItems(veille.id),
   });
 
   const { data: departments } = useQuery({
@@ -642,7 +643,6 @@ function VeilleIaDetail({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['veille-ia', veille.id] });
       queryClient.invalidateQueries({ queryKey: ['veille-ia-editions', veille.id] });
-      queryClient.invalidateQueries({ queryKey: ['veille-ia-items', veille.id] });
     },
   });
 
@@ -708,10 +708,10 @@ function VeilleIaDetail({
           <Calendar className="h-3 w-3" />
           {FREQUENCY_LABELS[veille.frequency]}
         </Badge>
-        {items && items.length > 0 && (
+        {editions && editions.length > 0 && (
           <Badge variant="outline" className="gap-1">
             <FileText className="h-3 w-3" />
-            {items.length} sujets suivis
+            {editions.length} édition{editions.length > 1 ? 's' : ''}
           </Badge>
         )}
         {veille.departments.map((dept) => (
@@ -723,15 +723,11 @@ function VeilleIaDetail({
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'content' | 'items' | 'history')}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'content' | 'history')}>
         <TabsList>
           <TabsTrigger value="content" className="gap-2">
-            <FileText className="h-4 w-4" />
-            Contenu
-          </TabsTrigger>
-          <TabsTrigger value="items" className="gap-2">
             <Newspaper className="h-4 w-4" />
-            Sujets ({items?.length || 0})
+            Newsletter
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2">
             <Clock className="h-4 w-4" />
@@ -796,74 +792,6 @@ function VeilleIaDetail({
                 {isAdmin
                   ? 'Cliquez sur "Générer maintenant" pour créer la première édition'
                   : 'Cette veille n\'a pas encore d\'édition'}
-              </p>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Items Tab */}
-        <TabsContent value="items" className="mt-4">
-          {items && items.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Sujets suivis</CardTitle>
-                <CardDescription>
-                  Tous les sujets extraits des éditions précédentes. Les doublons sont automatiquement filtrés lors des nouvelles générations.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[500px]">
-                  <div className="space-y-3">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-lg border p-4 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              {item.category && (
-                                <Badge
-                                  variant="secondary"
-                                  className={cn('text-xs', CATEGORY_COLORS[item.category])}
-                                >
-                                  {CATEGORY_LABELS[item.category] || item.category}
-                                </Badge>
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                {formatRelativeTime(item.createdAt)}
-                              </span>
-                            </div>
-                            <h4 className="font-medium text-sm">{item.title}</h4>
-                            {item.summary && (
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {item.summary}
-                              </p>
-                            )}
-                          </div>
-                          {item.sourceUrl && (
-                            <a
-                              href={item.sourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="shrink-0 text-primary hover:text-primary/80"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Newspaper className="mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-lg font-medium">Aucun sujet</p>
-              <p className="text-sm text-muted-foreground">
-                Les sujets seront extraits automatiquement lors de la prochaine génération.
               </p>
             </div>
           )}
@@ -1085,14 +1013,30 @@ function VeilleIaCreateForm({
 // ============================================
 
 function markdownToHtml(markdown: string): string {
-  // Simple markdown to HTML conversion
+  // Enhanced markdown to HTML conversion for newsletter format
   return markdown
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-    .replace(/\*(.*)\*/gim, '<em>$1</em>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
-    .replace(/^- (.*$)/gim, '<li>$1</li>')
+    // Headers with emojis
+    .replace(/^### (\d+)\. (.+)$/gim, '<h3 class="text-base font-semibold mt-6 mb-2 flex items-center gap-2"><span class="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm">$1</span>$2</h3>')
+    .replace(/^## 📰 (.+)$/gim, '<h2 class="text-lg font-bold mb-4 pb-2 border-b flex items-center gap-2">📰 $1</h2>')
+    .replace(/^## 📋 (.+)$/gim, '<h2 class="text-lg font-bold mt-6 mb-3 pb-2 border-b flex items-center gap-2">📋 $1</h2>')
+    .replace(/^## 🔗 (.+)$/gim, '<h2 class="text-lg font-bold mt-6 mb-3 pb-2 border-b flex items-center gap-2">🔗 $1</h2>')
+    .replace(/^## (.*$)/gim, '<h2 class="text-lg font-bold mt-4 mb-2">$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1 class="text-xl font-bold mb-4">$1</h1>')
+    // Metadata fields
+    .replace(/\*\*📅 Date\*\* : (.+)/gim, '<div class="text-xs text-muted-foreground mb-1">📅 $1</div>')
+    .replace(/\*\*🏷️ Catégorie\*\* : (.+)/gim, '<span class="inline-block px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full mb-2">🏷️ $1</span>')
+    .replace(/\*\*🔗 Source\*\* : (.+)/gim, '<div class="text-xs mt-2 text-muted-foreground">🔗 $1</div>')
+    // Bold and italic
+    .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/gim, '<em>$1</em>')
+    // Links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">$1</a>')
+    // Lists
+    .replace(/^[-•] (.+)$/gim, '<li class="ml-4 mb-1">$1</li>')
+    .replace(/^(\d+)\. (?!<)(.+)$/gim, '<li class="ml-4 mb-1"><span class="font-medium">$1.</span> $2</li>')
+    // Horizontal rules
+    .replace(/^---+$/gim, '<hr class="my-4 border-border" />')
+    // Line breaks
+    .replace(/\n\n/gim, '</p><p class="mb-3">')
     .replace(/\n/gim, '<br />');
 }

@@ -2,10 +2,9 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db, schema } from '../db';
-import { eq, and, desc, or, sql, inArray } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth';
 import type { Env } from '../types';
-import { createHash } from 'crypto';
 
 const veilleIaRoutes = new Hono<Env>();
 
@@ -191,7 +190,7 @@ veilleIaRoutes.post('/', requireAdmin, zValidator('json', createVeilleIaSchema),
 
   // Auto-generate first edition
   try {
-    const result = await generateWithPerplexityDedup(data.prompt, []);
+    const result = await generateNewsletter(data.prompt);
 
     const [edition] = await db
       .insert(schema.veilleIaEditions)
@@ -201,26 +200,6 @@ veilleIaRoutes.post('/', requireAdmin, zValidator('json', createVeilleIaSchema),
         sources: result.sources,
       })
       .returning();
-
-    // Extract and save items (non-blocking, ignore errors)
-    try {
-      const newItems = extractItemsFromContent(result.content, result.sources);
-      if (newItems.length > 0) {
-        await db.insert(schema.veilleIaItems).values(
-          newItems.map(item => ({
-            veilleIaId: veille.id,
-            editionId: edition.id,
-            title: item.title,
-            summary: item.summary || null,
-            sourceUrl: item.sourceUrl || null,
-            contentHash: generateContentHash(item.title + (item.summary || '')),
-            category: item.category || null,
-          }))
-        );
-      }
-    } catch (itemError) {
-      console.error('Error saving items (non-critical):', itemError);
-    }
 
     return c.json({
       success: true,
@@ -282,30 +261,8 @@ veilleIaRoutes.post('/:id/generate', requireAdmin, async (c) => {
   }
 
   try {
-    // Récupérer les items précédents pour la déduplication
-    let previousTopics: string[] = [];
-    let previousHashes = new Set<string>();
-
-    try {
-      const previousItems = await db
-        .select({
-          title: schema.veilleIaItems.title,
-          summary: schema.veilleIaItems.summary,
-          contentHash: schema.veilleIaItems.contentHash,
-        })
-        .from(schema.veilleIaItems)
-        .where(eq(schema.veilleIaItems.veilleIaId, veilleId))
-        .orderBy(desc(schema.veilleIaItems.createdAt))
-        .limit(100);
-
-      previousTopics = previousItems.map(item => item.title).filter(Boolean);
-      previousHashes = new Set(previousItems.map(item => item.contentHash));
-    } catch (itemsError) {
-      console.error('Error fetching previous items (continuing without dedup):', itemsError);
-    }
-
-    // Appeler Perplexity avec contexte de déduplication
-    const result = await generateWithPerplexityDedup(veille.prompt, previousTopics);
+    // Générer la newsletter (actualités fraîches du jour)
+    const result = await generateNewsletter(veille.prompt);
 
     // Sauvegarder l'édition
     const [edition] = await db
@@ -317,45 +274,9 @@ veilleIaRoutes.post('/:id/generate', requireAdmin, async (c) => {
       })
       .returning();
 
-    // Extraire et sauvegarder les items individuels (non-bloquant)
-    let newItemsCount = 0;
-    let totalItemsFound = 0;
-
-    try {
-      const newItems = extractItemsFromContent(result.content, result.sources);
-      totalItemsFound = newItems.length;
-
-      // Filtrer les items déjà existants (par hash)
-      const uniqueItems = newItems.filter(item => {
-        const hash = generateContentHash(item.title + (item.summary || ''));
-        return !previousHashes.has(hash);
-      });
-      newItemsCount = uniqueItems.length;
-
-      if (uniqueItems.length > 0) {
-        await db.insert(schema.veilleIaItems).values(
-          uniqueItems.map(item => ({
-            veilleIaId: veilleId,
-            editionId: edition.id,
-            title: item.title,
-            summary: item.summary || null,
-            sourceUrl: item.sourceUrl || null,
-            contentHash: generateContentHash(item.title + (item.summary || '')),
-            category: item.category || null,
-          }))
-        );
-      }
-    } catch (itemError) {
-      console.error('Error saving items (non-critical):', itemError);
-    }
-
     return c.json({
       success: true,
-      data: {
-        ...edition,
-        newItemsCount,
-        totalItemsFound,
-      }
+      data: edition
     });
   } catch (error) {
     console.error('Error generating veille IA:', error);
@@ -370,133 +291,60 @@ veilleIaRoutes.post('/:id/generate', requireAdmin, async (c) => {
 // OPENROUTER / PERPLEXITY INTEGRATION
 // ============================================
 
-interface PerplexityResult {
+interface NewsletterResult {
   content: string;
   sources: { title: string; url: string }[];
 }
 
-interface ExtractedItem {
-  title: string;
-  summary?: string;
-  sourceUrl?: string;
-  category?: string;
-}
-
-// Générer un hash pour détecter les doublons
-function generateContentHash(content: string): string {
-  return createHash('md5')
-    .update(content.toLowerCase().trim())
-    .digest('hex');
-}
-
-// Extraire les items individuels du contenu généré
-function extractItemsFromContent(
-  content: string,
-  sources: { title: string; url: string }[]
-): ExtractedItem[] {
-  const items: ExtractedItem[] = [];
-
-  // Pattern pour détecter les titres de sections (## ou ###)
-  const sectionRegex = /^#{2,3}\s+(.+)$/gm;
-  let match;
-
-  while ((match = sectionRegex.exec(content)) !== null) {
-    const title = match[1].trim();
-
-    // Trouver le contenu associé (jusqu'au prochain titre)
-    const startIndex = match.index + match[0].length;
-    const nextMatch = sectionRegex.exec(content);
-    const endIndex = nextMatch ? nextMatch.index : content.length;
-    sectionRegex.lastIndex = match.index + match[0].length; // Reset to continue from current position
-
-    const sectionContent = content.slice(startIndex, endIndex).trim();
-
-    // Extraire un résumé (premiers 200 caractères)
-    const summary = sectionContent
-      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Enlever les liens markdown
-      .replace(/[*_#]/g, '') // Enlever le formatage
-      .slice(0, 200)
-      .trim();
-
-    // Trouver l'URL source associée
-    const urlMatch = sectionContent.match(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/);
-    const sourceUrl = urlMatch ? urlMatch[2] : undefined;
-
-    // Détecter la catégorie basée sur des mots-clés
-    let category: string | undefined;
-    const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes('jurisprudence') || lowerTitle.includes('arrêt') || lowerTitle.includes('décision')) {
-      category = 'jurisprudence';
-    } else if (lowerTitle.includes('loi') || lowerTitle.includes('décret') || lowerTitle.includes('législat')) {
-      category = 'legislation';
-    } else if (lowerTitle.includes('doctrine') || lowerTitle.includes('article') || lowerTitle.includes('analyse')) {
-      category = 'doctrine';
-    } else if (lowerTitle.includes('actualité') || lowerTitle.includes('news')) {
-      category = 'actualite';
-    }
-
-    if (title.length > 3) { // Ignorer les titres trop courts
-      items.push({
-        title,
-        summary: summary || undefined,
-        sourceUrl,
-        category,
-      });
-    }
-  }
-
-  // Si aucun item détecté par sections, essayer d'extraire depuis les listes à puces
-  if (items.length === 0) {
-    const bulletRegex = /^[-*]\s+\*\*([^*]+)\*\*[:\s]*(.+)?$/gm;
-    while ((match = bulletRegex.exec(content)) !== null) {
-      items.push({
-        title: match[1].trim(),
-        summary: match[2]?.trim().slice(0, 200),
-      });
-    }
-  }
-
-  return items;
-}
-
-// Générer du contenu avec Perplexity en incluant les sujets déjà traités pour déduplication
-async function generateWithPerplexityDedup(
-  prompt: string,
-  previousTopics: string[]
-): Promise<PerplexityResult> {
+// Générer une newsletter avec Perplexity (style Perplexity Tasks)
+async function generateNewsletter(prompt: string): Promise<NewsletterResult> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
     throw new Error('OPENROUTER_API_KEY is not configured');
   }
 
-  // Construire le contexte de déduplication
-  let deduplicationContext = '';
-  if (previousTopics.length > 0) {
-    deduplicationContext = `
+  const today = new Date().toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
-IMPORTANT - DÉDUPLICATION :
-Les sujets suivants ont DÉJÀ été traités dans les éditions précédentes. NE PAS les répéter, sauf s'il y a des développements significatifs nouveaux :
-${previousTopics.slice(0, 50).map(t => `- ${t}`).join('\n')}
+  const systemPrompt = `Tu es un expert en veille juridique qui rédige une NEWSLETTER QUOTIDIENNE pour un cabinet d'avocats français.
 
-Concentre-toi UNIQUEMENT sur les nouvelles actualités et développements qui n'ont PAS encore été couverts.
-Si une actualité est une suite ou mise à jour d'un sujet précédent, mentionne explicitement "Mise à jour :" au début.`;
-  }
+📅 Date du jour : ${today}
 
-  const systemPrompt = `Tu es un assistant spécialisé en veille juridique et réglementaire pour un cabinet d'avocats français.
-Tu dois fournir une synthèse claire, structurée et professionnelle des DERNIÈRES actualités et évolutions dans le domaine demandé.
+FORMAT NEWSLETTER OBLIGATOIRE :
 
-RÈGLES DE FORMAT :
-- Utilise le format Markdown
-- Structure avec des titres ## pour chaque actualité/sujet majeur
-- Chaque section doit avoir un titre clair et descriptif
-- Cite tes sources avec des liens [titre](url) quand possible
-- Réponds en français
+## 📰 Les actualités du jour
 
-RÈGLES DE CONTENU :
-- Ne rapporte que des informations RÉCENTES (dernières semaines/mois selon la fréquence)
-- Chaque élément doit avoir un titre unique et descriptif
-- Inclus la date de l'actualité quand disponible${deduplicationContext}`;
+Pour chaque actualité (5-10 max), utilise ce format EXACT :
+
+### 1. [Titre court et accrocheur]
+**📅 Date** : [date de publication si connue]
+**🏷️ Catégorie** : [Jurisprudence | Législation | Régulation | Cybersécurité | Data/RGPD | Actualité]
+
+[Description en 2-3 phrases maximum. Va droit au but, explique l'essentiel et l'impact pratique pour un avocat.]
+
+**🔗 Source** : [Nom de la source](URL)
+
+---
+
+## 📋 En bref
+
+[Liste à puces de 3-5 actualités secondaires moins importantes, une ligne chacune avec source]
+
+## 🔗 Sources utilisées
+
+[Liste numérotée de toutes les sources consultées avec leurs URLs]
+
+RÈGLES CRITIQUES :
+- Sois CONCIS et FACTUEL - pas de blabla, que de l'info utile
+- Chaque news DOIT avoir une source avec URL
+- Priorise les actualités des dernières 24-48h
+- Format digest facile à lire en 5 minutes
+- Réponds UNIQUEMENT en français`;
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -552,62 +400,15 @@ veilleIaRoutes.post('/generate-all', requireAdmin, async (c) => {
 
   for (const veille of veilles) {
     try {
-      // Récupérer les items précédents pour la déduplication
-      let previousTopics: string[] = [];
-      let previousHashes = new Set<string>();
+      const result = await generateNewsletter(veille.prompt);
 
-      try {
-        const previousItems = await db
-          .select({
-            title: schema.veilleIaItems.title,
-            contentHash: schema.veilleIaItems.contentHash,
-          })
-          .from(schema.veilleIaItems)
-          .where(eq(schema.veilleIaItems.veilleIaId, veille.id))
-          .orderBy(desc(schema.veilleIaItems.createdAt))
-          .limit(100);
-
-        previousTopics = previousItems.map(item => item.title).filter(Boolean);
-        previousHashes = new Set(previousItems.map(item => item.contentHash));
-      } catch (e) {
-        console.error(`Error fetching previous items for ${veille.id}:`, e);
-      }
-
-      const result = await generateWithPerplexityDedup(veille.prompt, previousTopics);
-
-      const [edition] = await db
+      await db
         .insert(schema.veilleIaEditions)
         .values({
           veilleIaId: veille.id,
           content: result.content,
           sources: result.sources,
-        })
-        .returning();
-
-      // Save items
-      try {
-        const newItems = extractItemsFromContent(result.content, result.sources);
-        const uniqueItems = newItems.filter(item => {
-          const hash = generateContentHash(item.title + (item.summary || ''));
-          return !previousHashes.has(hash);
         });
-
-        if (uniqueItems.length > 0) {
-          await db.insert(schema.veilleIaItems).values(
-            uniqueItems.map(item => ({
-              veilleIaId: veille.id,
-              editionId: edition.id,
-              title: item.title,
-              summary: item.summary || null,
-              sourceUrl: item.sourceUrl || null,
-              contentHash: generateContentHash(item.title + (item.summary || '')),
-              category: item.category || null,
-            }))
-          );
-        }
-      } catch (e) {
-        console.error(`Error saving items for ${veille.id}:`, e);
-      }
 
       successCount++;
       results.push({ id: veille.id, name: veille.name, success: true });
@@ -634,37 +435,6 @@ veilleIaRoutes.post('/generate-all', requireAdmin, async (c) => {
   });
 });
 
-// GET /api/veille-ia/:id/items - Get all items for a veille (for admin/debug)
-veilleIaRoutes.get('/:id/items', async (c) => {
-  const user = c.get('user');
-  const veilleId = c.req.param('id');
-
-  // Vérifier l'accès
-  const [veille] = await db
-    .select()
-    .from(schema.veillesIa)
-    .where(eq(schema.veillesIa.id, veilleId));
-
-  if (!veille) {
-    return c.json({ success: false, error: 'Veille not found' }, 404);
-  }
-
-  if (user.role !== 'admin') {
-    const userDept = user.department;
-    if (!userDept || !veille.departments.includes(userDept)) {
-      return c.json({ success: false, error: 'Access denied' }, 403);
-    }
-  }
-
-  const items = await db
-    .select()
-    .from(schema.veilleIaItems)
-    .where(eq(schema.veilleIaItems.veilleIaId, veilleId))
-    .orderBy(desc(schema.veilleIaItems.createdAt));
-
-  return c.json({ success: true, data: items });
-});
-
-// Export helper functions for scheduler
-export { generateWithPerplexityDedup, extractItemsFromContent, generateContentHash };
+// Export pour scheduler
+export { generateNewsletter };
 export { veilleIaRoutes };
