@@ -6,7 +6,7 @@ import { eq, and, desc, inArray } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
-import { triggerWorkflow, buildCallbackData, validateCallbackPayload, verifyWebhookSignature } from '../services/n8n';
+import { triggerWorkflow, buildCallbackUrl, validateCallbackPayload } from '../services/n8n';
 import { getAccessibleResourceIds } from '../services/permissions';
 import { validateWebhookUrl } from '../utils/urlValidation';
 import type { InputField } from '@altij/shared';
@@ -60,7 +60,7 @@ const runAutomationSchema = z.object({
     .optional(),
 });
 
-// Callback endpoint for n8n (secured with HMAC signature)
+// Callback endpoint for n8n interne (automation.devtotem.com)
 automationsRoutes.post('/callback', async (c) => {
   const body = await c.req.json();
   const payload = validateCallbackPayload(body);
@@ -70,19 +70,6 @@ automationsRoutes.post('/callback', async (c) => {
   }
 
   const { runId, status, result } = payload;
-
-  // SECURITY: Verify webhook signature
-  const signature = c.req.header('x-webhook-signature') || (body as Record<string, unknown>).signature;
-
-  if (!signature || typeof signature !== 'string') {
-    console.warn(`[SECURITY] Callback without signature for runId: ${runId}`);
-    return c.json({ success: false, error: 'Missing webhook signature' }, 401);
-  }
-
-  if (!verifyWebhookSignature(runId, signature)) {
-    console.warn(`[SECURITY] Invalid signature for runId: ${runId}`);
-    return c.json({ success: false, error: 'Invalid webhook signature' }, 401);
-  }
 
   // Get the run
   const [run] = await db
@@ -468,17 +455,14 @@ automationsRoutes.post('/:id/run', zValidator('json', runAutomationSchema), asyn
     startedAt: now,
   });
 
-  // Trigger n8n workflow with callback data including signature
-  const callbackData = buildCallbackData(runId);
-
+  // Trigger n8n workflow
   try {
     await triggerWorkflow(automation.n8nWebhookUrl, {
       automationRunId: runId,
       userId: user.id,
       inputs,
       files,
-      callbackUrl: callbackData.callbackUrl,
-      callbackSignature: callbackData.signature, // n8n must include this in callback
+      callbackUrl: buildCallbackUrl(runId),
     });
 
     // Update status to running

@@ -3,9 +3,9 @@
  * Prevents SSRF attacks by validating webhook URLs
  */
 
-// Default allowed domains for webhook URLs
+// Default allowed domains for webhook URLs (n8n interne)
 // Can be extended via ALLOWED_WEBHOOK_DOMAINS env variable
-const DEFAULT_ALLOWED_DOMAINS = ['n8n.altij.com'];
+const DEFAULT_ALLOWED_DOMAINS = ['automation.devtotem.com'];
 
 function getAllowedDomains(): string[] {
   const envDomains = process.env.ALLOWED_WEBHOOK_DOMAINS;

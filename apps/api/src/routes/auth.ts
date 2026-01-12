@@ -10,34 +10,16 @@ import {
   verifyRefreshToken,
   revokeRefreshToken,
   updateLastLogin,
-  createUser,
 } from '../services/auth';
 import { authMiddleware } from '../middleware/auth';
-import { authRateLimit, sensitiveRateLimit } from '../middleware/rateLimit';
-import { logAuthEvent, logUserEvent } from '../services/audit';
+import { authRateLimit } from '../middleware/rateLimit';
+import { logAuthEvent } from '../services/audit';
 
 const authRoutes = new Hono<Env>();
 
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-});
-
-// Password complexity requirements
-const passwordSchema = z
-  .string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(128, 'Password must not exceed 128 characters')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/[0-9]/, 'Password must contain at least one number')
-  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
-
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: passwordSchema,
-  firstName: z.string().min(1).max(100),
-  lastName: z.string().min(1).max(100),
 });
 
 const refreshSchema = z.object({
@@ -90,49 +72,8 @@ authRoutes.post('/login', authRateLimit, zValidator('json', loginSchema), async 
   });
 });
 
-// POST /api/auth/register (rate limited, can be disabled via env)
-authRoutes.post('/register', sensitiveRateLimit, zValidator('json', registerSchema), async (c) => {
-  // SECURITY: Disable registration in production unless explicitly enabled
-  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_REGISTRATION !== 'true') {
-    return c.json({ success: false, error: 'Registration is disabled' }, 403);
-  }
-
-  const data = c.req.valid('json');
-
-  const existingUser = await getUserByEmail(data.email);
-
-  if (existingUser) {
-    return c.json({ success: false, error: 'Email already registered' }, 400);
-  }
-
-  const user = await createUser(data);
-
-  // Log user creation
-  await logUserEvent(c, 'user_created', user.id, user.id, {
-    email: user.email,
-    selfRegistration: true,
-  });
-
-  const token = await generateAccessToken(user);
-  const refreshToken = await generateRefreshToken(user.id);
-
-  return c.json({
-    success: true,
-    data: {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        createdAt: user.createdAt,
-        lastLoginAt: user.lastLoginAt,
-      },
-      token,
-      refreshToken,
-    },
-  });
-});
+// Registration désactivée - les utilisateurs sont créés manuellement par un admin
+// Via POST /api/users (admin only)
 
 // POST /api/auth/logout
 authRoutes.post('/logout', async (c) => {
