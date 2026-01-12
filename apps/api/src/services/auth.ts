@@ -11,7 +11,17 @@ function generateUUID(): string {
 import type { JWTPayload } from '../types';
 import type { UserSelect } from '../db/schema';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'default-secret-change-me');
+// SECURITY: JWT_SECRET must be configured in production
+if (!process.env.JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('CRITICAL: JWT_SECRET environment variable must be set in production');
+  }
+  console.warn('⚠️  WARNING: JWT_SECRET not set. Using insecure default for development only.');
+}
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'dev-only-secret-do-not-use-in-production'
+);
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const REFRESH_TOKEN_EXPIRES_DAYS = 30;
 

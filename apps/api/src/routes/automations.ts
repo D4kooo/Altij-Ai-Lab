@@ -6,8 +6,9 @@ import { eq, and, desc, inArray } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
-import { triggerWorkflow, buildCallbackUrl, validateCallbackPayload } from '../services/n8n';
+import { triggerWorkflow, buildCallbackData, validateCallbackPayload, verifyWebhookSignature } from '../services/n8n';
 import { getAccessibleResourceIds } from '../services/permissions';
+import { validateWebhookUrl } from '../utils/urlValidation';
 import type { InputField } from '@altij/shared';
 
 const automationsRoutes = new Hono<Env>();
@@ -59,7 +60,7 @@ const runAutomationSchema = z.object({
     .optional(),
 });
 
-// Public callback endpoint (no auth required - called by n8n)
+// Callback endpoint for n8n (secured with HMAC signature)
 automationsRoutes.post('/callback', async (c) => {
   const body = await c.req.json();
   const payload = validateCallbackPayload(body);
@@ -69,6 +70,19 @@ automationsRoutes.post('/callback', async (c) => {
   }
 
   const { runId, status, result } = payload;
+
+  // SECURITY: Verify webhook signature
+  const signature = c.req.header('x-webhook-signature') || (body as Record<string, unknown>).signature;
+
+  if (!signature || typeof signature !== 'string') {
+    console.warn(`[SECURITY] Callback without signature for runId: ${runId}`);
+    return c.json({ success: false, error: 'Missing webhook signature' }, 401);
+  }
+
+  if (!verifyWebhookSignature(runId, signature)) {
+    console.warn(`[SECURITY] Invalid signature for runId: ${runId}`);
+    return c.json({ success: false, error: 'Invalid webhook signature' }, 401);
+  }
 
   // Get the run
   const [run] = await db
@@ -288,6 +302,13 @@ automationsRoutes.get('/:id', async (c) => {
 // POST /api/automations - Create new automation (admin only)
 automationsRoutes.post('/', adminMiddleware, zValidator('json', createAutomationSchema), async (c) => {
   const data = c.req.valid('json');
+
+  // SECURITY: Validate webhook URL
+  const urlValidation = validateWebhookUrl(data.n8nWebhookUrl);
+  if (!urlValidation.valid) {
+    return c.json({ success: false, error: urlValidation.error }, 400);
+  }
+
   const id = nanoid();
   const now = new Date();
 
@@ -341,6 +362,14 @@ automationsRoutes.post('/', adminMiddleware, zValidator('json', createAutomation
 automationsRoutes.put('/:id', adminMiddleware, zValidator('json', updateAutomationSchema), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
+
+  // SECURITY: Validate webhook URL if provided
+  if (data.n8nWebhookUrl) {
+    const urlValidation = validateWebhookUrl(data.n8nWebhookUrl);
+    if (!urlValidation.valid) {
+      return c.json({ success: false, error: urlValidation.error }, 400);
+    }
+  }
 
   const [existing] = await db
     .select()
@@ -439,14 +468,17 @@ automationsRoutes.post('/:id/run', zValidator('json', runAutomationSchema), asyn
     startedAt: now,
   });
 
-  // Trigger n8n workflow
+  // Trigger n8n workflow with callback data including signature
+  const callbackData = buildCallbackData(runId);
+
   try {
     await triggerWorkflow(automation.n8nWebhookUrl, {
       automationRunId: runId,
       userId: user.id,
       inputs,
       files,
-      callbackUrl: buildCallbackUrl(runId),
+      callbackUrl: callbackData.callbackUrl,
+      callbackSignature: callbackData.signature, // n8n must include this in callback
     });
 
     // Update status to running

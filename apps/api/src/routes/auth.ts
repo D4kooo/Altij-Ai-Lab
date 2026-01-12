@@ -13,6 +13,8 @@ import {
   createUser,
 } from '../services/auth';
 import { authMiddleware } from '../middleware/auth';
+import { authRateLimit, sensitiveRateLimit } from '../middleware/rateLimit';
+import { logAuthEvent, logUserEvent } from '../services/audit';
 
 const authRoutes = new Hono<Env>();
 
@@ -21,34 +23,51 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+// Password complexity requirements
+const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(128, 'Password must not exceed 128 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  password: passwordSchema,
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
 });
 
 const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
-// POST /api/auth/login
-authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
+// POST /api/auth/login (rate limited: 5 attempts per 15 min)
+authRoutes.post('/login', authRateLimit, zValidator('json', loginSchema), async (c) => {
   const { email, password } = c.req.valid('json');
 
   const user = await getUserByEmail(email);
 
   if (!user) {
+    // Log failed login attempt (user not found)
+    await logAuthEvent(c, 'login_failed', null, { email, reason: 'user_not_found' });
     return c.json({ success: false, error: 'Invalid email or password' }, 401);
   }
 
   const isValidPassword = await verifyPassword(password, user.passwordHash);
 
   if (!isValidPassword) {
+    // Log failed login attempt (wrong password)
+    await logAuthEvent(c, 'login_failed', user.id, { email, reason: 'invalid_password' });
     return c.json({ success: false, error: 'Invalid email or password' }, 401);
   }
 
   await updateLastLogin(user.id);
+
+  // Log successful login
+  await logAuthEvent(c, 'login', user.id, { email });
 
   const token = await generateAccessToken(user);
   const refreshToken = await generateRefreshToken(user.id);
@@ -71,8 +90,13 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
   });
 });
 
-// POST /api/auth/register (for initial setup, can be disabled later)
-authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
+// POST /api/auth/register (rate limited, can be disabled via env)
+authRoutes.post('/register', sensitiveRateLimit, zValidator('json', registerSchema), async (c) => {
+  // SECURITY: Disable registration in production unless explicitly enabled
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_REGISTRATION !== 'true') {
+    return c.json({ success: false, error: 'Registration is disabled' }, 403);
+  }
+
   const data = c.req.valid('json');
 
   const existingUser = await getUserByEmail(data.email);
@@ -82,6 +106,12 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
   }
 
   const user = await createUser(data);
+
+  // Log user creation
+  await logUserEvent(c, 'user_created', user.id, user.id, {
+    email: user.email,
+    selfRegistration: true,
+  });
 
   const token = await generateAccessToken(user);
   const refreshToken = await generateRefreshToken(user.id);
@@ -134,8 +164,8 @@ authRoutes.get('/me', authMiddleware, async (c) => {
   });
 });
 
-// POST /api/auth/refresh
-authRoutes.post('/refresh', zValidator('json', refreshSchema), async (c) => {
+// POST /api/auth/refresh (rate limited)
+authRoutes.post('/refresh', authRateLimit, zValidator('json', refreshSchema), async (c) => {
   const { refreshToken } = c.req.valid('json');
 
   const user = await verifyRefreshToken(refreshToken);

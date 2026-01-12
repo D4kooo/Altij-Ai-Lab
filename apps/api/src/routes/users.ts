@@ -1,35 +1,56 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { hashPassword, revokeAllUserRefreshTokens } from '../services/auth';
+import { paginationSchema, paginate, getOffset } from '../utils/pagination';
+import { logUserEvent } from '../services/audit';
 
 const usersRoutes = new Hono<Env>();
 
+// Password complexity for admin-created users too
+const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(128, 'Password must not exceed 128 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+
 const createUserSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  password: passwordSchema,
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
   role: z.enum(['admin', 'user']).optional(),
 });
 
 const updateUserSchema = z.object({
   email: z.string().email().optional(),
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
   role: z.enum(['admin', 'user']).optional(),
-  password: z.string().min(8).optional(),
+  password: passwordSchema.optional(),
 });
 
 // Apply auth and admin middleware to all routes
 usersRoutes.use('*', authMiddleware, adminMiddleware);
 
-// GET /api/users - List all users
-usersRoutes.get('/', async (c) => {
+// GET /api/users - List all users (paginated)
+usersRoutes.get('/', zValidator('query', paginationSchema), async (c) => {
+  const { page, limit } = c.req.valid('query');
+  const offset = getOffset(page, limit);
+
+  // Get total count
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.users);
+
+  // Get paginated users
   const users = await db
     .select({
       id: schema.users.id,
@@ -41,11 +62,13 @@ usersRoutes.get('/', async (c) => {
       lastLoginAt: schema.users.lastLoginAt,
     })
     .from(schema.users)
-    .orderBy(schema.users.lastName, schema.users.firstName);
+    .orderBy(schema.users.lastName, schema.users.firstName)
+    .limit(limit)
+    .offset(offset);
 
   return c.json({
     success: true,
-    data: users,
+    ...paginate(users, count, page, limit),
   });
 });
 
@@ -110,6 +133,14 @@ usersRoutes.post('/', zValidator('json', createUserSchema), async (c) => {
     role: schema.users.role,
     createdAt: schema.users.createdAt,
     lastLoginAt: schema.users.lastLoginAt,
+  });
+
+  // Log user creation by admin
+  const currentUser = c.get('user');
+  await logUserEvent(c, 'user_created', currentUser.id, user.id, {
+    email: user.email,
+    role: user.role,
+    createdByAdmin: true,
   });
 
   return c.json(
@@ -178,6 +209,13 @@ usersRoutes.put('/:id', zValidator('json', updateUserSchema), async (c) => {
     .where(eq(schema.users.id, id))
     .limit(1);
 
+  // Log user update
+  const currentUser = c.get('user');
+  await logUserEvent(c, 'user_updated', currentUser.id, id, {
+    changes: Object.keys(updateData),
+    passwordChanged: !!data.password,
+  });
+
   return c.json({
     success: true,
     data: user,
@@ -203,6 +241,11 @@ usersRoutes.delete('/:id', async (c) => {
   if (!existing) {
     return c.json({ success: false, error: 'User not found' }, 404);
   }
+
+  // Log deletion before actually deleting
+  await logUserEvent(c, 'user_deleted', currentUser.id, id, {
+    deletedEmail: existing.email,
+  });
 
   // Delete user (cascading will handle related records)
   await db.delete(schema.users).where(eq(schema.users.id, id));

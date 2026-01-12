@@ -3,6 +3,8 @@ import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { corsMiddleware } from './middleware/cors';
+import { defaultBodyLimit } from './middleware/bodyLimit';
+import { apiRateLimit } from './middleware/rateLimit';
 import { authRoutes } from './routes/auth';
 import { assistantsRoutes } from './routes/assistants';
 import { chatRoutes } from './routes/chat';
@@ -28,6 +30,8 @@ app.use('*', logger());
 app.use('*', prettyJSON());
 app.use('*', secureHeaders());
 app.use('*', corsMiddleware);
+app.use('*', defaultBodyLimit); // 10MB max body size
+app.use('/api/*', apiRateLimit); // 100 req/min for API endpoints
 
 // Health check
 app.get('/health', (c) => {

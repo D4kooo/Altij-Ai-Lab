@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, jsonb, uuid, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, boolean, timestamp, jsonb, uuid, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core';
 import type { InputField } from '@altij/shared';
 
 // Enums
@@ -177,7 +177,9 @@ export const articles = pgTable('articles', {
   isRead: boolean('is_read').default(false).notNull(),
   isFavorite: boolean('is_favorite').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex('articles_feed_url_idx').on(table.feedId, table.url),
+]);
 
 // Newsletter frequency enum
 export const newsletterFrequencyEnum = pgEnum('newsletter_frequency', ['daily', 'weekly', 'monthly']);
@@ -234,6 +236,36 @@ export const veilleIaItems = pgTable('veille_ia_items', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Audit log action types
+export const auditActionEnum = pgEnum('audit_action', [
+  'login',
+  'logout',
+  'login_failed',
+  'user_created',
+  'user_updated',
+  'user_deleted',
+  'role_assigned',
+  'role_removed',
+  'permission_granted',
+  'permission_revoked',
+  'automation_run',
+  'settings_changed',
+  'security_alert',
+]);
+
+// Audit logs for security tracking
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }), // nullable for system events
+  action: auditActionEnum('action').notNull(),
+  resourceType: text('resource_type'), // 'user', 'role', 'permission', etc.
+  resourceId: text('resource_id'), // ID of affected resource
+  details: jsonb('details').$type<Record<string, unknown>>(), // Additional context
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Type exports for use in application
 export type UserSelect = typeof users.$inferSelect;
 export type UserInsert = typeof users.$inferInsert;
@@ -269,3 +301,5 @@ export type RolePermissionSelect = typeof rolePermissions.$inferSelect;
 export type RolePermissionInsert = typeof rolePermissions.$inferInsert;
 export type UserPermissionSelect = typeof userPermissions.$inferSelect;
 export type UserPermissionInsert = typeof userPermissions.$inferInsert;
+export type AuditLogSelect = typeof auditLogs.$inferSelect;
+export type AuditLogInsert = typeof auditLogs.$inferInsert;
