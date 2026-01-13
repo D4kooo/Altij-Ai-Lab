@@ -6,12 +6,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware } from '../middleware/auth';
-import {
-  createThread,
-  addMessageToThread,
-  runAssistantStream,
-  uploadFile,
-} from '../services/openai';
+import { streamChatCompletion, buildMessagesWithHistory } from '../services/openrouter';
 
 const chatRoutes = new Hono<Env>();
 
@@ -80,18 +75,11 @@ chatRoutes.post('/conversations', zValidator('json', createConversationSchema), 
     return c.json({ success: false, error: 'Assistant not found' }, 404);
   }
 
-  // Create OpenAI thread only for OpenAI assistants
-  let openaiThreadId: string | null = null;
-  if (assistant.type === 'openai' && assistant.openaiAssistantId) {
-    openaiThreadId = await createThread();
-  }
-
   const now = new Date();
 
   const [conversation] = await db.insert(schema.conversations).values({
     userId: user.id,
     assistantId,
-    openaiThreadId,
     createdAt: now,
     updatedAt: now,
   }).returning();
@@ -102,7 +90,6 @@ chatRoutes.post('/conversations', zValidator('json', createConversationSchema), 
       data: {
         id: conversation.id,
         assistantId,
-        openaiThreadId,
         title: null,
         createdAt: now,
         updatedAt: now,
@@ -382,61 +369,82 @@ chatRoutes.post(
       });
     }
 
-    // OpenAI assistant flow
-    if (!conversation.openaiThreadId || !assistant.openaiAssistantId) {
-      return c.json({ success: false, error: 'Invalid assistant configuration' }, 400);
-    }
+    // OpenRouter assistant flow
+    if (assistant.type === 'openrouter') {
+      if (!assistant.model) {
+        return c.json({ success: false, error: 'Assistant model not configured' }, 400);
+      }
 
-    // Add message to OpenAI thread
-    await addMessageToThread(conversation.openaiThreadId, content, attachments);
+      // Get previous messages for context (excluding the one we just added)
+      const previousMessages = await db
+        .select({ role: schema.messages.role, content: schema.messages.content })
+        .from(schema.messages)
+        .where(eq(schema.messages.conversationId, conversationId))
+        .orderBy(schema.messages.createdAt);
 
-    // Stream response
-    return streamSSE(c, async (stream) => {
-      let fullResponse = '';
+      // Build messages with system prompt and history
+      const messages = buildMessagesWithHistory(
+        assistant.systemPrompt,
+        previousMessages.slice(0, -1), // Exclude the message we just added
+        content
+      );
 
-      try {
-        for await (const chunk of runAssistantStream(
-          conversation.openaiThreadId!,
-          assistant.openaiAssistantId!
-        )) {
-          fullResponse += chunk;
+      // Stream response
+      return streamSSE(c, async (stream) => {
+        let fullResponse = '';
+
+        try {
+          for await (const chunk of streamChatCompletion(
+            assistant.model!,
+            messages,
+            {
+              temperature: assistant.temperature ?? 0.7,
+              maxTokens: assistant.maxTokens ?? 4096,
+            }
+          )) {
+            fullResponse += chunk;
+            await stream.writeSSE({
+              data: JSON.stringify({ chunk }),
+            });
+          }
+
+          // Save assistant message to DB
+          const [assistantMessage] = await db.insert(schema.messages).values({
+            conversationId,
+            role: 'assistant',
+            content: fullResponse,
+            createdAt: new Date(),
+          }).returning();
+
+          // Update conversation timestamp
+          await db
+            .update(schema.conversations)
+            .set({ updatedAt: new Date() })
+            .where(eq(schema.conversations.id, conversationId));
+
           await stream.writeSSE({
-            data: JSON.stringify({ chunk }),
+            data: JSON.stringify({
+              done: true,
+              messageId: assistantMessage.id,
+              content: fullResponse,
+            }),
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error('[OpenRouter] Error:', errorMessage);
+          await stream.writeSSE({
+            data: JSON.stringify({ error: errorMessage }),
           });
         }
+      });
+    }
 
-        // Save assistant message to DB
-        const [assistantMessage] = await db.insert(schema.messages).values({
-          conversationId,
-          role: 'assistant',
-          content: fullResponse,
-          createdAt: new Date(),
-        }).returning();
-
-        // Update conversation timestamp
-        await db
-          .update(schema.conversations)
-          .set({ updatedAt: new Date() })
-          .where(eq(schema.conversations.id, conversationId));
-
-        await stream.writeSSE({
-          data: JSON.stringify({
-            done: true,
-            messageId: assistantMessage.id,
-            content: fullResponse,
-          }),
-        });
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        await stream.writeSSE({
-          data: JSON.stringify({ error: errorMessage }),
-        });
-      }
-    });
+    return c.json({ success: false, error: 'Invalid assistant configuration' }, 400);
   }
 );
 
 // POST /api/chat/conversations/:id/upload - Upload a file for the conversation
+// Returns base64 encoded file for multimodal use with OpenRouter
 chatRoutes.post('/conversations/:id/upload', async (c) => {
   const user = c.get('user');
   const conversationId = c.req.param('id');
@@ -460,7 +468,13 @@ chatRoutes.post('/conversations/:id/upload', async (c) => {
   }
 
   try {
-    const fileId = await uploadFile(file);
+    // Convert file to base64 for multimodal use
+    const arrayBuffer = await file.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+    // Generate a unique ID for the file
+    const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     return c.json({
       success: true,
       data: {
@@ -468,6 +482,7 @@ chatRoutes.post('/conversations/:id/upload', async (c) => {
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type,
+        base64, // Return base64 for client-side storage/use
       },
     });
   } catch (error) {

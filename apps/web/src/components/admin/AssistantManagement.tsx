@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bot, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { assistantsApi } from '@/lib/api';
-import type { Assistant } from '@altij/shared';
+import type { Assistant, OpenRouterModel } from '@altij/shared';
 import {
   Dialog,
   DialogContent,
@@ -69,7 +69,10 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
   const [formError, setFormError] = useState<string | null>(null);
 
   // Form state
-  const [selectedOpenAIId, setSelectedOpenAIId] = useState('');
+  const [model, setModel] = useState('anthropic/claude-sonnet-4');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [temperature, setTemperature] = useState(0.7);
+  const [maxTokens, setMaxTokens] = useState(4096);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [specialty, setSpecialty] = useState('');
@@ -83,12 +86,32 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
     queryFn: assistantsApi.list,
   });
 
-  // Fetch OpenAI assistants
-  const { data: openAIAssistants, isLoading: isLoadingOpenAI } = useQuery({
-    queryKey: ['openai-assistants'],
-    queryFn: assistantsApi.listOpenAI,
+  // Fetch OpenRouter models
+  const { data: openRouterModels, isLoading: isLoadingModels } = useQuery({
+    queryKey: ['openrouter-models'],
+    queryFn: assistantsApi.listModels,
     enabled: open,
   });
+
+  // Helper to extract error message
+  const getErrorMessage = (error: unknown, defaultMessage: string): string => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (error && typeof error === 'object') {
+      const err = error as Record<string, unknown>;
+      if (typeof err.message === 'string') return err.message;
+      if (typeof err.error === 'string') return err.error;
+      // Zod validation errors
+      if (Array.isArray(err.issues)) {
+        return err.issues.map((i: { message?: string }) => i.message).join(', ');
+      }
+    }
+    return defaultMessage;
+  };
 
   // Create mutation
   const createMutation = useMutation({
@@ -99,13 +122,7 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
       setViewMode('list');
     },
     onError: (error: unknown) => {
-      if (error instanceof Error) {
-        setFormError(error.message);
-      } else if (typeof error === 'string') {
-        setFormError(error);
-      } else {
-        setFormError('Une erreur est survenue lors de la création');
-      }
+      setFormError(getErrorMessage(error, 'Une erreur est survenue lors de la création'));
     },
   });
 
@@ -119,13 +136,7 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
       setViewMode('list');
     },
     onError: (error: unknown) => {
-      if (error instanceof Error) {
-        setFormError(error.message);
-      } else if (typeof error === 'string') {
-        setFormError(error);
-      } else {
-        setFormError('Une erreur est survenue lors de la mise à jour');
-      }
+      setFormError(getErrorMessage(error, 'Une erreur est survenue lors de la mise à jour'));
     },
   });
 
@@ -138,7 +149,10 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
   });
 
   const resetForm = () => {
-    setSelectedOpenAIId('');
+    setModel('anthropic/claude-sonnet-4');
+    setSystemPrompt('');
+    setTemperature(0.7);
+    setMaxTokens(4096);
     setName('');
     setDescription('');
     setSpecialty('');
@@ -149,15 +163,6 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
     setFormError(null);
   };
 
-  const handleOpenAISelect = (openaiId: string) => {
-    setSelectedOpenAIId(openaiId);
-    const selected = openAIAssistants?.find((a) => a.id === openaiId);
-    if (selected) {
-      setName(selected.name || '');
-      setDescription(selected.description || '');
-    }
-  };
-
   const handleCreate = () => {
     resetForm();
     setViewMode('create');
@@ -165,7 +170,10 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
 
   const handleEdit = (assistant: Assistant) => {
     setEditingAssistant(assistant);
-    setSelectedOpenAIId(assistant.openaiAssistantId || '');
+    setModel(assistant.model || 'anthropic/claude-sonnet-4');
+    setSystemPrompt(assistant.systemPrompt || '');
+    setTemperature(assistant.temperature ?? 0.7);
+    setMaxTokens(assistant.maxTokens ?? 4096);
     setName(assistant.name);
     setDescription(assistant.description);
     setSpecialty(assistant.specialty);
@@ -180,8 +188,12 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
     setFormError(null);
 
     // Validate required fields
-    if (!selectedOpenAIId) {
-      setFormError('Veuillez sélectionner un assistant OpenAI');
+    if (!model) {
+      setFormError('Veuillez sélectionner un modèle');
+      return;
+    }
+    if (!systemPrompt.trim()) {
+      setFormError('Le prompt système est requis');
       return;
     }
     if (!name.trim()) {
@@ -203,17 +215,17 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
       .filter((p) => p.length > 0);
 
     const data = {
-      type: 'openai' as const,
-      openaiAssistantId: selectedOpenAIId,
-      webhookUrl: null,
+      type: 'openrouter' as const,
+      model,
+      systemPrompt: systemPrompt.trim(),
+      temperature,
+      maxTokens,
       name: name.trim(),
       description: description.trim(),
       specialty,
       icon,
       color,
       suggestedPrompts: promptsArray,
-      isPinned: false,
-      pinOrder: null,
     };
 
     if (viewMode === 'edit' && editingAssistant) {
@@ -235,21 +247,18 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
     onOpenChange(false);
   };
 
-  // Filter out OpenAI assistants that are already linked (except current one being edited)
-  const availableOpenAIAssistants = openAIAssistants?.filter(
-    (oai) =>
-      !appAssistants?.some(
-        (app) =>
-          app.openaiAssistantId === oai.id &&
-          app.id !== editingAssistant?.id
-      )
-  );
+  // Format model display
+  const formatModelName = (modelData: OpenRouterModel) => {
+    const contextK = modelData.contextLength ? `${Math.round(modelData.contextLength / 1000)}k` : '';
+    const price = modelData.pricing?.prompt ? `$${parseFloat(modelData.pricing.prompt).toFixed(4)}/1K` : '';
+    return { name: modelData.name, context: contextK, price };
+  };
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
@@ -259,7 +268,7 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
           </DialogTitle>
           <DialogDescription>
             {viewMode === 'list' && 'Gérez les assistants IA disponibles dans l\'application'}
-            {viewMode === 'create' && 'Liez un assistant OpenAI à l\'application'}
+            {viewMode === 'create' && 'Créez un nouvel assistant avec un modèle OpenRouter'}
             {viewMode === 'edit' && 'Modifiez les paramètres de l\'assistant'}
           </DialogDescription>
         </DialogHeader>
@@ -273,7 +282,7 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 -mx-6 px-6">
+            <ScrollArea className="flex-1 -mx-6 px-6 min-h-0">
               {isLoadingAppAssistants ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -301,7 +310,7 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
                         </p>
                       </div>
                       <Badge variant="outline" className="shrink-0 text-xs">
-                        {assistant.type === 'webhook' ? 'Webhook' : assistant.openaiAssistantId?.slice(0, 12) + '...'}
+                        {assistant.type === 'webhook' ? 'Webhook' : assistant.model?.split('/')[1] || 'OpenRouter'}
                       </Badge>
                       <div className="flex gap-1">
                         <Button
@@ -333,9 +342,9 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
             </ScrollArea>
           </>
         ) : (
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-            <ScrollArea className="flex-1 -mx-6 px-6">
-              <div className="space-y-4 pb-4">
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto -mx-6 px-6 min-h-0">
+              <div className="space-y-4 py-4">
                 {formError && (
                   <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
                     {formError}
@@ -343,38 +352,91 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="openai-assistant">Assistant OpenAI *</Label>
-                  <Select
-                    value={selectedOpenAIId}
-                    onValueChange={handleOpenAISelect}
-                    disabled={viewMode === 'edit'}
-                  >
+                  <Label htmlFor="model">Modèle IA *</Label>
+                  <Select value={model} onValueChange={setModel}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez un assistant OpenAI" />
+                      <SelectValue placeholder="Sélectionnez un modèle" />
                     </SelectTrigger>
                     <SelectContent>
-                      {isLoadingOpenAI ? (
+                      {isLoadingModels ? (
                         <div className="flex items-center justify-center py-4">
                           <Loader2 className="h-4 w-4 animate-spin" />
                         </div>
-                      ) : availableOpenAIAssistants && availableOpenAIAssistants.length > 0 ? (
-                        availableOpenAIAssistants.map((oai) => (
-                          <SelectItem key={oai.id} value={oai.id}>
-                            <div className="flex flex-col">
-                              <span>{oai.name || 'Sans nom'}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {oai.id}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))
+                      ) : openRouterModels && openRouterModels.length > 0 ? (
+                        openRouterModels.map((m) => {
+                          const formatted = formatModelName(m);
+                          return (
+                            <SelectItem key={m.id} value={m.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{formatted.name}</span>
+                                {formatted.context && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatted.context}
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          );
+                        })
                       ) : (
                         <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                          Aucun assistant OpenAI disponible
+                          Aucun modèle disponible
                         </div>
                       )}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="systemPrompt">Prompt système *</Label>
+                  <Textarea
+                    id="systemPrompt"
+                    value={systemPrompt}
+                    onChange={(e) => setSystemPrompt(e.target.value)}
+                    placeholder="Tu es un assistant juridique spécialisé en droit des affaires. Tu aides les avocats à rédiger des contrats et à analyser des documents juridiques..."
+                    rows={6}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Instructions qui définissent le comportement et la personnalité de l'assistant
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="temperature">Température ({temperature.toFixed(1)})</Label>
+                    <input
+                      id="temperature"
+                      type="range"
+                      value={temperature}
+                      onChange={(e) => setTemperature(Number(e.target.value))}
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      0 = précis, 2 = créatif
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="maxTokens">Max tokens</Label>
+                    <Input
+                      id="maxTokens"
+                      type="number"
+                      value={maxTokens}
+                      onChange={(e) => setMaxTokens(Number(e.target.value))}
+                      min={100}
+                      max={128000}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Longueur max de la réponse
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-medium mb-4">Métadonnées</h4>
                 </div>
 
                 <div className="space-y-2">
@@ -394,8 +456,8 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Description de l'assistant"
-                    rows={3}
+                    placeholder="Description courte de l'assistant pour les utilisateurs"
+                    rows={2}
                     required
                   />
                 </div>
@@ -475,9 +537,9 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
                   />
                 </div>
               </div>
-            </ScrollArea>
+            </div>
 
-            <DialogFooter className="pt-4 border-t">
+            <DialogFooter className="pt-4 border-t mt-auto shrink-0">
               <Button
                 type="button"
                 variant="outline"
@@ -488,7 +550,7 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isSubmitting || !selectedOpenAIId}>
+              <Button type="submit" disabled={isSubmitting || !model || !systemPrompt}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {viewMode === 'edit' ? 'Enregistrer' : 'Créer'}
               </Button>

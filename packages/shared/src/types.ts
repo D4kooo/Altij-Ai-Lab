@@ -29,13 +29,19 @@ export interface AuthResponse {
 }
 
 // Assistant types
-export type AssistantType = 'openai' | 'webhook';
+export type AssistantType = 'openrouter' | 'webhook';
 
 export interface Assistant {
   id: string;
   type: AssistantType;
-  openaiAssistantId: string | null;
+  // OpenRouter configuration
+  model: string | null;
+  systemPrompt: string | null;
+  temperature: number;
+  maxTokens: number;
+  // Webhook configuration
   webhookUrl: string | null;
+  // Metadata
   name: string;
   description: string;
   specialty: string;
@@ -51,8 +57,14 @@ export interface Assistant {
 
 export interface CreateAssistantRequest {
   type?: AssistantType;
-  openaiAssistantId?: string;
+  // OpenRouter configuration
+  model?: string;
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  // Webhook configuration
   webhookUrl?: string;
+  // Metadata
   name: string;
   description: string;
   specialty: string;
@@ -63,12 +75,24 @@ export interface CreateAssistantRequest {
   pinOrder?: number;
 }
 
+// OpenRouter model type
+export interface OpenRouterModel {
+  id: string;
+  name: string;
+  description: string;
+  contextLength: number | null;
+  pricing: {
+    prompt: string;
+    completion: string;
+  };
+  supportedModalities: string[];
+}
+
 // Conversation types
 export interface Conversation {
   id: string;
   userId: string;
   assistantId: string;
-  openaiThreadId: string | null;
   title: string | null;
   createdAt: Date;
   updatedAt: Date;

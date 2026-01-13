@@ -11,6 +11,7 @@ import type {
   Favorite,
   DashboardStats,
   RecentActivity,
+  OpenRouterModel,
 } from '@altij/shared';
 
 const API_BASE = '/api';
@@ -196,16 +197,6 @@ export const usersApi = {
   },
 };
 
-// OpenAI Assistant type
-export interface OpenAIAssistant {
-  id: string;
-  name: string | null;
-  description: string | null;
-  instructions: string | null;
-  model: string;
-  created_at: number;
-}
-
 // Assistants API
 export const assistantsApi = {
   list: async (): Promise<Assistant[]> => {
@@ -237,14 +228,9 @@ export const assistantsApi = {
     await fetchApi(`/assistants/${id}`, { method: 'DELETE' });
   },
 
-  // Admin: List OpenAI assistants
-  listOpenAI: async (): Promise<OpenAIAssistant[]> => {
-    return fetchApi<OpenAIAssistant[]>('/assistants/openai');
-  },
-
-  // Admin: Get specific OpenAI assistant
-  getOpenAI: async (id: string): Promise<OpenAIAssistant> => {
-    return fetchApi<OpenAIAssistant>(`/assistants/openai/${id}`);
+  // Admin: List available OpenRouter models
+  listModels: async (): Promise<OpenRouterModel[]> => {
+    return fetchApi<OpenRouterModel[]>('/assistants/models');
   },
 };
 

@@ -27,7 +27,7 @@ function getPageTitle(pathname: string): string {
     return 'Automatisation';
   }
 
-  return 'AltiJ AI Lab';
+  return 'Data Ring AI Lab';
 }
 
 export function Header() {

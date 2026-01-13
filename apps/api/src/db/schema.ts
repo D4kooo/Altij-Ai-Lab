@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, jsonb, uuid, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, boolean, timestamp, jsonb, uuid, pgEnum, uniqueIndex, real } from 'drizzle-orm/pg-core';
 import type { InputField } from '@altij/shared';
 
 // Enums
@@ -8,7 +8,7 @@ export const messageRoleEnum = pgEnum('message_role', ['user', 'assistant']);
 export const outputTypeEnum = pgEnum('automation_output_type', ['file', 'text', 'json', 'redirect']);
 export const runStatusEnum = pgEnum('automation_run_status', ['pending', 'running', 'completed', 'failed']);
 export const favoriteTypeEnum = pgEnum('favorite_item_type', ['assistant', 'automation']);
-export const assistantTypeEnum = pgEnum('assistant_type', ['openai', 'webhook']);
+export const assistantTypeEnum = pgEnum('assistant_type', ['openrouter', 'webhook']);
 export const resourceTypeEnum = pgEnum('resource_type', ['assistant', 'automation']);
 
 // Utilisateurs
@@ -27,9 +27,15 @@ export const users = pgTable('users', {
 // Assistants IA
 export const assistants = pgTable('assistants', {
   id: uuid('id').primaryKey().defaultRandom(),
-  type: assistantTypeEnum('type').default('openai').notNull(),
-  openaiAssistantId: text('openai_assistant_id'), // Optional for webhook type
-  webhookUrl: text('webhook_url'), // For webhook type assistants (n8n, etc.)
+  type: assistantTypeEnum('type').default('openrouter').notNull(),
+  // OpenRouter configuration
+  model: text('model').default('anthropic/claude-sonnet-4'), // OpenRouter model ID
+  systemPrompt: text('system_prompt'), // System prompt stored locally
+  temperature: real('temperature').default(0.7),
+  maxTokens: integer('max_tokens').default(4096),
+  // Webhook configuration (for n8n, etc.)
+  webhookUrl: text('webhook_url'),
+  // Metadata
   name: text('name').notNull(),
   description: text('description').notNull(),
   specialty: text('specialty').notNull(),
@@ -48,7 +54,6 @@ export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   assistantId: uuid('assistant_id').notNull().references(() => assistants.id, { onDelete: 'cascade' }),
-  openaiThreadId: text('openai_thread_id'), // Optional - only for OpenAI assistants
   title: text('title'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
