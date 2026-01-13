@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Star, ArrowRight, Pin } from 'lucide-react';
+import { Bot, Star, Pin, ArrowRight } from 'lucide-react';
 import { assistantsApi, favoritesApi } from '@/lib/api';
 import { Card, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 
 function DynamicIcon({ name, className, strokeWidth = 1.5 }: { name: string; className?: string; strokeWidth?: number }) {
-  const Icon = (LucideIcons as Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>>)[name] || Bot;
+  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>>)[name] || Bot;
   return <Icon className={className} strokeWidth={strokeWidth} />;
 }
 

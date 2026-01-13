@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import type { Message } from '@altij/shared';
 
 interface ChatState {
   activeConversationId: string | null;

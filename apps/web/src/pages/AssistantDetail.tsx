@@ -15,7 +15,7 @@ import {
 import * as LucideIcons from 'lucide-react';
 
 function DynamicIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[name] || Bot;
+  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] || Bot;
   return <Icon className={className} />;
 }
 
@@ -113,7 +113,7 @@ export function AssistantDetail() {
 
   // Get the dynamic icon component for the assistant
   const AssistantIconComponent = assistant
-    ? (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[assistant.icon] || Bot
+    ? (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[assistant.icon] || Bot
     : Bot;
 
   if (!assistant) {

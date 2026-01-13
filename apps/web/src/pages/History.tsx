@@ -4,23 +4,21 @@ import { useQuery } from '@tanstack/react-query';
 import {
   MessageSquare,
   Zap,
-  Clock,
   CheckCircle,
   XCircle,
   Loader2,
   Bot,
 } from 'lucide-react';
 import { chatApi, automationsApi } from '@/lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDateTime, formatRelativeTime, cn } from '@/lib/utils';
+import { formatDateTime, formatRelativeTime } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 
 function DynamicIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[name] || Bot;
+  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] || Bot;
   return <Icon className={className} />;
 }
 

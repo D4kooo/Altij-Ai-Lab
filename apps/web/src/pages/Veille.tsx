@@ -13,7 +13,6 @@ import {
   Globe,
   Search,
   X,
-  Mail,
   Newspaper,
   Brain,
   Sparkles,
@@ -21,7 +20,6 @@ import {
   ChevronRight,
   FileText,
   Calendar,
-  MoreVertical,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,11 +35,7 @@ import { useAuthStore } from '@/stores/authStore';
 import {
   veilleApi,
   veilleIaApi,
-  type Feed,
-  type Article,
   type VeilleIa,
-  type VeilleIaEdition,
-  type VeilleIaItem,
   type Department,
 } from '@/lib/api';
 
@@ -590,26 +584,6 @@ function VeilleIaSection({ isAdmin }: { isAdmin: boolean }) {
 // ============================================
 // VEILLE IA DETAIL
 // ============================================
-
-const CATEGORY_LABELS: Record<string, string> = {
-  jurisprudence: 'Jurisprudence',
-  legislation: 'Législation',
-  regulation: 'Régulation',
-  cybersecurite: 'Cybersécurité',
-  data: 'Data/RGPD',
-  doctrine: 'Doctrine',
-  actualite: 'Actualité',
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  jurisprudence: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  legislation: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  regulation: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-  cybersecurite: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  data: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-  doctrine: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-  actualite: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-};
 
 function VeilleIaDetail({
   veille,

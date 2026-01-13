@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -19,7 +18,7 @@ import { formatDateTime, formatDuration, cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 
 function DynamicIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[name] || Zap;
+  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] || Zap;
   return <Icon className={className} />;
 }
 

@@ -44,10 +44,8 @@ import {
   assistantsApi,
   automationsApi,
   type Role,
-  type RoleWithDetails,
-  type UserPermissions,
+  type AdminUser,
 } from '@/lib/api';
-import type { User, Assistant, Automation } from '@altij/shared';
 import { cn } from '@/lib/utils';
 
 export function AdminPermissions() {
@@ -934,7 +932,7 @@ function AddMemberDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  users: User[];
+  users: AdminUser[];
   onSubmit: (userId: string) => void;
   isPending: boolean;
 }) {

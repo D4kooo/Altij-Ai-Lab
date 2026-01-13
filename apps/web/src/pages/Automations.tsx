@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Zap, Star, Clock, ArrowRight } from 'lucide-react';
+import { Zap, Star, Clock } from 'lucide-react';
 import { automationsApi, favoritesApi } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatDuration } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
-import { AUTOMATION_CATEGORIES } from '@altij/shared';
 
 function DynamicIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[name] || Zap;
+  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] || Zap;
   return <Icon className={className} />;
 }
 

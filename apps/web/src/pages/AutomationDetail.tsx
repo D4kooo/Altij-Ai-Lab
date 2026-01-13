@@ -36,7 +36,7 @@ import * as LucideIcons from 'lucide-react';
 import type { InputField, InputFieldCondition } from '@altij/shared';
 
 function DynamicIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[name] || Zap;
+  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name] || Zap;
   return <Icon className={className} />;
 }
 

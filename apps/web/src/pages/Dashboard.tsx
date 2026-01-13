@@ -18,7 +18,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 
 function DynamicIcon({ name, className, strokeWidth = 1.5 }: { name: string; className?: string; strokeWidth?: number }) {
-  const Icon = (LucideIcons as Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>>)[name] || Bot;
+  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>>)[name] || Bot;
   return <Icon className={className} strokeWidth={strokeWidth} />;
 }
 

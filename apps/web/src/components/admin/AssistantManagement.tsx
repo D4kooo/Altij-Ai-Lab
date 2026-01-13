@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bot, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
-import { assistantsApi, OpenAIAssistant } from '@/lib/api';
+import { assistantsApi } from '@/lib/api';
 import type { Assistant } from '@altij/shared';
 import {
   Dialog,
@@ -203,13 +203,17 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
       .filter((p) => p.length > 0);
 
     const data = {
+      type: 'openai' as const,
       openaiAssistantId: selectedOpenAIId,
+      webhookUrl: null,
       name: name.trim(),
       description: description.trim(),
       specialty,
       icon,
       color,
       suggestedPrompts: promptsArray,
+      isPinned: false,
+      pinOrder: null,
     };
 
     if (viewMode === 'edit' && editingAssistant) {
