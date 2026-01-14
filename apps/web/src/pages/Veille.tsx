@@ -468,6 +468,14 @@ function VeilleIaSection({ isAdmin }: { isAdmin: boolean }) {
     queryFn: veilleIaApi.getDepartments,
   });
 
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: (id: string) => veilleIaApi.toggleFavorite(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['veilles-ia'] });
+      queryClient.invalidateQueries({ queryKey: ['veille-ia'] });
+    },
+  });
+
   if (selectedVeille) {
     return (
       <VeilleIaDetail
@@ -538,7 +546,26 @@ function VeilleIaSection({ isAdmin }: { isAdmin: boolean }) {
                       {veille.description}
                     </CardDescription>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-1">
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavoriteMutation.mutate(veille.id);
+                        }}
+                      >
+                        {veille.isFavorite ? (
+                          <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                        ) : (
+                          <StarOff className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    )}
+                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

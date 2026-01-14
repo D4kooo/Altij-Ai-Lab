@@ -18,6 +18,7 @@ import { anonymiseurRoutes } from './routes/anonymiseur';
 import { lettreMissionRoutes } from './routes/lettre-mission';
 import { rolesRoutes } from './routes/roles';
 import { permissionsRoutes } from './routes/permissions';
+import { documentsRoutes } from './routes/documents';
 import { initScheduler } from './services/scheduler';
 
 const app = new Hono();
@@ -52,6 +53,7 @@ app.route('/api/anonymiseur', anonymiseurRoutes);
 app.route('/api/lettre-mission', lettreMissionRoutes);
 app.route('/api/roles', rolesRoutes);
 app.route('/api/permissions', permissionsRoutes);
+app.route('/api/assistants', documentsRoutes); // Documents routes nested under /api/assistants/:id/documents
 
 // 404 handler
 app.notFound((c) => {

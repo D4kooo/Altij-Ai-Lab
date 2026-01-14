@@ -1,5 +1,20 @@
-import { pgTable, text, integer, boolean, timestamp, jsonb, uuid, pgEnum, uniqueIndex, real } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, boolean, timestamp, jsonb, uuid, pgEnum, uniqueIndex, real, customType } from 'drizzle-orm/pg-core';
 import type { InputField } from '@altij/shared';
+
+// Custom type for pgvector
+const vector = customType<{ data: number[]; driverData: string }>({
+  dataType() {
+    return 'vector(1536)';
+  },
+  toDriver(value: number[]): string {
+    return `[${value.join(',')}]`;
+  },
+  fromDriver(value: string): number[] {
+    // Parse "[1,2,3]" format from PostgreSQL
+    const clean = value.replace(/[\[\]]/g, '');
+    return clean.split(',').map(Number);
+  },
+});
 
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['admin', 'user']);
@@ -10,6 +25,7 @@ export const runStatusEnum = pgEnum('automation_run_status', ['pending', 'runnin
 export const favoriteTypeEnum = pgEnum('favorite_item_type', ['assistant', 'automation']);
 export const assistantTypeEnum = pgEnum('assistant_type', ['openrouter', 'webhook']);
 export const resourceTypeEnum = pgEnum('resource_type', ['assistant', 'automation']);
+// Document status is stored as TEXT (not enum) for flexibility
 
 // Utilisateurs
 export const users = pgTable('users', {
@@ -47,6 +63,31 @@ export const assistants = pgTable('assistants', {
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Documents pour la knowledge base des assistants (RAG)
+export const assistantDocuments = pgTable('assistant_documents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  assistantId: uuid('assistant_id').notNull().references(() => assistants.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  originalFilename: text('original_filename').notNull(),
+  mimeType: text('mime_type').notNull(),
+  fileSize: integer('file_size').notNull(),
+  status: text('status').default('processing').notNull().$type<'processing' | 'ready' | 'error'>(),
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Chunks de documents avec embeddings vectoriels
+export const documentChunks = pgTable('document_chunks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id').notNull().references(() => assistantDocuments.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  chunkIndex: integer('chunk_index').notNull(),
+  tokensCount: integer('tokens_count'),
+  embedding: vector('embedding'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 // Conversations avec les assistants
@@ -214,6 +255,7 @@ export const veillesIa = pgTable('veilles_ia', {
   frequency: veilleIaFrequencyEnum('frequency').default('weekly').notNull(),
   departments: jsonb('departments').$type<string[]>().default([]), // Pôles ciblés
   isActive: boolean('is_active').default(true).notNull(),
+  isFavorite: boolean('is_favorite').default(false).notNull(), // Mis en avant sur le dashboard
   createdBy: uuid('created_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -308,3 +350,7 @@ export type UserPermissionSelect = typeof userPermissions.$inferSelect;
 export type UserPermissionInsert = typeof userPermissions.$inferInsert;
 export type AuditLogSelect = typeof auditLogs.$inferSelect;
 export type AuditLogInsert = typeof auditLogs.$inferInsert;
+export type AssistantDocumentSelect = typeof assistantDocuments.$inferSelect;
+export type AssistantDocumentInsert = typeof assistantDocuments.$inferInsert;
+export type DocumentChunkSelect = typeof documentChunks.$inferSelect;
+export type DocumentChunkInsert = typeof documentChunks.$inferInsert;

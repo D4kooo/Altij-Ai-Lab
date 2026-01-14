@@ -41,9 +41,9 @@ export function Dashboard() {
     queryFn: () => veilleApi.listArticles(),
   });
 
-  const { data: veillesIa } = useQuery({
-    queryKey: ['veille-ia'],
-    queryFn: veilleIaApi.list,
+  const { data: veillesIaFavorites } = useQuery({
+    queryKey: ['veille-ia-favorites'],
+    queryFn: veilleIaApi.listFavorites,
   });
 
   const currentHour = new Date().getHours();
@@ -79,8 +79,8 @@ export function Dashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-serif tracking-tight">
-          {greeting}, <span className="font-medium">{user?.firstName}</span>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {greeting}, {user?.firstName}
         </h1>
         <p className="text-muted-foreground">
           Que souhaitez-vous faire aujourd'hui ?
@@ -211,12 +211,13 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Veille IA */}
+        {/* Veille IA - Favoris */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <Sparkles className="h-4 w-4" strokeWidth={1.5} />
               Veille IA
+              <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" strokeWidth={1.5} />
             </CardTitle>
             <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground -mr-2">
               <Link to="/veille?tab=ia">
@@ -226,9 +227,9 @@ export function Dashboard() {
             </Button>
           </CardHeader>
           <CardContent>
-            {veillesIa && veillesIa.length > 0 ? (
+            {veillesIaFavorites && veillesIaFavorites.length > 0 ? (
               <div className="space-y-1">
-                {veillesIa.filter(v => v.latestEdition).slice(0, 4).map((veille) => (
+                {veillesIaFavorites.slice(0, 4).map((veille) => (
                   <Link
                     key={veille.id}
                     to={`/veille?tab=ia&id=${veille.id}`}
@@ -238,8 +239,13 @@ export function Dashboard() {
                       <Sparkles className="h-4 w-4" strokeWidth={1.5} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{veille.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-muted-foreground font-medium mb-1">{veille.name}</p>
+                      {veille.summary ? (
+                        <p className="text-sm line-clamp-2">{veille.summary}</p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">Aucun contenu disponible</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1.5">
                         {veille.latestEdition?.newItemsCount !== undefined && veille.latestEdition.newItemsCount > 0 && (
                           <Badge variant="secondary" className="text-xs">
                             {veille.latestEdition.newItemsCount} nouveau{veille.latestEdition.newItemsCount > 1 ? 'x' : ''}
@@ -259,9 +265,9 @@ export function Dashboard() {
                 <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                   <Sparkles className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
                 </div>
-                <p className="text-sm text-muted-foreground">Aucune veille IA configurée</p>
+                <p className="text-sm text-muted-foreground">Aucune veille IA en favori</p>
                 <Button variant="link" size="sm" asChild className="mt-2">
-                  <Link to="/veille?tab=ia">Créer une veille IA</Link>
+                  <Link to="/veille?tab=ia">Voir toutes les veilles</Link>
                 </Button>
               </div>
             )}

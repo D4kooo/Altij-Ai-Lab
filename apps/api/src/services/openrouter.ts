@@ -123,13 +123,19 @@ export function buildMessagesWithHistory(
   systemPrompt: string | null,
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
   newMessage: string,
-  attachments?: Array<{ base64: string; mimeType: string; fileName: string }>
+  attachments?: Array<{ base64: string; mimeType: string; fileName: string }>,
+  ragContext?: string
 ): ChatMessage[] {
   const messages: ChatMessage[] = [];
 
   // System prompt
   if (systemPrompt) {
     messages.push({ role: 'system', content: systemPrompt });
+  }
+
+  // RAG context (injected as a separate system message)
+  if (ragContext && ragContext.trim().length > 0) {
+    messages.push({ role: 'system', content: ragContext });
   }
 
   // Historique de conversation

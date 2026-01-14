@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Bot, Plus, Pencil, Trash2, Loader2, Upload, FileText, File, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { assistantsApi } from '@/lib/api';
-import type { Assistant, OpenRouterModel } from '@altij/shared';
+import type { Assistant, OpenRouterModel, AssistantDocument } from '@altij/shared';
 import {
   Dialog,
   DialogContent,
@@ -80,6 +80,11 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
   const [color, setColor] = useState('#3b82f6');
   const [suggestedPrompts, setSuggestedPrompts] = useState('');
 
+  // Document management state
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Fetch app assistants
   const { data: appAssistants, isLoading: isLoadingAppAssistants } = useQuery({
     queryKey: ['assistants'],
@@ -91,6 +96,47 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
     queryKey: ['openrouter-models'],
     queryFn: assistantsApi.listModels,
     enabled: open,
+  });
+
+  // Fetch documents for the editing assistant
+  const { data: documents, isLoading: isLoadingDocuments, refetch: refetchDocuments } = useQuery({
+    queryKey: ['assistant-documents', editingAssistant?.id],
+    queryFn: () => editingAssistant ? assistantsApi.listDocuments(editingAssistant.id) : Promise.resolve([]),
+    enabled: !!editingAssistant && viewMode === 'edit',
+    refetchInterval: (query) => {
+      // Poll for updates if there are processing documents
+      const docs = query.state.data as AssistantDocument[] | undefined;
+      const hasProcessing = docs?.some(d => d.status === 'processing');
+      return hasProcessing ? 3000 : false;
+    },
+  });
+
+  // Upload document mutation
+  const uploadDocumentMutation = useMutation({
+    mutationFn: async ({ assistantId, file }: { assistantId: string; file: File }) => {
+      return assistantsApi.uploadDocument(assistantId, file, file.name);
+    },
+    onSuccess: (_, variables) => {
+      setUploadingFiles(prev => prev.filter(f => f !== variables.file.name));
+      refetchDocuments();
+    },
+    onError: (error: unknown, variables) => {
+      setUploadingFiles(prev => prev.filter(f => f !== variables.file.name));
+      setFormError(getErrorMessage(error, `Erreur lors de l'upload de ${variables.file.name}`));
+    },
+  });
+
+  // Delete document mutation
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async ({ assistantId, documentId }: { assistantId: string; documentId: string }) => {
+      return assistantsApi.deleteDocument(assistantId, documentId);
+    },
+    onSuccess: () => {
+      refetchDocuments();
+    },
+    onError: (error: unknown) => {
+      setFormError(getErrorMessage(error, 'Erreur lors de la suppression du document'));
+    },
   });
 
   // Helper to extract error message
@@ -161,6 +207,79 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
     setSuggestedPrompts('');
     setEditingAssistant(null);
     setFormError(null);
+    setUploadingFiles([]);
+  };
+
+  // Document upload handlers
+  const handleFileDrop = useCallback(async (files: FileList | File[]) => {
+    if (!editingAssistant) return;
+
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'text/markdown',
+    ];
+    const maxSize = 20 * 1024 * 1024; // 20MB
+
+    const fileArray = Array.from(files);
+    for (const file of fileArray) {
+      if (!allowedTypes.includes(file.type) && !file.name.endsWith('.md')) {
+        setFormError(`Type de fichier non supporté: ${file.name}. Formats acceptés: PDF, DOCX, TXT, MD`);
+        continue;
+      }
+      if (file.size > maxSize) {
+        setFormError(`Le fichier ${file.name} dépasse la limite de 20MB`);
+        continue;
+      }
+
+      setUploadingFiles(prev => [...prev, file.name]);
+      uploadDocumentMutation.mutate({ assistantId: editingAssistant.id, file });
+    }
+  }, [editingAssistant, uploadDocumentMutation]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) {
+      handleFileDrop(e.dataTransfer.files);
+    }
+  }, [handleFileDrop]);
+
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFileDrop(e.target.files);
+      e.target.value = ''; // Reset input
+    }
+  }, [handleFileDrop]);
+
+  const handleDeleteDocument = useCallback((documentId: string) => {
+    if (!editingAssistant) return;
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+      deleteDocumentMutation.mutate({ assistantId: editingAssistant.id, documentId });
+    }
+  }, [editingAssistant, deleteDocumentMutation]);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getDocumentIcon = (mimeType: string) => {
+    if (mimeType === 'application/pdf') return <FileText className="h-4 w-4 text-red-500" />;
+    if (mimeType.includes('word')) return <FileText className="h-4 w-4 text-blue-500" />;
+    return <File className="h-4 w-4 text-gray-500" />;
   };
 
   const handleCreate = () => {
@@ -536,6 +655,123 @@ export function AssistantManagement({ open, onOpenChange }: AssistantManagementP
                     rows={4}
                   />
                 </div>
+
+                {/* Knowledge Base Section - Only in edit mode */}
+                {viewMode === 'edit' && editingAssistant && (
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Base de connaissances (RAG)
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Ajoutez des documents pour enrichir les réponses de l'assistant avec des connaissances spécifiques.
+                    </p>
+
+                    {/* Upload Zone */}
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                        isDragging
+                          ? 'border-primary bg-primary/5'
+                          : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.docx,.txt,.md"
+                        multiple
+                        onChange={handleFileInputChange}
+                      />
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Glissez-déposez vos fichiers ici, ou{' '}
+                        <button
+                          type="button"
+                          className="text-primary hover:underline"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          parcourez
+                        </button>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PDF, DOCX, TXT, MD • Max 20MB par fichier
+                      </p>
+                    </div>
+
+                    {/* Uploading Files */}
+                    {uploadingFiles.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {uploadingFiles.map((fileName) => (
+                          <div
+                            key={fileName}
+                            className="flex items-center gap-2 p-2 rounded-lg bg-muted/50"
+                          >
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            <span className="text-sm flex-1 truncate">{fileName}</span>
+                            <span className="text-xs text-muted-foreground">Traitement...</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Documents List */}
+                    {isLoadingDocuments ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : documents && documents.length > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        {documents.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="flex items-center gap-2 p-2 rounded-lg border border-primary/[0.04] hover:bg-primary/[0.02]"
+                          >
+                            {getDocumentIcon(doc.mimeType)}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{doc.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatFileSize(doc.fileSize)}
+                                {doc.chunksCount !== undefined && ` • ${doc.chunksCount} chunks`}
+                              </p>
+                            </div>
+                            {doc.status === 'processing' && (
+                              <div className="flex items-center gap-1 text-amber-500">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <span className="text-xs">Traitement</span>
+                              </div>
+                            )}
+                            {doc.status === 'ready' && (
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            )}
+                            {doc.status === 'error' && (
+                              <div className="flex items-center gap-1 text-destructive" title={doc.errorMessage || 'Erreur'}>
+                                <AlertCircle className="h-4 w-4" />
+                              </div>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDeleteDocument(doc.id)}
+                              disabled={deleteDocumentMutation.isPending}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center mt-3">
+                        Aucun document ajouté
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

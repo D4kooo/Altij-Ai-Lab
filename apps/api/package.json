@@ -19,6 +19,7 @@
     "handlebars": "^4.7.8",
     "hono": "^4.6.0",
     "jose": "^5.9.0",
+    "mammoth": "^1.11.0",
     "nanoid": "^5.0.0",
     "node-cron": "^4.2.1",
     "openai": "^4.70.0",

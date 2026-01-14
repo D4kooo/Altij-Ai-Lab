@@ -4,6 +4,8 @@ import type {
   LoginRequest,
   User,
   Assistant,
+  AssistantDocument,
+  CreateAssistantRequest,
   Conversation,
   ConversationWithMessages,
   Automation,
@@ -207,7 +209,7 @@ export const assistantsApi = {
     return fetchApi<Assistant>(`/assistants/${id}`);
   },
 
-  create: async (data: Omit<Assistant, 'id' | 'createdAt' | 'updatedAt' | 'isActive'>): Promise<Assistant> => {
+  create: async (data: CreateAssistantRequest): Promise<Assistant> => {
     return fetchApi<Assistant>('/assistants', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -231,6 +233,39 @@ export const assistantsApi = {
   // Admin: List available OpenRouter models
   listModels: async (): Promise<OpenRouterModel[]> => {
     return fetchApi<OpenRouterModel[]>('/assistants/models');
+  },
+
+  // Documents (RAG Knowledge Base)
+  listDocuments: async (assistantId: string): Promise<AssistantDocument[]> => {
+    return fetchApi<AssistantDocument[]>(`/assistants/${assistantId}/documents`);
+  },
+
+  uploadDocument: async (assistantId: string, file: File, name?: string): Promise<AssistantDocument> => {
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', file);
+    if (name) {
+      formData.append('name', name);
+    }
+
+    const response = await fetch(`${API_BASE}/assistants/${assistantId}/documents`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json() as ApiResponse<AssistantDocument>;
+    if (!response.ok || !data.success) {
+      throw new ApiError(data.error || 'Upload failed', response.status);
+    }
+
+    return data.data as AssistantDocument;
+  },
+
+  deleteDocument: async (assistantId: string, documentId: string): Promise<void> => {
+    await fetchApi(`/assistants/${assistantId}/documents/${documentId}`, { method: 'DELETE' });
   },
 };
 
@@ -601,6 +636,7 @@ export interface VeilleIa {
   frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   departments: string[];
   isActive: boolean;
+  isFavorite: boolean;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -627,6 +663,15 @@ export interface VeilleIaItem {
   contentHash: string;
   category?: string;
   createdAt: string;
+}
+
+export interface VeilleIaFavorite {
+  id: string;
+  name: string;
+  description: string;
+  isFavorite: boolean;
+  latestEdition?: VeilleIaEdition;
+  summary?: string;
 }
 
 // Veille IA API
@@ -686,6 +731,16 @@ export const veilleIaApi = {
 
   getItems: async (id: string): Promise<VeilleIaItem[]> => {
     return fetchApi<VeilleIaItem[]>(`/veille-ia/${id}/items`);
+  },
+
+  toggleFavorite: async (id: string): Promise<VeilleIa> => {
+    return fetchApi<VeilleIa>(`/veille-ia/${id}/favorite`, {
+      method: 'POST',
+    });
+  },
+
+  listFavorites: async (): Promise<VeilleIaFavorite[]> => {
+    return fetchApi<VeilleIaFavorite[]>('/veille-ia/favorites/list');
   },
 };
 

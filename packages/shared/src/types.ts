@@ -75,6 +75,23 @@ export interface CreateAssistantRequest {
   pinOrder?: number;
 }
 
+// Assistant document types (RAG knowledge base)
+export type DocumentStatus = 'processing' | 'ready' | 'error';
+
+export interface AssistantDocument {
+  id: string;
+  assistantId: string;
+  name: string;
+  originalFilename: string;
+  mimeType: string;
+  fileSize: number;
+  status: DocumentStatus;
+  errorMessage?: string | null;
+  chunksCount?: number;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
 // OpenRouter model type
 export interface OpenRouterModel {
   id: string;

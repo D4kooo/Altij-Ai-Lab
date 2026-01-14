@@ -7,6 +7,7 @@ import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware } from '../middleware/auth';
 import { streamChatCompletion, buildMessagesWithHistory } from '../services/openrouter';
+import { retrieveContext, formatContextForPrompt, hasDocuments, getRetrievalSummary } from '../services/retrieval';
 
 const chatRoutes = new Hono<Env>();
 
@@ -382,11 +383,32 @@ chatRoutes.post(
         .where(eq(schema.messages.conversationId, conversationId))
         .orderBy(schema.messages.createdAt);
 
-      // Build messages with system prompt and history
+      // RAG: Retrieve relevant document context if assistant has documents
+      let ragContext: string | undefined;
+      try {
+        const assistantHasDocs = await hasDocuments(assistant.id);
+        if (assistantHasDocs) {
+          console.log(`[RAG] Retrieving context for assistant ${assistant.id}...`);
+          const retrievalResult = await retrieveContext(content, assistant.id, 5, 0.7);
+          if (retrievalResult.chunks.length > 0) {
+            ragContext = formatContextForPrompt(retrievalResult.chunks);
+            console.log(`[RAG] ${getRetrievalSummary(retrievalResult)}`);
+          } else {
+            console.log('[RAG] No relevant documents found');
+          }
+        }
+      } catch (ragError) {
+        // Don't fail the request if RAG fails, just log and continue without context
+        console.error('[RAG] Error retrieving context:', ragError);
+      }
+
+      // Build messages with system prompt, history, and RAG context
       const messages = buildMessagesWithHistory(
         assistant.systemPrompt,
         previousMessages.slice(0, -1), // Exclude the message we just added
-        content
+        content,
+        undefined, // attachments
+        ragContext
       );
 
       // Stream response

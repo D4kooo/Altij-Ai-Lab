@@ -42,6 +42,7 @@ const updateVeilleIaSchema = z.object({
   frequency: z.enum(['daily', 'weekly', 'biweekly', 'monthly']).optional(),
   departments: z.array(z.enum(DEPARTMENTS)).min(1).optional(),
   isActive: z.boolean().optional(),
+  isFavorite: z.boolean().optional(),
 });
 
 // Middleware pour vérifier si l'utilisateur est admin
@@ -98,6 +99,73 @@ veilleIaRoutes.get('/departments', async (c) => {
   }));
 
   return c.json({ success: true, data: departments });
+});
+
+// GET /api/veille-ia/favorites/list - Get favorite veilles with latest edition summary
+// MUST be before /:id route to avoid being caught by it
+veilleIaRoutes.get('/favorites/list', async (c) => {
+  const user = c.get('user');
+
+  let veilles;
+
+  if (user.role === 'admin') {
+    veilles = await db
+      .select()
+      .from(schema.veillesIa)
+      .where(eq(schema.veillesIa.isFavorite, true))
+      .orderBy(desc(schema.veillesIa.updatedAt));
+  } else {
+    if (!user.department) {
+      return c.json({ success: true, data: [] });
+    }
+
+    veilles = await db
+      .select()
+      .from(schema.veillesIa)
+      .where(
+        and(
+          eq(schema.veillesIa.isFavorite, true),
+          eq(schema.veillesIa.isActive, true),
+          sql`${schema.veillesIa.departments} @> ${JSON.stringify([user.department])}::jsonb`
+        )
+      )
+      .orderBy(desc(schema.veillesIa.updatedAt));
+  }
+
+  // Get latest edition for each veille with summary
+  const result = await Promise.all(
+    veilles.map(async (veille) => {
+      const [latestEdition] = await db
+        .select()
+        .from(schema.veilleIaEditions)
+        .where(eq(schema.veilleIaEditions.veilleIaId, veille.id))
+        .orderBy(desc(schema.veilleIaEditions.generatedAt))
+        .limit(1);
+
+      // Extract first meaningful paragraph (skip headers)
+      let summary = '';
+      if (latestEdition?.content) {
+        const lines = latestEdition.content.split('\n').filter((l: string) => l.trim() && !l.startsWith('#') && !l.startsWith('---'));
+        summary = lines.slice(0, 2).join(' ').substring(0, 200);
+        if (summary.length === 200) summary += '...';
+      }
+
+      return {
+        id: veille.id,
+        name: veille.name,
+        description: veille.description,
+        isFavorite: veille.isFavorite,
+        latestEdition: latestEdition ? {
+          id: latestEdition.id,
+          generatedAt: latestEdition.generatedAt,
+          newItemsCount: (latestEdition as any).newItemsCount,
+        } : null,
+        summary,
+      };
+    })
+  );
+
+  return c.json({ success: true, data: result });
 });
 
 // GET /api/veille-ia/:id - Get a veille IA with latest edition
@@ -245,6 +313,30 @@ veilleIaRoutes.delete('/:id', requireAdmin, async (c) => {
     .where(eq(schema.veillesIa.id, veilleId));
 
   return c.json({ success: true });
+});
+
+// POST /api/veille-ia/:id/favorite - Toggle favorite status (admin only)
+veilleIaRoutes.post('/:id/favorite', requireAdmin, async (c) => {
+  const veilleId = c.req.param('id');
+
+  // Get current state
+  const [veille] = await db
+    .select()
+    .from(schema.veillesIa)
+    .where(eq(schema.veillesIa.id, veilleId));
+
+  if (!veille) {
+    return c.json({ success: false, error: 'Veille not found' }, 404);
+  }
+
+  // Toggle favorite
+  const [updated] = await db
+    .update(schema.veillesIa)
+    .set({ isFavorite: !veille.isFavorite, updatedAt: new Date() })
+    .where(eq(schema.veillesIa.id, veilleId))
+    .returning();
+
+  return c.json({ success: true, data: updated });
 });
 
 // POST /api/veille-ia/:id/generate - Generate a new edition using Perplexity (admin only)
