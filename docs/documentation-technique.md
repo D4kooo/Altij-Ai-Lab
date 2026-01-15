@@ -22,19 +22,20 @@
 
 **AltiJ AI Lab** est une plateforme interne d'assistants IA et d'automatisation destinée au cabinet d'avocats Altij. Elle permet aux collaborateurs de :
 
-- **Converser avec des assistants IA** basés sur OpenAI GPT
+- **Converser avec des assistants IA** via OpenRouter (multi-modèles : Claude, GPT, Mistral, etc.)
 - **Exécuter des workflows automatisés** via n8n
 - **Gérer une veille documentaire** avec agrégation RSS
 - **Recevoir des newsletters IA** générées automatiquement
+- **Enrichir les assistants** avec des bases de connaissances documentaires (RAG)
 
 ### Fonctionnalités principales
 
 | Module | Description |
 |--------|-------------|
-| **Assistants** | Chatbots IA spécialisés (juridique, rédaction, recherche) |
+| **Assistants** | Chatbots IA spécialisés (juridique, rédaction, recherche) avec support RAG |
 | **Automations** | Workflows n8n avec formulaires dynamiques |
 | **Veille RSS** | Agrégation et lecture d'articles de flux RSS |
-| **Veille IA** | Newsletters automatiques générées par IA |
+| **Veille IA** | Newsletters automatiques générées par IA (style Perplexity) |
 | **Anonymiseur** | Outil d'anonymisation de documents |
 | **Administration** | Gestion des utilisateurs, rôles et permissions |
 
@@ -112,17 +113,20 @@ L'application suit une architecture **3-tiers** :
 | Jose | 5.9.0 | JWT handling |
 | Zod | 3.23.0 | Validation de schémas |
 | node-cron | 4.2.1 | Tâches planifiées |
-| OpenAI SDK | 4.70.0 | Intégration GPT |
+| OpenAI SDK | 4.70.0 | Embeddings & OpenRouter |
 | Puppeteer | 24.34.0 | Web scraping |
+| mammoth | 1.11.0 | Extraction texte Word |
+| pgvector | - | Recherche vectorielle |
 
 ### Infrastructure
 
 | Service | Usage |
 |---------|-------|
-| PostgreSQL (Supabase) | Base de données |
+| PostgreSQL (Supabase) | Base de données + pgvector |
 | Vercel | Hébergement frontend |
 | n8n | Workflow automation |
-| OpenAI | Assistants IA |
+| OpenRouter | Gateway multi-modèles IA |
+| OpenAI | Embeddings (text-embedding-3-small) |
 
 ---
 
@@ -154,12 +158,21 @@ Drizzle est utilisé pour sa type-safety complète et ses performances. Le sché
   id: uuid,
   name: string,
   description: string,
-  type: 'openai' | 'webhook',
-  openaiAssistantId: string | null,
+  specialty: string,
+  type: 'openrouter' | 'webhook',
+  // Configuration OpenRouter
+  model: string | null,           // ex: 'anthropic/claude-sonnet-4'
+  systemPrompt: text | null,
+  temperature: float (0.7),
+  maxTokens: integer (4096),
+  // Configuration Webhook
   webhookUrl: string | null,
+  // Métadonnées
   icon: string,
   color: string,
+  suggestedPrompts: jsonb[],
   isPinned: boolean,
+  pinOrder: integer,
   isActive: boolean
 }
 ```
@@ -170,9 +183,9 @@ Drizzle est utilisé pour sa type-safety complète et ses performances. Le sché
   id: uuid,
   userId: uuid (FK users),
   assistantId: uuid (FK assistants),
-  openaiThreadId: string,
   title: string,
-  createdAt: timestamp
+  createdAt: timestamp,
+  updatedAt: timestamp
 }
 ```
 
@@ -251,11 +264,44 @@ Drizzle est utilisé pour sa type-safety complète et ses performances. Le sché
 {
   id: uuid,
   name: string,
+  description: string,
   prompt: text,
   frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly',
-  departments: array,
+  departments: jsonb[],
+  isFavorite: boolean,            // Mis en avant sur dashboard
+  isActive: boolean,
   createdBy: uuid (FK users),
-  lastGeneratedAt: timestamp
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+#### `assistant_documents` - Documents RAG
+```typescript
+{
+  id: uuid,
+  assistantId: uuid (FK assistants),
+  name: string,
+  originalFilename: string,
+  mimeType: string,               // 'application/pdf', 'text/plain', etc.
+  fileSize: integer,
+  status: 'processing' | 'ready' | 'error',
+  errorMessage: text | null,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+#### `document_chunks` - Chunks vectorisés
+```typescript
+{
+  id: uuid,
+  documentId: uuid (FK assistant_documents),
+  content: text,
+  chunkIndex: integer,
+  tokensCount: integer,
+  embedding: vector(1536),        // OpenAI text-embedding-3-small
+  createdAt: timestamp
 }
 ```
 
@@ -273,6 +319,8 @@ Drizzle est utilisé pour sa type-safety complète et ses performances. Le sché
 
 - `users` → `conversations` (1:N)
 - `assistants` → `conversations` (1:N)
+- `assistants` → `assistant_documents` (1:N)
+- `assistant_documents` → `document_chunks` (1:N)
 - `conversations` → `messages` (1:N)
 - `automations` → `automationRuns` (1:N)
 - `users` → `automationRuns` (1:N)
@@ -280,6 +328,8 @@ Drizzle est utilisé pour sa type-safety complète et ses performances. Le sché
 - `feeds` → `articles` (1:N)
 - `roles` → `rolePermissions` (1:N)
 - `users` → `userRoles` → `roles` (N:N)
+- `veillesIa` → `veilleIaEditions` (1:N)
+- `veilleIaEditions` → `veilleIaItems` (1:N)
 
 ### Commandes de Migration
 
@@ -327,6 +377,7 @@ app.use('*', bodyLimit({
 |---------|---------|-------------|
 | `/api/auth` | `auth.ts` | Authentification |
 | `/api/assistants` | `assistants.ts` | Gestion assistants |
+| `/api/assistants/:id/documents` | `documents.ts` | Documents RAG (knowledge base) |
 | `/api/chat` | `chat.ts` | Conversations & messages |
 | `/api/automations` | `automations.ts` | Workflows n8n |
 | `/api/veille` | `veille.ts` | Flux RSS & articles |
@@ -336,6 +387,7 @@ app.use('*', bodyLimit({
 | `/api/permissions` | `permissions.ts` | Gestion permissions |
 | `/api/favorites` | `favorites.ts` | Favoris |
 | `/api/dashboard` | `dashboard.ts` | Statistiques |
+| `/api/anonymiseur` | `anonymiseur.ts` | Anonymisation documents |
 
 ### Endpoints Principaux
 
@@ -399,12 +451,20 @@ Toutes les entrées sont validées avec Zod :
 ```typescript
 const createAssistantSchema = z.object({
   name: z.string().min(1),
-  description: z.string().optional(),
-  type: z.enum(['openai', 'webhook']),
-  openaiAssistantId: z.string().optional(),
+  description: z.string().min(1),
+  specialty: z.string().min(1),
+  type: z.enum(['openrouter', 'webhook']).default('openrouter'),
+  // OpenRouter config
+  model: z.string().optional(),
+  systemPrompt: z.string().optional(),
+  temperature: z.number().min(0).max(2).default(0.7),
+  maxTokens: z.number().min(100).max(128000).default(4096),
+  // Webhook config
   webhookUrl: z.string().url().optional(),
+  // Metadata
   icon: z.string().default('Bot'),
-  color: z.string().default('#6366f1')
+  color: z.string().default('#6366f1'),
+  suggestedPrompts: z.array(z.string()).optional()
 })
 
 app.post('/', zValidator('json', createAssistantSchema), async (c) => {
@@ -642,30 +702,73 @@ export const authMiddleware = async (c, next) => {
 
 ## 8. Intégrations Externes
 
-### OpenAI
+### OpenRouter
 
-**Service** : `apps/api/src/services/openai.ts`
+**Service** : `apps/api/src/services/openrouter.ts`
 
 **Fonctionnalités** :
-- Création de threads de conversation
-- Envoi de messages
+- Accès multi-modèles (Claude, GPT, Mistral, Llama, etc.)
 - Streaming des réponses (SSE)
-- Upload de fichiers
+- Support multimodal (images)
+- Gestion du contexte conversationnel
+- Injection de contexte RAG
 
 **Exemple d'utilisation** :
 
 ```typescript
-// Créer un thread
-const threadId = await createThread()
-
-// Ajouter un message
-await addMessageToThread(threadId, "Bonjour !")
+// Construire les messages avec historique et contexte RAG
+const messages = buildMessagesWithHistory(
+  assistant.systemPrompt,
+  previousMessages,
+  newMessage,
+  attachments,
+  ragContext  // Contexte issu de la recherche vectorielle
+)
 
 // Streamer la réponse
-for await (const chunk of runAssistantStream(threadId, assistantId)) {
+for await (const chunk of streamChatCompletion(model, messages, {
+  temperature: 0.7,
+  maxTokens: 4096
+})) {
   // Envoi SSE au client
-  controller.enqueue(`data: ${JSON.stringify({ text: chunk })}\n\n`)
+  stream.writeSSE({ data: JSON.stringify({ chunk }) })
 }
+```
+
+### OpenAI Embeddings (RAG)
+
+**Service** : `apps/api/src/services/embeddings.ts`
+
+**Fonctionnalités** :
+- Génération d'embeddings avec `text-embedding-3-small` (1536 dimensions)
+- Chunking intelligent des documents
+- Estimation du nombre de tokens
+
+**Exemple d'utilisation** :
+
+```typescript
+// Générer un embedding pour une requête
+const embedding = await generateEmbedding("Qu'est-ce que le RGPD ?")
+
+// Chunker un document
+const chunks = chunkText(documentText, 4000) // ~1000 tokens par chunk
+```
+
+### Service de Retrieval (RAG)
+
+**Service** : `apps/api/src/services/retrieval.ts`
+
+**Fonctionnalités** :
+- Recherche sémantique via pgvector
+- Filtrage par assistant
+- Formatage du contexte pour le prompt
+
+```typescript
+// Récupérer le contexte pertinent
+const result = await retrieveContext(query, assistantId, topK=5, threshold=0.7)
+
+// Formater pour injection dans le prompt
+const context = formatContextForPrompt(result.chunks)
 ```
 
 ### n8n Workflows
@@ -851,12 +954,15 @@ DATABASE_URL=postgresql://user:pass@host:5432/db
 JWT_SECRET=your-super-secret-key
 JWT_EXPIRES_IN=7d
 
-# OpenAI
+# OpenRouter (chat avec assistants)
+OPENROUTER_API_KEY=sk-or-...
+
+# OpenAI (embeddings pour RAG)
 OPENAI_API_KEY=sk-...
 
 # n8n
-N8N_BASE_URL=https://n8n.altij.com
-N8N_API_KEY=your-n8n-api-key
+N8N_BASE_URL=https://automation.devtotem.com
+N8N_WEBHOOK_SECRET=your-webhook-secret
 
 # Optionnel
 CORS_ORIGIN=http://localhost:5173
@@ -991,4 +1097,4 @@ enum OutputType {
 
 ---
 
-*Documentation générée le 13/01/2026 - AltiJ AI Lab v1.0*
+*Documentation mise à jour le 14/01/2026 - AltiJ AI Lab v1.1*

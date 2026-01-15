@@ -1073,6 +1073,114 @@ app.post('/censor', async (c) => {
   }
 });
 
+// Route pour prévisualiser le texte anonymisé en temps réel
+// Retourne le texte original et le texte avec les remplacements pour affichage HTML
+app.post('/preview-pdf', async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File | null;
+    const termsRaw = formData.get('terms') as string | null;
+
+    if (!file) {
+      return c.json({ success: false, error: 'File is required' }, 400);
+    }
+
+    const inputTerms: string[] = termsRaw ? JSON.parse(termsRaw) : [];
+    const arrayBuffer = await file.arrayBuffer();
+
+    // Extraire le texte
+    const ocrResult = await extractTextFromPDF(Buffer.from(arrayBuffer));
+    const originalText = ocrResult.text;
+
+    // Si pas de termes, retourner le texte original sans modifications
+    if (inputTerms.length === 0) {
+      return c.json({
+        success: true,
+        data: {
+          text: originalText,
+          totalReplacements: 0,
+          termsFound: [],
+        },
+      });
+    }
+
+    const normalizedText = normalizeText(originalText);
+
+    // Générer toutes les variantes à censurer
+    const allTerms: Array<{ original: string; replacement: string; fromTerm: string }> = [];
+    let counter = 1;
+
+    for (const term of inputTerms) {
+      const trimmed = term.trim();
+      if (!trimmed) continue;
+
+      allTerms.push({
+        original: trimmed,
+        replacement: `[ELEMENT_${counter}]`,
+        fromTerm: trimmed,
+      });
+      counter++;
+
+      // Découper en mots (si plus d'un mot)
+      const words = trimmed.split(/\s+/).filter(w => w.length >= 2);
+      if (words.length > 1) {
+        for (const word of words) {
+          const alreadyExists = allTerms.some(t =>
+            t.original.toLowerCase() === word.toLowerCase()
+          );
+          if (!alreadyExists) {
+            allTerms.push({
+              original: word,
+              replacement: `[ELEMENT_${counter}]`,
+              fromTerm: trimmed,
+            });
+            counter++;
+          }
+        }
+      }
+    }
+
+    // Trier par longueur décroissante
+    allTerms.sort((a, b) => b.original.length - a.original.length);
+
+    // Compter les occurrences
+    const termsWithCounts = allTerms.map(term => {
+      const flexiblePattern = createFlexiblePattern(term.original);
+      const regex = new RegExp(flexiblePattern, 'gi');
+      const matches = normalizedText.match(regex);
+      return {
+        ...term,
+        count: matches ? matches.length : 0,
+      };
+    }).filter(t => t.count > 0);
+
+    // Appliquer les remplacements sur le texte
+    let anonymizedText = originalText;
+    for (const term of termsWithCounts) {
+      const flexiblePattern = createFlexiblePattern(term.original);
+      const regex = new RegExp(flexiblePattern, 'gi');
+      anonymizedText = anonymizedText.replace(regex, term.replacement);
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        text: anonymizedText,
+        totalReplacements: termsWithCounts.reduce((sum, t) => sum + t.count, 0),
+        termsFound: termsWithCounts.map(t => ({
+          original: t.original,
+          replacement: t.replacement,
+          count: t.count,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error('Preview error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate preview';
+    return c.json({ success: false, error: errorMessage }, 500);
+  }
+});
+
 // Route pour prévisualiser les termes qui seront censurés
 app.post('/censor-preview', async (c) => {
   try {
@@ -1157,6 +1265,83 @@ app.post('/censor-preview', async (c) => {
   } catch (error) {
     console.error('Preview error:', error);
     return c.json({ success: false, error: 'Failed to preview' }, 500);
+  }
+});
+
+// Route pour anonymiser par zones visuelles (selection sur le PDF)
+interface RedactionZone {
+  id: string;
+  pageNumber: number;
+  x: number; // percentage from left
+  y: number; // percentage from top
+  width: number; // percentage
+  height: number; // percentage
+}
+
+app.post('/censor-zones', async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File | null;
+    const zonesRaw = formData.get('zones') as string | null;
+
+    if (!file) {
+      return c.json({ success: false, error: 'File is required' }, 400);
+    }
+
+    const zones: RedactionZone[] = zonesRaw ? JSON.parse(zonesRaw) : [];
+
+    if (zones.length === 0) {
+      return c.json({ success: false, error: 'At least one zone is required' }, 400);
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const fileName = file.name;
+
+    // Charger le PDF
+    const pdfDoc = await PDFDocument.load(arrayBuffer, {
+      ignoreEncryption: true,
+    });
+
+    const pages = pdfDoc.getPages();
+
+    // Appliquer les zones de redaction
+    for (const zone of zones) {
+      const pageIndex = zone.pageNumber - 1; // Convert to 0-indexed
+      if (pageIndex < 0 || pageIndex >= pages.length) continue;
+
+      const page = pages[pageIndex];
+      const { width: pageWidth, height: pageHeight } = page.getSize();
+
+      // Convertir les pourcentages en coordonnees PDF
+      // Note: PDF coordinates have origin at bottom-left, but our zones use top-left
+      const x = (zone.x / 100) * pageWidth;
+      const y = pageHeight - ((zone.y / 100) * pageHeight) - ((zone.height / 100) * pageHeight);
+      const width = (zone.width / 100) * pageWidth;
+      const height = (zone.height / 100) * pageHeight;
+
+      // Dessiner un rectangle noir pour masquer la zone
+      page.drawRectangle({
+        x,
+        y,
+        width,
+        height,
+        color: rgb(0, 0, 0), // Noir
+        borderWidth: 0,
+      });
+    }
+
+    const pdfBytes = await pdfDoc.save();
+
+    return new Response(pdfBytes, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="anonymise_${fileName}"`,
+      },
+    });
+  } catch (error) {
+    console.error('Censor zones error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to censor with zones';
+    return c.json({ success: false, error: errorMessage }, 500);
   }
 });
 

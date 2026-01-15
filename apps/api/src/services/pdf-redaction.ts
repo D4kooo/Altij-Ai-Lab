@@ -4,13 +4,10 @@
  */
 
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-// Use legacy build for Node.js/Bun environment
-// @ts-ignore
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
-// Disable worker in Node.js environment
-// @ts-ignore
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+// Disable worker - required for Node.js/Bun
+GlobalWorkerOptions.workerSrc = '';
 
 interface TextItem {
   str: string;
@@ -73,7 +70,12 @@ async function findTextPositions(
   pdfData: ArrayBuffer,
   targets: RedactionTarget[]
 ): Promise<Map<number, TextPosition[]>> {
-  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfData) });
+  const loadingTask = getDocument({
+    data: new Uint8Array(pdfData),
+    useSystemFonts: true,
+    disableFontFace: true,
+    isEvalSupported: false,
+  });
   const pdf = await loadingTask.promise;
 
   const positionsByPage = new Map<number, TextPosition[]>();

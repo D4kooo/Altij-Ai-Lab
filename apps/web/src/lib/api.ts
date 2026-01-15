@@ -861,6 +861,17 @@ export interface CensorPreviewResult {
   termsFound: number;
 }
 
+// Preview result (with anonymized text)
+export interface PreviewPdfResult {
+  text: string; // anonymized text
+  totalReplacements: number;
+  termsFound: {
+    original: string;
+    replacement: string;
+    count: number;
+  }[];
+}
+
 // Anonymiseur API
 export const anonymiseurApi = {
   // Analyser le PDF pour trouver les occurrences des termes
@@ -1072,6 +1083,62 @@ export const anonymiseurApi = {
     if (!response.ok) {
       const errorData = await response.json();
       throw new ApiError(errorData.error || 'Failed to censor', response.status);
+    }
+
+    return response.blob();
+  },
+
+  // Preview PDF with terms replaced (returns base64)
+  previewPdf: async (file: File, terms: string[]): Promise<PreviewPdfResult> => {
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('terms', JSON.stringify(terms));
+
+    const response = await fetch(`${API_BASE}/anonymiseur/preview-pdf`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json() as ApiResponse<PreviewPdfResult>;
+    if (!response.ok || !data.success) {
+      throw new ApiError(data.error || 'Failed to preview PDF', response.status);
+    }
+
+    return data.data as PreviewPdfResult;
+  },
+
+  // Censor PDF with zone-based redaction (visual selection)
+  censorWithZones: async (
+    file: File,
+    zones: Array<{
+      id: string;
+      pageNumber: number;
+      x: number; // percentage from left
+      y: number; // percentage from top
+      width: number; // percentage
+      height: number; // percentage
+    }>
+  ): Promise<Blob> => {
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('zones', JSON.stringify(zones));
+
+    const response = await fetch(`${API_BASE}/anonymiseur/censor-zones`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ApiError(errorData.error || 'Failed to censor with zones', response.status);
     }
 
     return response.blob();

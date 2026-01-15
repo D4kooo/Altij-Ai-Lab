@@ -27,19 +27,22 @@ graph TB
     end
 
     subgraph Services["⚙️ Services Métier"]
-        OpenAISvc["OpenAI Service<br/>Threads, Streaming,<br/>File Upload"]
+        OpenRouterSvc["OpenRouter Service<br/>Multi-modèles, Streaming"]
+        EmbeddingsSvc["Embeddings Service<br/>OpenAI text-embedding-3-small"]
+        RetrievalSvc["Retrieval Service<br/>RAG, pgvector search"]
+        DocumentsSvc["Documents Service<br/>PDF, DOCX extraction"]
         N8nSvc["n8n Service<br/>Workflow Trigger,<br/>Callbacks"]
         PermSvc["Permissions Service<br/>RBAC, Filtrage"]
         SchedulerSvc["Scheduler Service<br/>Cron Jobs"]
-        PDFSvc["PDF Services<br/>Génération, OCR"]
     end
 
     subgraph DB["💾 PostgreSQL - Supabase"]
-        Tables["Tables:<br/>users | assistants | conversations<br/>messages | automations | automationRuns<br/>feeds | articles | newsletters<br/>veillesIa | roles | permissions"]
+        Tables["Tables:<br/>users | assistants | conversations<br/>messages | automations | automationRuns<br/>feeds | articles | newsletters<br/>veillesIa | roles | permissions<br/>assistant_documents | document_chunks"]
     end
 
     subgraph External["🌐 Services Externes"]
-        OpenAI["OpenAI API<br/>GPT Assistants"]
+        OpenRouter["OpenRouter API<br/>Multi-modèles LLM"]
+        OpenAIEmb["OpenAI API<br/>Embeddings"]
         N8n["n8n Workflows<br/>automation.devtotem.com"]
         Feedsearch["Feedsearch API<br/>RSS Discovery"]
     end
@@ -52,7 +55,8 @@ graph TB
     MW --> Routes
     Routes --> Services
 
-    OpenAISvc -->|"API Calls"| OpenAI
+    OpenRouterSvc -->|"API Calls"| OpenRouter
+    EmbeddingsSvc -->|"API Calls"| OpenAIEmb
     N8nSvc -->|"Webhooks"| N8n
     SchedulerSvc -->|"RSS Discovery"| Feedsearch
 
@@ -131,7 +135,10 @@ graph TB
 
     subgraph Services["⚙️ Business Services"]
         AuthSvc["auth.ts<br/>JWT generation<br/>Password verify"]
-        OpenAISvc["openai.ts<br/>Thread management<br/>Streaming responses"]
+        OpenRouterSvc2["openrouter.ts<br/>Multi-modèles<br/>Streaming responses"]
+        EmbeddingsSvc2["embeddings.ts<br/>OpenAI embeddings<br/>Chunking"]
+        RetrievalSvc2["retrieval.ts<br/>pgvector search<br/>RAG context"]
+        DocumentsSvc2["documents.ts<br/>PDF, DOCX extraction"]
         N8nSvc["n8n.ts<br/>Webhook trigger<br/>Payload formatting"]
         PermSvc["permissions.ts<br/>hasAccess()<br/>getAccessibleIds()"]
         SchedulerSvc["scheduler.ts<br/>Cron: RSS refresh<br/>Cron: Veille IA"]
@@ -150,7 +157,7 @@ graph TB
     Database --> PostgreSQL["PostgreSQL"]
 ```
 
-## 4. Flux de Données - Conversation Chat
+## 4. Flux de Données - Conversation Chat (avec RAG)
 
 ```mermaid
 sequenceDiagram
@@ -159,19 +166,27 @@ sequenceDiagram
     participant F as 🖥️ Frontend React
     participant RQ as 📦 React Query
     participant A as 🔧 API Hono
-    participant S as ⚙️ OpenAI Service
-    participant O as 🤖 OpenAI API
+    participant R as 📚 Retrieval Service
+    participant S as ⚙️ OpenRouter Service
+    participant O as 🤖 OpenRouter API
 
     U->>F: Envoie un message
     F->>RQ: Mutation sendMessage
     RQ->>A: POST /api/chat/conversations/:id/messages
     A->>A: Validation JWT
     A->>A: Récupère conversation & assistant
-    A->>S: addMessageToThread()
-    S->>O: Ajoute message au thread
-    O-->>S: Confirmation
-    A->>S: runAssistantStream()
-    S->>O: Run assistant (stream)
+
+    rect rgb(255, 250, 240)
+        Note over A,R: RAG - Retrieval Augmented Generation
+        A->>R: retrieveContext(query, assistantId)
+        R->>R: Génère embedding de la query
+        R->>R: Recherche pgvector (cosine similarity)
+        R-->>A: Top-K chunks pertinents
+        A->>A: Injecte contexte dans le prompt
+    end
+
+    A->>S: streamChatCompletion()
+    S->>O: POST /chat/completions (stream)
 
     loop Streaming
         O-->>S: Chunk de texte
@@ -276,7 +291,9 @@ erDiagram
     users ||--o{ newsletters : "crée"
 
     assistants ||--o{ conversations : "utilisé dans"
+    assistants ||--o{ assistant_documents : "possède"
     conversations ||--o{ messages : "contient"
+    assistant_documents ||--o{ document_chunks : "contient"
 
     automations ||--o{ automationRuns : "exécuté par"
 
@@ -303,8 +320,11 @@ erDiagram
         uuid id PK
         string name
         string description
-        enum type "openai|webhook"
-        string openaiAssistantId
+        enum type "openrouter|webhook"
+        string model
+        text systemPrompt
+        float temperature
+        int maxTokens
         string webhookUrl
         string icon
         string color
@@ -312,11 +332,32 @@ erDiagram
         boolean isActive
     }
 
+    assistant_documents {
+        uuid id PK
+        uuid assistantId FK
+        string name
+        string originalFilename
+        string mimeType
+        int fileSize
+        string status
+        text errorMessage
+        timestamp createdAt
+    }
+
+    document_chunks {
+        uuid id PK
+        uuid documentId FK
+        text content
+        int chunkIndex
+        int tokensCount
+        vector embedding "1536 dimensions"
+        timestamp createdAt
+    }
+
     conversations {
         uuid id PK
         uuid userId FK
         uuid assistantId FK
-        string openaiThreadId
         string title
         timestamp createdAt
     }
@@ -381,6 +422,7 @@ erDiagram
         text prompt
         enum frequency "daily|weekly|biweekly|monthly"
         array departments
+        boolean isFavorite
         uuid createdBy FK
         timestamp lastGeneratedAt
     }
@@ -413,7 +455,7 @@ graph TB
         GetVeilles["Récupérer veilles IA<br/>selon fréquence"]
         CollectSources["Collecter sources"]
         GeneratePrompt["Construire prompt"]
-        CallOpenAI["Appel OpenAI<br/>Génération newsletter"]
+        CallOpenRouter["Appel OpenRouter<br/>Génération newsletter"]
         SaveEdition["Sauvegarder édition"]
     end
 
@@ -425,8 +467,8 @@ graph TB
     Cron2 --> GetVeilles
     GetVeilles --> CollectSources
     CollectSources --> GeneratePrompt
-    GeneratePrompt --> CallOpenAI
-    CallOpenAI --> SaveEdition
+    GeneratePrompt --> CallOpenRouter
+    CallOpenRouter --> SaveEdition
 ```
 
 ## 9. Flux d'Authentification
@@ -508,7 +550,8 @@ mindmap
             Vercel Deploy
             n8n Workflows
         Services Externes
-            OpenAI Assistants
+            OpenRouter Multi-LLM
+            OpenAI Embeddings
             Feedsearch RSS
             n8n Automation
 ```
