@@ -58,20 +58,26 @@ function requireAdmin(c: any, next: any) {
 // VEILLES IA
 // ============================================
 
-// GET /api/veille-ia - List veilles IA (filtered by department for users)
+// GET /api/veille-ia - List veilles IA (filtered by organization and department)
 veilleIaRoutes.get('/', async (c) => {
   const user = c.get('user');
+
+  // Si pas d'organisation, retourner liste vide
+  if (!user.organizationId) {
+    return c.json({ success: true, data: [] });
+  }
 
   let veilles;
 
   if (user.role === 'admin') {
-    // Admin voit tout
+    // Admin voit tout de son organisation
     veilles = await db
       .select()
       .from(schema.veillesIa)
+      .where(eq(schema.veillesIa.organizationId, user.organizationId))
       .orderBy(desc(schema.veillesIa.createdAt));
   } else {
-    // User voit seulement les veilles de son pôle
+    // User voit seulement les veilles de son pôle dans son organisation
     if (!user.department) {
       return c.json({ success: true, data: [] });
     }
@@ -81,6 +87,7 @@ veilleIaRoutes.get('/', async (c) => {
       .from(schema.veillesIa)
       .where(
         and(
+          eq(schema.veillesIa.organizationId, user.organizationId),
           eq(schema.veillesIa.isActive, true),
           sql`${schema.veillesIa.departments} @> ${JSON.stringify([user.department])}::jsonb`
         )

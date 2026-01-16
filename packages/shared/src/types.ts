@@ -5,8 +5,41 @@ export interface User {
   firstName: string;
   lastName: string;
   role: 'admin' | 'user';
+  isStaff: boolean; // Data Ring staff members have access to Lab tools
+  department?: string | null;
+  organizationId?: string | null; // Multi-tenant: lien vers l'organisation
+  isOnboarded?: boolean; // Multi-tenant: onboarding complété
   createdAt: Date;
   lastLoginAt: Date | null;
+}
+
+// Organization types (Multi-tenant)
+export type OrganizationType = 'work' | 'family';
+
+export interface Organization {
+  id: string;
+  name: string;
+  type: OrganizationType;
+  ownerId?: string | null;
+  settings?: OrganizationSettings;
+  createdAt: Date;
+}
+
+export interface OrganizationSettings {
+  theme?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoUrl?: string;
+  };
+  modelRestrictions?: {
+    allowedModels?: string[];
+    maxTokensPerDay?: number;
+  };
+  features?: {
+    voiceEnabled?: boolean;
+    parentalControls?: boolean;
+    maxUsersPerOrg?: number;
+  };
 }
 
 export interface CreateUserRequest {

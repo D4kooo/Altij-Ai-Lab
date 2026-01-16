@@ -133,8 +133,26 @@ export const authApi = {
     password: string;
     firstName: string;
     lastName: string;
+    organizationType: 'work' | 'family';
+    organizationName: string;
+  }): Promise<AuthResponse & { organization: { id: string; name: string; type: string; isOwner: boolean } }> => {
+    const response = await fetchApi<AuthResponse & { organization: { id: string; name: string; type: string; isOwner: boolean } }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    localStorage.setItem('token', response.token);
+    localStorage.setItem('refreshToken', response.refreshToken);
+    return response;
+  },
+
+  // Inscription citoyenne (sans organisation)
+  registerCitizen: async (data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
   }): Promise<AuthResponse> => {
-    const response = await fetchApi<AuthResponse>('/auth/register', {
+    const response = await fetchApi<AuthResponse>('/auth/register-citizen', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -1254,6 +1272,537 @@ export const permissionsApi = {
 
   removeUserRole: (userId: string, roleId: string) =>
     fetchApi<void>(`/permissions/users/${userId}/roles/${roleId}`, { method: 'DELETE' }),
+};
+
+// =====================================================
+// CMS API (Courses, Campaigns, Templates)
+// =====================================================
+
+// Course Types
+export interface Course {
+  id: string;
+  organizationId: string | null;
+  createdBy: string | null;
+  name: string;
+  description: string | null;
+  audience: 'juniors' | 'adultes' | 'seniors';
+  icon: string;
+  color: string;
+  isPublished: boolean;
+  isActive: boolean;
+  order: number;
+  moduleCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Module {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  duration: string;
+  difficulty: 'facile' | 'moyen' | 'expert';
+  category: string | null;
+  hasAudio: boolean;
+  audioUrl: string | null;
+  isLocked: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+  progress?: UserProgress | null;
+}
+
+export interface Lesson {
+  id: string;
+  moduleId: string;
+  title: string;
+  content: string | null;
+  contentType: 'text' | 'video' | 'image' | 'audio';
+  mediaUrl: string | null;
+  duration: string | null;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Quiz {
+  id: string;
+  moduleId: string;
+  title: string;
+  description: string | null;
+  passingScore: number;
+  createdAt: string;
+  updatedAt: string;
+  questions?: QuizQuestion[];
+}
+
+export interface QuizOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface QuizQuestion {
+  id: string;
+  quizId: string;
+  question: string;
+  questionType: 'multiple_choice' | 'true_false';
+  options: QuizOption[];
+  explanation: string | null;
+  order: number;
+  createdAt: string;
+}
+
+export interface UserProgress {
+  id: string;
+  userId: string;
+  moduleId: string;
+  completed: boolean;
+  completedAt: string | null;
+  quizScore: number | null;
+  quizAttempts: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourseWithModules extends Course {
+  modules: Module[];
+}
+
+export interface ModuleWithDetails extends Module {
+  lessons: Lesson[];
+  quiz: Quiz | null;
+  progress: UserProgress | null;
+}
+
+export interface QuizSubmitResult {
+  score: number;
+  passed: boolean;
+  passingScore: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  results: {
+    questionId: string;
+    correct: boolean;
+    correctOptionId?: string;
+    explanation?: string;
+  }[];
+}
+
+export interface CourseProgress {
+  course: {
+    id: string;
+    name: string;
+    audience: string;
+    icon: string;
+    color: string;
+  };
+  completedModules: number;
+  totalModules: number;
+  progress: number;
+}
+
+// Courses API
+export const coursesApi = {
+  list: async (audience?: string): Promise<Course[]> => {
+    const params = audience ? `?audience=${audience}` : '';
+    return fetchApi<Course[]>(`/courses${params}`);
+  },
+
+  get: async (id: string): Promise<CourseWithModules> => {
+    return fetchApi<CourseWithModules>(`/courses/${id}`);
+  },
+
+  create: async (data: {
+    name: string;
+    description?: string;
+    audience: 'juniors' | 'adultes' | 'seniors';
+    icon?: string;
+    color?: string;
+    isPublished?: boolean;
+    order?: number;
+  }): Promise<Course> => {
+    return fetchApi<Course>('/courses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<{
+    name: string;
+    description: string;
+    audience: 'juniors' | 'adultes' | 'seniors';
+    icon: string;
+    color: string;
+    isPublished: boolean;
+    order: number;
+  }>): Promise<Course> => {
+    return fetchApi<Course>(`/courses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await fetchApi(`/courses/${id}`, { method: 'DELETE' });
+  },
+
+  // Modules
+  getModule: async (id: string): Promise<ModuleWithDetails> => {
+    return fetchApi<ModuleWithDetails>(`/courses/modules/${id}`);
+  },
+
+  createModule: async (data: {
+    courseId: string;
+    title: string;
+    description?: string;
+    icon?: string;
+    duration?: string;
+    difficulty?: 'facile' | 'moyen' | 'expert';
+    category?: string;
+    hasAudio?: boolean;
+    audioUrl?: string;
+    isLocked?: boolean;
+    order?: number;
+  }): Promise<Module> => {
+    return fetchApi<Module>('/courses/modules', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateModule: async (id: string, data: Partial<{
+    title: string;
+    description: string;
+    icon: string;
+    duration: string;
+    difficulty: 'facile' | 'moyen' | 'expert';
+    category: string;
+    hasAudio: boolean;
+    audioUrl: string;
+    isLocked: boolean;
+    order: number;
+  }>): Promise<Module> => {
+    return fetchApi<Module>(`/courses/modules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteModule: async (id: string): Promise<void> => {
+    await fetchApi(`/courses/modules/${id}`, { method: 'DELETE' });
+  },
+
+  reorderModules: async (courseId: string, moduleIds: string[]): Promise<void> => {
+    await fetchApi('/courses/modules/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ courseId, moduleIds }),
+    });
+  },
+
+  // Lessons
+  createLesson: async (data: {
+    moduleId: string;
+    title: string;
+    content?: string;
+    contentType?: 'text' | 'video' | 'image' | 'audio';
+    mediaUrl?: string;
+    duration?: string;
+    order?: number;
+  }): Promise<Lesson> => {
+    return fetchApi<Lesson>('/courses/lessons', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateLesson: async (id: string, data: Partial<{
+    title: string;
+    content: string;
+    contentType: 'text' | 'video' | 'image' | 'audio';
+    mediaUrl: string;
+    duration: string;
+    order: number;
+  }>): Promise<Lesson> => {
+    return fetchApi<Lesson>(`/courses/lessons/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteLesson: async (id: string): Promise<void> => {
+    await fetchApi(`/courses/lessons/${id}`, { method: 'DELETE' });
+  },
+
+  // Quizzes
+  createQuiz: async (data: {
+    moduleId: string;
+    title: string;
+    description?: string;
+    passingScore?: number;
+  }): Promise<Quiz> => {
+    return fetchApi<Quiz>('/courses/quizzes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateQuiz: async (id: string, data: Partial<{
+    title: string;
+    description: string;
+    passingScore: number;
+  }>): Promise<Quiz> => {
+    return fetchApi<Quiz>(`/courses/quizzes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteQuiz: async (id: string): Promise<void> => {
+    await fetchApi(`/courses/quizzes/${id}`, { method: 'DELETE' });
+  },
+
+  addQuestion: async (quizId: string, data: {
+    question: string;
+    questionType?: 'multiple_choice' | 'true_false';
+    options: QuizOption[];
+    explanation?: string;
+    order?: number;
+  }): Promise<QuizQuestion> => {
+    return fetchApi<QuizQuestion>(`/courses/quizzes/${quizId}/questions`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateQuestion: async (id: string, data: Partial<{
+    question: string;
+    questionType: 'multiple_choice' | 'true_false';
+    options: QuizOption[];
+    explanation: string;
+    order: number;
+  }>): Promise<QuizQuestion> => {
+    return fetchApi<QuizQuestion>(`/courses/questions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteQuestion: async (id: string): Promise<void> => {
+    await fetchApi(`/courses/questions/${id}`, { method: 'DELETE' });
+  },
+
+  submitQuiz: async (quizId: string, answers: { questionId: string; selectedOptionId: string }[]): Promise<QuizSubmitResult> => {
+    return fetchApi<QuizSubmitResult>(`/courses/quizzes/${quizId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+  },
+
+  // Progress
+  getMyProgress: async (): Promise<CourseProgress[]> => {
+    return fetchApi<CourseProgress[]>('/courses/progress/me');
+  },
+
+  completeModule: async (moduleId: string): Promise<void> => {
+    await fetchApi(`/courses/progress/${moduleId}/complete`, { method: 'POST' });
+  },
+};
+
+// Campaign Types
+export interface Campaign {
+  id: string;
+  organizationId: string | null;
+  createdBy: string | null;
+  title: string;
+  description: string | null;
+  target: string | null;
+  category: string | null;
+  status: 'draft' | 'active' | 'upcoming' | 'completed';
+  participantGoal: number;
+  startDate: string | null;
+  endDate: string | null;
+  participants: number;
+  isParticipating: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignStats {
+  totalParticipants: number;
+  activeCampaigns: number;
+  completedCampaigns: number;
+}
+
+export interface CampaignParticipation {
+  participationId: string;
+  joinedAt: string;
+  campaign: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: string;
+    target: string | null;
+    category: string | null;
+  };
+}
+
+// Campaigns API
+export const campaignsApi = {
+  list: async (status?: string): Promise<Campaign[]> => {
+    const params = status ? `?status=${status}` : '';
+    return fetchApi<Campaign[]>(`/campaigns${params}`);
+  },
+
+  get: async (id: string): Promise<Campaign> => {
+    return fetchApi<Campaign>(`/campaigns/${id}`);
+  },
+
+  create: async (data: {
+    title: string;
+    description?: string;
+    target?: string;
+    category?: string;
+    status?: 'draft' | 'active' | 'upcoming' | 'completed';
+    participantGoal?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Campaign> => {
+    return fetchApi<Campaign>('/campaigns', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<{
+    title: string;
+    description: string;
+    target: string;
+    category: string;
+    status: 'draft' | 'active' | 'upcoming' | 'completed';
+    participantGoal: number;
+    startDate: string;
+    endDate: string;
+  }>): Promise<Campaign> => {
+    return fetchApi<Campaign>(`/campaigns/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await fetchApi(`/campaigns/${id}`, { method: 'DELETE' });
+  },
+
+  join: async (id: string): Promise<{ participationId: string; participants: number }> => {
+    return fetchApi<{ participationId: string; participants: number }>(`/campaigns/${id}/join`, {
+      method: 'POST',
+    });
+  },
+
+  leave: async (id: string): Promise<{ participants: number }> => {
+    return fetchApi<{ participants: number }>(`/campaigns/${id}/leave`, {
+      method: 'DELETE',
+    });
+  },
+
+  getMyParticipations: async (): Promise<CampaignParticipation[]> => {
+    return fetchApi<CampaignParticipation[]>('/campaigns/my/participations');
+  },
+
+  getStats: async (): Promise<CampaignStats> => {
+    return fetchApi<CampaignStats>('/campaigns/stats/global');
+  },
+};
+
+// Template Types
+export interface DocumentTemplate {
+  id: string;
+  organizationId: string | null;
+  createdBy: string | null;
+  title: string;
+  description: string | null;
+  category: 'RGPD' | 'Publicité' | 'Réclamation' | 'Autre' | null;
+  content: string | null;
+  fileUrl: string | null;
+  downloadCount: number;
+  hasFile?: boolean;
+  hasContent?: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TemplateStats {
+  totalDownloads: number;
+  byCategory: {
+    category: string;
+    count: number;
+    downloads: number;
+  }[];
+}
+
+export interface TemplateCategory {
+  value: string;
+  label: string;
+  description: string;
+}
+
+// Templates API
+export const templatesApi = {
+  list: async (category?: string): Promise<DocumentTemplate[]> => {
+    const params = category ? `?category=${category}` : '';
+    return fetchApi<DocumentTemplate[]>(`/templates${params}`);
+  },
+
+  get: async (id: string): Promise<DocumentTemplate> => {
+    return fetchApi<DocumentTemplate>(`/templates/${id}`);
+  },
+
+  download: async (id: string): Promise<DocumentTemplate> => {
+    return fetchApi<DocumentTemplate>(`/templates/${id}/download`);
+  },
+
+  create: async (data: {
+    title: string;
+    description?: string;
+    category?: 'RGPD' | 'Publicité' | 'Réclamation' | 'Autre';
+    content?: string;
+    fileUrl?: string;
+  }): Promise<DocumentTemplate> => {
+    return fetchApi<DocumentTemplate>('/templates', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<{
+    title: string;
+    description: string;
+    category: 'RGPD' | 'Publicité' | 'Réclamation' | 'Autre';
+    content: string;
+    fileUrl: string;
+  }>): Promise<DocumentTemplate> => {
+    return fetchApi<DocumentTemplate>(`/templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await fetchApi(`/templates/${id}`, { method: 'DELETE' });
+  },
+
+  getStats: async (): Promise<TemplateStats> => {
+    return fetchApi<TemplateStats>('/templates/stats/global');
+  },
+
+  getCategories: async (): Promise<TemplateCategory[]> => {
+    return fetchApi<TemplateCategory[]>('/templates/categories/list');
+  },
 };
 
 export { ApiError };

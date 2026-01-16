@@ -101,7 +101,7 @@ automationsRoutes.post('/callback', async (c) => {
 automationsRoutes.use('*', authMiddleware);
 
 // GET /api/automations - List all active automations
-// Filters by user permissions (admins see all)
+// Filters by organization and user permissions
 automationsRoutes.get('/', async (c) => {
   const user = c.get('user')!;
 
@@ -113,11 +113,23 @@ automationsRoutes.get('/', async (c) => {
     return c.json({ success: true, data: [] });
   }
 
-  const automations = await db
-    .select()
-    .from(schema.automations)
-    .where(eq(schema.automations.isActive, true))
-    .orderBy(schema.automations.name);
+  // Filtrer par organisation
+  const automations = user.organizationId
+    ? await db
+        .select()
+        .from(schema.automations)
+        .where(
+          and(
+            eq(schema.automations.isActive, true),
+            eq(schema.automations.organizationId, user.organizationId)
+          )
+        )
+        .orderBy(schema.automations.name)
+    : await db
+        .select()
+        .from(schema.automations)
+        .where(eq(schema.automations.isActive, true))
+        .orderBy(schema.automations.name);
 
   // Filtrer par permissions si pas admin
   const filteredAutomations = accessibleIds === null

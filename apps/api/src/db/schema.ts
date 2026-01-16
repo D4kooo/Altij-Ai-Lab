@@ -25,7 +25,36 @@ export const runStatusEnum = pgEnum('automation_run_status', ['pending', 'runnin
 export const favoriteTypeEnum = pgEnum('favorite_item_type', ['assistant', 'automation']);
 export const assistantTypeEnum = pgEnum('assistant_type', ['openrouter', 'webhook']);
 export const resourceTypeEnum = pgEnum('resource_type', ['assistant', 'automation']);
+export const organizationTypeEnum = pgEnum('organization_type', ['work', 'family']);
 // Document status is stored as TEXT (not enum) for flexibility
+
+// Organisations (Multi-tenant: Work & Family)
+export const organizations = pgTable('organizations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  type: organizationTypeEnum('type').notNull(),
+  ownerId: uuid('owner_id'),
+  settings: jsonb('settings').$type<OrganizationSettings>().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Type pour les settings d'organisation
+export interface OrganizationSettings {
+  theme?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoUrl?: string;
+  };
+  modelRestrictions?: {
+    allowedModels?: string[];
+    maxTokensPerDay?: number;
+  };
+  features?: {
+    voiceEnabled?: boolean;
+    parentalControls?: boolean;
+    maxUsersPerOrg?: number;
+  };
+}
 
 // Utilisateurs
 export const users = pgTable('users', {
@@ -35,7 +64,10 @@ export const users = pgTable('users', {
   firstName: text('first_name').notNull(),
   lastName: text('last_name').notNull(),
   role: userRoleEnum('role').default('user').notNull(),
+  isStaff: boolean('is_staff').default(false).notNull(), // Data Ring staff members
   department: departmentEnum('department'),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
+  isOnboarded: boolean('is_onboarded').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
 });
@@ -43,6 +75,7 @@ export const users = pgTable('users', {
 // Assistants IA
 export const assistants = pgTable('assistants', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
   type: assistantTypeEnum('type').default('openrouter').notNull(),
   // OpenRouter configuration
   model: text('model').default('anthropic/claude-sonnet-4'), // OpenRouter model ID
@@ -93,6 +126,7 @@ export const documentChunks = pgTable('document_chunks', {
 // Conversations avec les assistants
 export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   assistantId: uuid('assistant_id').notNull().references(() => assistants.id, { onDelete: 'cascade' }),
   title: text('title'),
@@ -113,6 +147,7 @@ export const messages = pgTable('messages', {
 // Automatisations (workflows n8n)
 export const automations = pgTable('automations', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
   n8nWorkflowId: text('n8n_workflow_id').notNull(),
   n8nWebhookUrl: text('n8n_webhook_url').notNull(),
   name: text('name').notNull(),
@@ -163,7 +198,8 @@ export const refreshTokens = pgTable('refresh_tokens', {
 // Rôles personnalisés pour la gestion des accès
 export const roles = pgTable('roles', {
   id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull().unique(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
   description: text('description'),
   color: text('color').default('#6366f1'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -202,6 +238,7 @@ export const feedTypeEnum = pgEnum('feed_type', ['rss', 'web']);
 // Feeds RSS (Veille)
 export const feeds = pgTable('feeds', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   url: text('url').notNull(),
@@ -233,6 +270,7 @@ export const newsletterFrequencyEnum = pgEnum('newsletter_frequency', ['daily', 
 // Newsletters (RSS personnalisées par utilisateur)
 export const newsletters = pgTable('newsletters', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   email: text('email').notNull(),
@@ -249,6 +287,7 @@ export const veilleIaFrequencyEnum = pgEnum('veille_ia_frequency', ['daily', 'we
 // Veilles IA (générées par Perplexity, admin only)
 export const veillesIa = pgTable('veilles_ia', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   description: text('description').notNull(),
   prompt: text('prompt').notNull(), // Le prompt envoyé à Perplexity
@@ -313,7 +352,178 @@ export const auditLogs = pgTable('audit_logs', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// =====================================================
+// CMS: COURS ET ACTIONS COLLECTIVES
+// =====================================================
+
+// Enums pour le CMS
+export const courseAudienceEnum = pgEnum('course_audience', ['juniors', 'adultes', 'seniors']);
+export const moduleDifficultyEnum = pgEnum('module_difficulty', ['facile', 'moyen', 'expert']);
+export const lessonContentTypeEnum = pgEnum('lesson_content_type', ['text', 'video', 'image', 'audio']);
+export const quizQuestionTypeEnum = pgEnum('quiz_question_type', ['multiple_choice', 'true_false']);
+export const campaignStatusEnum = pgEnum('campaign_status', ['draft', 'active', 'upcoming', 'completed']);
+export const templateCategoryEnum = pgEnum('template_category', ['RGPD', 'Publicité', 'Réclamation', 'Autre']);
+
+// Cours (groupes de modules par audience)
+export const courses = pgTable('courses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+
+  name: text('name').notNull(),
+  description: text('description'),
+  audience: courseAudienceEnum('audience').notNull(),
+  icon: text('icon').default('BookOpen'),
+  color: text('color').default('#57C5B6'),
+
+  isPublished: boolean('is_published').default(false).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  order: integer('order').default(0),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Modules (sections d'un cours)
+export const modules = pgTable('modules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+
+  title: text('title').notNull(),
+  description: text('description'),
+  icon: text('icon').default('FileText'),
+  duration: text('duration').default('15 min'),
+  difficulty: moduleDifficultyEnum('difficulty').default('facile'),
+  category: text('category'),
+
+  hasAudio: boolean('has_audio').default(false),
+  audioUrl: text('audio_url'),
+  isLocked: boolean('is_locked').default(false),
+  order: integer('order').default(0),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Leçons (contenu d'un module)
+export const lessons = pgTable('lessons', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  moduleId: uuid('module_id').notNull().references(() => modules.id, { onDelete: 'cascade' }),
+
+  title: text('title').notNull(),
+  content: text('content'),
+  contentType: lessonContentTypeEnum('content_type').default('text'),
+  mediaUrl: text('media_url'),
+  duration: text('duration'),
+  order: integer('order').default(0),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Quiz (optionnel, lié à un module)
+export const quizzes = pgTable('quizzes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  moduleId: uuid('module_id').notNull().references(() => modules.id, { onDelete: 'cascade' }),
+
+  title: text('title').notNull(),
+  description: text('description'),
+  passingScore: integer('passing_score').default(70),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Questions de quiz
+export const quizQuestions = pgTable('quiz_questions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  quizId: uuid('quiz_id').notNull().references(() => quizzes.id, { onDelete: 'cascade' }),
+
+  question: text('question').notNull(),
+  questionType: quizQuestionTypeEnum('question_type').default('multiple_choice'),
+  options: jsonb('options').$type<QuizOption[]>().default([]),
+  explanation: text('explanation'),
+  order: integer('order').default(0),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Type pour les options de quiz
+export interface QuizOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+// Progression utilisateur
+export const userProgress = pgTable('user_progress', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  moduleId: uuid('module_id').notNull().references(() => modules.id, { onDelete: 'cascade' }),
+
+  completed: boolean('completed').default(false),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  quizScore: integer('quiz_score'),
+  quizAttempts: integer('quiz_attempts').default(0),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Campagnes (Actions Collectives)
+export const campaigns = pgTable('campaigns', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+
+  title: text('title').notNull(),
+  description: text('description'),
+  target: text('target'),
+  category: text('category'),
+
+  status: campaignStatusEnum('status').default('draft'),
+  participantGoal: integer('participant_goal').default(1000),
+  startDate: timestamp('start_date', { withTimezone: true }),
+  endDate: timestamp('end_date', { withTimezone: true }),
+
+  isActive: boolean('is_active').default(true).notNull(),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Participations aux campagnes
+export const campaignParticipations = pgTable('campaign_participations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  campaignId: uuid('campaign_id').notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Templates de documents
+export const documentTemplates = pgTable('document_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+
+  title: text('title').notNull(),
+  description: text('description'),
+  category: templateCategoryEnum('category'),
+
+  content: text('content'),
+  fileUrl: text('file_url'),
+  downloadCount: integer('download_count').default(0),
+
+  isActive: boolean('is_active').default(true).notNull(),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Type exports for use in application
+export type OrganizationSelect = typeof organizations.$inferSelect;
+export type OrganizationInsert = typeof organizations.$inferInsert;
 export type UserSelect = typeof users.$inferSelect;
 export type UserInsert = typeof users.$inferInsert;
 export type AssistantSelect = typeof assistants.$inferSelect;

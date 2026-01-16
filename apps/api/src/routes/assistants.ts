@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { eq, desc, asc } from 'drizzle-orm';
+import { eq, desc, asc, and } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
@@ -90,7 +90,7 @@ assistantsRoutes.get('/models', adminMiddleware, async (c) => {
 });
 
 // GET /api/assistants - List all active assistants (pinned first, then by name)
-// Filters by user permissions (admins see all)
+// Filters by organization and user permissions
 assistantsRoutes.get('/', async (c) => {
   const user = c.get('user')!;
 
@@ -102,20 +102,33 @@ assistantsRoutes.get('/', async (c) => {
     return c.json({ success: true, data: [] });
   }
 
-  // Construire la requête
-  let query = db
-    .select()
-    .from(schema.assistants)
-    .where(eq(schema.assistants.isActive, true))
-    .orderBy(
-      desc(schema.assistants.isPinned),
-      asc(schema.assistants.pinOrder),
-      asc(schema.assistants.name)
-    );
+  // Construire la requête avec filtre par organisation
+  const assistants = user.organizationId
+    ? await db
+        .select()
+        .from(schema.assistants)
+        .where(
+          and(
+            eq(schema.assistants.isActive, true),
+            eq(schema.assistants.organizationId, user.organizationId)
+          )
+        )
+        .orderBy(
+          desc(schema.assistants.isPinned),
+          asc(schema.assistants.pinOrder),
+          asc(schema.assistants.name)
+        )
+    : await db
+        .select()
+        .from(schema.assistants)
+        .where(eq(schema.assistants.isActive, true))
+        .orderBy(
+          desc(schema.assistants.isPinned),
+          asc(schema.assistants.pinOrder),
+          asc(schema.assistants.name)
+        );
 
-  const assistants = await query;
-
-  // Filtrer par permissions si pas admin
+  // Filtrer par permissions si pas admin de l'org
   const filteredAssistants = accessibleIds === null
     ? assistants
     : assistants.filter((a) => accessibleIds.includes(a.id));

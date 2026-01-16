@@ -19,6 +19,10 @@ import { lettreMissionRoutes } from './routes/lettre-mission';
 import { rolesRoutes } from './routes/roles';
 import { permissionsRoutes } from './routes/permissions';
 import { documentsRoutes } from './routes/documents';
+import { organizationsRouter } from './routes/organizations';
+import { coursesRoutes } from './routes/courses';
+import { campaignsRoutes } from './routes/campaigns';
+import { templatesRoutes } from './routes/templates';
 import { initScheduler } from './services/scheduler';
 
 const app = new Hono();
@@ -53,7 +57,11 @@ app.route('/api/anonymiseur', anonymiseurRoutes);
 app.route('/api/lettre-mission', lettreMissionRoutes);
 app.route('/api/roles', rolesRoutes);
 app.route('/api/permissions', permissionsRoutes);
+app.route('/api/organizations', organizationsRouter);
 app.route('/api/assistants', documentsRoutes); // Documents routes nested under /api/assistants/:id/documents
+app.route('/api/courses', coursesRoutes);
+app.route('/api/campaigns', campaignsRoutes);
+app.route('/api/templates', templatesRoutes);
 
 // 404 handler
 app.notFound((c) => {
@@ -74,7 +82,7 @@ app.onError((err, c) => {
 
 const port = parseInt(process.env.PORT || '3000', 10);
 
-console.log(`🚀 AltiJ AI Lab API running on http://localhost:${port}`);
+console.log(`🚀 Data Ring API running on http://localhost:${port}`);
 
 export default {
   port,

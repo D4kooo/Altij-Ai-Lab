@@ -2,6 +2,33 @@ import OpenAI from 'openai';
 
 let openrouterClient: OpenAI | null = null;
 
+// Liste des modèles Open Source autorisés pour les organisations 'family'
+// Ces modèles sont gratuits ou peu coûteux et adaptés à un usage familial
+const FAMILY_ALLOWED_MODELS = [
+  // Mistral Open Source
+  'mistralai/mistral-7b-instruct',
+  'mistralai/mistral-7b-instruct:free',
+  'mistralai/mixtral-8x7b-instruct',
+  // Google Open Models
+  'google/gemma-7b-it',
+  'google/gemma-7b-it:free',
+  'google/gemma-2-9b-it',
+  'google/gemma-2-9b-it:free',
+  // Meta Llama
+  'meta-llama/llama-3-8b-instruct',
+  'meta-llama/llama-3-8b-instruct:free',
+  'meta-llama/llama-3.1-8b-instruct',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'meta-llama/llama-3.2-3b-instruct',
+  'meta-llama/llama-3.2-3b-instruct:free',
+  // Qwen
+  'qwen/qwen-2-7b-instruct',
+  'qwen/qwen-2-7b-instruct:free',
+  // Microsoft Phi
+  'microsoft/phi-3-mini-128k-instruct',
+  'microsoft/phi-3-mini-128k-instruct:free',
+];
+
 function getOpenRouter(): OpenAI {
   if (!openrouterClient) {
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -14,7 +41,7 @@ function getOpenRouter(): OpenAI {
       apiKey,
       defaultHeaders: {
         'HTTP-Referer': process.env.APP_URL || 'http://localhost:5173',
-        'X-Title': 'Altij Lab',
+        'X-Title': 'Data Ring', // Updated from Altij Lab to Data Ring
       },
     });
   }
@@ -195,5 +222,55 @@ export async function chatCompletion(
 
   return response.choices[0]?.message?.content || '';
 }
+
+// Récupérer les modèles autorisés selon le type d'organisation
+export async function getAllowedModels(
+  orgType: 'work' | 'family',
+  customAllowedModels?: string[]
+): Promise<OpenRouterModel[]> {
+  const allModels = await listModels();
+
+  // Si des modèles custom sont spécifiés (dans les settings de l'org), utiliser ceux-là
+  if (customAllowedModels && customAllowedModels.length > 0) {
+    return allModels.filter(model => customAllowedModels.includes(model.id));
+  }
+
+  // Pour les organisations 'work', tous les modèles sont autorisés
+  if (orgType === 'work') {
+    return allModels;
+  }
+
+  // Pour les organisations 'family', filtrer uniquement les modèles open source
+  return allModels.filter(model =>
+    FAMILY_ALLOWED_MODELS.some(allowedId =>
+      model.id === allowedId || model.id.startsWith(allowedId.split(':')[0])
+    )
+  );
+}
+
+// Vérifier si un modèle est autorisé pour une organisation
+export function isModelAllowed(
+  modelId: string,
+  orgType: 'work' | 'family',
+  customAllowedModels?: string[]
+): boolean {
+  // Si des modèles custom sont spécifiés, vérifier dans cette liste
+  if (customAllowedModels && customAllowedModels.length > 0) {
+    return customAllowedModels.includes(modelId);
+  }
+
+  // Pour 'work', tout est autorisé
+  if (orgType === 'work') {
+    return true;
+  }
+
+  // Pour 'family', vérifier dans la liste des modèles open source
+  return FAMILY_ALLOWED_MODELS.some(allowedId =>
+    modelId === allowedId || modelId.startsWith(allowedId.split(':')[0])
+  );
+}
+
+// Export de la liste des modèles family pour référence
+export { FAMILY_ALLOWED_MODELS };
 
 export { getOpenRouter };
