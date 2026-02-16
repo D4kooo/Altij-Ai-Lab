@@ -81,6 +81,7 @@ export interface Assistant {
   icon: string;
   color: string;
   suggestedPrompts: string[];
+  dataSources: string[];
   isPinned: boolean;
   pinOrder: number | null;
   isActive: boolean;
@@ -104,6 +105,7 @@ export interface CreateAssistantRequest {
   icon: string;
   color: string;
   suggestedPrompts?: string[];
+  dataSources?: string[];
   isPinned?: boolean;
   pinOrder?: number;
 }

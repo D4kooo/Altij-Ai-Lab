@@ -8,6 +8,7 @@ import { db, schema } from '../db';
 import { authMiddleware } from '../middleware/auth';
 import { streamChatCompletion, buildMessagesWithHistory } from '../services/openrouter';
 import { retrieveContext, formatContextForPrompt, hasDocuments, getRetrievalSummary } from '../services/retrieval';
+import { searchDataSources, formatDataSourceResults } from '../connectors';
 
 const chatRoutes = new Hono<Env>();
 
@@ -402,13 +403,29 @@ chatRoutes.post(
         console.error('[RAG] Error retrieving context:', ragError);
       }
 
-      // Build messages with system prompt, history, and RAG context
+      // Data sources: query connected legal APIs in real-time
+      let dataSourcesContext: string | undefined;
+      const dsArray = (assistant as Record<string, unknown>).dataSources as string[] | undefined;
+      if (dsArray && dsArray.length > 0) {
+        try {
+          const dsResults = await searchDataSources(dsArray, content, 3);
+          if (dsResults.length > 0) {
+            dataSourcesContext = formatDataSourceResults(dsResults);
+            console.log(`[DataSources] ${dsResults.length} results from ${dsArray.length} source(s)`);
+          }
+        } catch (err) {
+          console.error('[DataSources] Error:', err);
+        }
+      }
+
+      // Build messages with system prompt, history, RAG context, and data sources
       const messages = buildMessagesWithHistory(
         assistant.systemPrompt,
         previousMessages.slice(0, -1), // Exclude the message we just added
         content,
         undefined, // attachments
-        ragContext
+        ragContext,
+        dataSourcesContext
       );
 
       // Stream response

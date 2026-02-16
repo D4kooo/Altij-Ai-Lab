@@ -15,7 +15,8 @@
   },
   "references": [
     { "path": "./apps/api" },
-    { "path": "./apps/web" },
+    { "path": "./apps/app" },
+    { "path": "./apps/public" },
     { "path": "./packages/shared" }
   ]
 }

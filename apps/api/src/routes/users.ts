@@ -40,17 +40,18 @@ const updateUserSchema = z.object({
 // Apply auth and admin middleware to all routes
 usersRoutes.use('*', authMiddleware, adminMiddleware);
 
-// GET /api/users - List all users (paginated)
+// GET /api/users - List all staff users (paginated)
 usersRoutes.get('/', zValidator('query', paginationSchema), async (c) => {
   const { page, limit } = c.req.valid('query');
   const offset = getOffset(page, limit);
 
-  // Get total count
+  // Get total count of staff users only
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(schema.users);
+    .from(schema.users)
+    .where(eq(schema.users.isStaff, true));
 
-  // Get paginated users
+  // Get paginated staff users only
   const users = await db
     .select({
       id: schema.users.id,
@@ -62,6 +63,7 @@ usersRoutes.get('/', zValidator('query', paginationSchema), async (c) => {
       lastLoginAt: schema.users.lastLoginAt,
     })
     .from(schema.users)
+    .where(eq(schema.users.isStaff, true))
     .orderBy(schema.users.lastName, schema.users.firstName)
     .limit(limit)
     .offset(offset);
@@ -124,6 +126,7 @@ usersRoutes.post('/', zValidator('json', createUserSchema), async (c) => {
     firstName: data.firstName,
     lastName: data.lastName,
     role: data.role || 'user',
+    isStaff: true, // Users created via admin route are staff members
     createdAt: now,
   }).returning({
     id: schema.users.id,

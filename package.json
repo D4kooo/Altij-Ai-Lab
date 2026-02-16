@@ -9,9 +9,12 @@
   ],
   "scripts": {
     "dev": "bun run --filter '*' dev",
-    "dev:web": "bun run --filter web dev",
+    "dev:public": "bun run --filter public dev",
+    "dev:app": "bun run --filter app dev",
     "dev:api": "bun run --filter api dev",
     "build": "bun run --filter '*' build",
+    "build:public": "bun run --filter public build",
+    "build:app": "bun run --filter app build",
     "db:generate": "cd apps/api && drizzle-kit generate",
     "db:migrate": "cd apps/api && drizzle-kit migrate",
     "db:studio": "cd apps/api && drizzle-kit studio",

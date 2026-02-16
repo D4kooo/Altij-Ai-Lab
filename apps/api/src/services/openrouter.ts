@@ -151,13 +151,19 @@ export function buildMessagesWithHistory(
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
   newMessage: string,
   attachments?: Array<{ base64: string; mimeType: string; fileName: string }>,
-  ragContext?: string
+  ragContext?: string,
+  dataSourcesContext?: string
 ): ChatMessage[] {
   const messages: ChatMessage[] = [];
 
   // System prompt
   if (systemPrompt) {
     messages.push({ role: 'system', content: systemPrompt });
+  }
+
+  // Data sources context (injected between system prompt and RAG)
+  if (dataSourcesContext && dataSourcesContext.trim().length > 0) {
+    messages.push({ role: 'system', content: dataSourcesContext });
   }
 
   // RAG context (injected as a separate system message)

@@ -7,6 +7,7 @@ import { db, schema } from '../db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 import { listModels } from '../services/openrouter';
 import { getAccessibleResourceIds } from '../services/permissions';
+import { getConnectorsStatus } from '../connectors';
 
 const assistantsRoutes = new Hono<Env>();
 
@@ -27,6 +28,7 @@ const assistantBaseSchema = z.object({
   icon: z.string().min(1),
   color: z.string().min(1),
   suggestedPrompts: z.array(z.string()).optional(),
+  dataSources: z.array(z.string()).optional(),
   isPinned: z.boolean().optional().default(false),
   pinOrder: z.number().optional(),
 });
@@ -89,6 +91,14 @@ assistantsRoutes.get('/models', adminMiddleware, async (c) => {
   }
 });
 
+// GET /api/assistants/data-sources/status - Check which connectors are configured
+assistantsRoutes.get('/data-sources/status', adminMiddleware, async (c) => {
+  return c.json({
+    success: true,
+    data: getConnectorsStatus(),
+  });
+});
+
 // GET /api/assistants - List all active assistants (pinned first, then by name)
 // Filters by organization and user permissions
 assistantsRoutes.get('/', async (c) => {
@@ -149,6 +159,7 @@ assistantsRoutes.get('/', async (c) => {
       icon: a.icon,
       color: a.color,
       suggestedPrompts: a.suggestedPrompts || [],
+      dataSources: a.dataSources || [],
       isPinned: a.isPinned,
       pinOrder: a.pinOrder,
       isActive: a.isActive,
@@ -188,6 +199,7 @@ assistantsRoutes.get('/:id', async (c) => {
       icon: assistant.icon,
       color: assistant.color,
       suggestedPrompts: assistant.suggestedPrompts || [],
+      dataSources: assistant.dataSources || [],
       isPinned: assistant.isPinned,
       pinOrder: assistant.pinOrder,
       isActive: assistant.isActive,
@@ -215,6 +227,7 @@ assistantsRoutes.post('/', adminMiddleware, zValidator('json', createAssistantSc
     icon: data.icon,
     color: data.color,
     suggestedPrompts: data.suggestedPrompts || [],
+    dataSources: data.dataSources || [],
     isPinned: data.isPinned || false,
     pinOrder: data.pinOrder || 0,
     isActive: true,
@@ -239,6 +252,7 @@ assistantsRoutes.post('/', adminMiddleware, zValidator('json', createAssistantSc
         icon: assistant.icon,
         color: assistant.color,
         suggestedPrompts: assistant.suggestedPrompts || [],
+        dataSources: assistant.dataSources || [],
         isPinned: assistant.isPinned,
         pinOrder: assistant.pinOrder,
         isActive: assistant.isActive,
@@ -295,6 +309,7 @@ assistantsRoutes.put('/:id', adminMiddleware, zValidator('json', updateAssistant
       icon: assistant.icon,
       color: assistant.color,
       suggestedPrompts: assistant.suggestedPrompts || [],
+      dataSources: assistant.dataSources || [],
       isPinned: assistant.isPinned,
       pinOrder: assistant.pinOrder,
       isActive: assistant.isActive,

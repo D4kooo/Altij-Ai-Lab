@@ -285,6 +285,41 @@ authRoutes.get('/me', authMiddleware, async (c) => {
   });
 });
 
+// PUT /api/auth/password - Change password (authenticated)
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Mot de passe actuel requis'),
+  newPassword: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+});
+
+authRoutes.put('/password', authMiddleware, zValidator('json', changePasswordSchema, (result, c) => {
+  if (!result.success) {
+    const firstError = result.error.issues[0];
+    return c.json({ success: false, error: firstError.message }, 400);
+  }
+}), async (c) => {
+  const user = c.get('user');
+  const { currentPassword, newPassword } = c.req.valid('json');
+
+  // Verify current password
+  const fullUser = await getUserByEmail(user.email);
+  if (!fullUser) {
+    return c.json({ success: false, error: 'Utilisateur introuvable' }, 404);
+  }
+
+  const isValid = await verifyPassword(currentPassword, fullUser.passwordHash);
+  if (!isValid) {
+    return c.json({ success: false, error: 'Mot de passe actuel incorrect' }, 401);
+  }
+
+  // Hash and update
+  const newHash = await hashPassword(newPassword);
+  await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
+
+  await logAuthEvent(c, 'password_changed', user.id, { email: user.email });
+
+  return c.json({ success: true, data: { message: 'Mot de passe modifié avec succès' } });
+});
+
 // POST /api/auth/refresh (rate limited)
 authRoutes.post('/refresh', authRateLimit, zValidator('json', refreshSchema), async (c) => {
   const { refreshToken } = c.req.valid('json');
