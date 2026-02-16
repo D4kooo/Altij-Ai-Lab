@@ -91,6 +91,7 @@ export const assistants = pgTable('assistants', {
   icon: text('icon').notNull(),
   color: text('color').notNull(),
   suggestedPrompts: jsonb('suggested_prompts').$type<string[]>().default([]),
+  dataSources: jsonb('data_sources').$type<string[]>().default([]),
   isPinned: boolean('is_pinned').default(false).notNull(),
   pinOrder: integer('pin_order').default(0),
   isActive: boolean('is_active').default(true).notNull(),
@@ -239,7 +240,7 @@ export const feedTypeEnum = pgEnum('feed_type', ['rss', 'web']);
 export const feeds = pgTable('feeds', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   url: text('url').notNull(),
   type: feedTypeEnum('type').default('rss').notNull(),
@@ -262,6 +263,19 @@ export const articles = pgTable('articles', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('articles_feed_url_idx').on(table.feedId, table.url),
+]);
+
+// Per-user article status (for shared/org feeds)
+export const articleUserStatus = pgTable('article_user_status', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  articleId: uuid('article_id').notNull().references(() => articles.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  isRead: boolean('is_read').default(false).notNull(),
+  isFavorite: boolean('is_favorite').default(false).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('article_user_status_unique').on(table.articleId, table.userId),
 ]);
 
 // Newsletter frequency enum
@@ -293,6 +307,7 @@ export const veillesIa = pgTable('veilles_ia', {
   prompt: text('prompt').notNull(), // Le prompt envoyé à Perplexity
   frequency: veilleIaFrequencyEnum('frequency').default('weekly').notNull(),
   departments: jsonb('departments').$type<string[]>().default([]), // Pôles ciblés
+  userIds: jsonb('user_ids').$type<string[]>().default([]), // Utilisateurs individuels ciblés
   isActive: boolean('is_active').default(true).notNull(),
   isFavorite: boolean('is_favorite').default(false).notNull(), // Mis en avant sur le dashboard
   createdBy: uuid('created_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -564,3 +579,5 @@ export type AssistantDocumentSelect = typeof assistantDocuments.$inferSelect;
 export type AssistantDocumentInsert = typeof assistantDocuments.$inferInsert;
 export type DocumentChunkSelect = typeof documentChunks.$inferSelect;
 export type DocumentChunkInsert = typeof documentChunks.$inferInsert;
+export type ArticleUserStatusSelect = typeof articleUserStatus.$inferSelect;
+export type ArticleUserStatusInsert = typeof articleUserStatus.$inferInsert;

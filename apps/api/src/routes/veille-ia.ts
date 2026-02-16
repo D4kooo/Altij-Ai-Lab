@@ -32,15 +32,20 @@ const createVeilleIaSchema = z.object({
   description: z.string().min(1),
   prompt: z.string().min(10),
   frequency: z.enum(['daily', 'weekly', 'biweekly', 'monthly']),
-  departments: z.array(z.enum(DEPARTMENTS)).min(1),
-});
+  departments: z.array(z.enum(DEPARTMENTS)).optional().default([]),
+  userIds: z.array(z.string().uuid()).optional().default([]),
+}).refine(
+  (data) => data.departments.length > 0 || data.userIds.length > 0,
+  { message: 'At least one department or one user must be selected' }
+);
 
 const updateVeilleIaSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
   prompt: z.string().min(10).optional(),
   frequency: z.enum(['daily', 'weekly', 'biweekly', 'monthly']).optional(),
-  departments: z.array(z.enum(DEPARTMENTS)).min(1).optional(),
+  departments: z.array(z.enum(DEPARTMENTS)).optional(),
+  userIds: z.array(z.string().uuid()).optional(),
   isActive: z.boolean().optional(),
   isFavorite: z.boolean().optional(),
 });
@@ -77,10 +82,12 @@ veilleIaRoutes.get('/', async (c) => {
       .where(eq(schema.veillesIa.organizationId, user.organizationId))
       .orderBy(desc(schema.veillesIa.createdAt));
   } else {
-    // User voit seulement les veilles de son pôle dans son organisation
-    if (!user.department) {
-      return c.json({ success: true, data: [] });
+    // User voit les veilles de son pôle OU assignées à lui individuellement
+    const accessConditions = [];
+    if (user.department) {
+      accessConditions.push(sql`${schema.veillesIa.departments} @> ${JSON.stringify([user.department])}::jsonb`);
     }
+    accessConditions.push(sql`${schema.veillesIa.userIds} @> ${JSON.stringify([user.id])}::jsonb`);
 
     veilles = await db
       .select()
@@ -89,7 +96,7 @@ veilleIaRoutes.get('/', async (c) => {
         and(
           eq(schema.veillesIa.organizationId, user.organizationId),
           eq(schema.veillesIa.isActive, true),
-          sql`${schema.veillesIa.departments} @> ${JSON.stringify([user.department])}::jsonb`
+          sql`(${sql.join(accessConditions, sql` OR `)})`
         )
       )
       .orderBy(desc(schema.veillesIa.createdAt));
@@ -113,18 +120,29 @@ veilleIaRoutes.get('/departments', async (c) => {
 veilleIaRoutes.get('/favorites/list', async (c) => {
   const user = c.get('user');
 
+  if (!user.organizationId) {
+    return c.json({ success: true, data: [] });
+  }
+
   let veilles;
 
   if (user.role === 'admin') {
     veilles = await db
       .select()
       .from(schema.veillesIa)
-      .where(eq(schema.veillesIa.isFavorite, true))
+      .where(
+        and(
+          eq(schema.veillesIa.isFavorite, true),
+          eq(schema.veillesIa.organizationId, user.organizationId)
+        )
+      )
       .orderBy(desc(schema.veillesIa.updatedAt));
   } else {
-    if (!user.department) {
-      return c.json({ success: true, data: [] });
+    const accessConditions = [];
+    if (user.department) {
+      accessConditions.push(sql`${schema.veillesIa.departments} @> ${JSON.stringify([user.department])}::jsonb`);
     }
+    accessConditions.push(sql`${schema.veillesIa.userIds} @> ${JSON.stringify([user.id])}::jsonb`);
 
     veilles = await db
       .select()
@@ -132,8 +150,9 @@ veilleIaRoutes.get('/favorites/list', async (c) => {
       .where(
         and(
           eq(schema.veillesIa.isFavorite, true),
+          eq(schema.veillesIa.organizationId, user.organizationId),
           eq(schema.veillesIa.isActive, true),
-          sql`${schema.veillesIa.departments} @> ${JSON.stringify([user.department])}::jsonb`
+          sql`(${sql.join(accessConditions, sql` OR `)})`
         )
       )
       .orderBy(desc(schema.veillesIa.updatedAt));
@@ -180,19 +199,29 @@ veilleIaRoutes.get('/:id', async (c) => {
   const user = c.get('user');
   const veilleId = c.req.param('id');
 
+  if (!user.organizationId) {
+    return c.json({ success: false, error: 'Organization required' }, 403);
+  }
+
   const [veille] = await db
     .select()
     .from(schema.veillesIa)
-    .where(eq(schema.veillesIa.id, veilleId));
+    .where(
+      and(
+        eq(schema.veillesIa.id, veilleId),
+        eq(schema.veillesIa.organizationId, user.organizationId)
+      )
+    );
 
   if (!veille) {
     return c.json({ success: false, error: 'Veille not found' }, 404);
   }
 
-  // Vérifier l'accès
+  // Vérifier l'accès par département ou userId pour les non-admins
   if (user.role !== 'admin') {
-    const userDept = user.department;
-    if (!userDept || !veille.departments.includes(userDept)) {
+    const hasDeptAccess = user.department && veille.departments.includes(user.department);
+    const hasUserAccess = (veille.userIds ?? []).includes(user.id);
+    if (!hasDeptAccess && !hasUserAccess) {
       return c.json({ success: false, error: 'Access denied' }, 403);
     }
   }
@@ -219,19 +248,29 @@ veilleIaRoutes.get('/:id/editions', async (c) => {
   const user = c.get('user');
   const veilleId = c.req.param('id');
 
-  // Vérifier l'accès
+  if (!user.organizationId) {
+    return c.json({ success: false, error: 'Organization required' }, 403);
+  }
+
+  // Vérifier l'accès (scoped by org)
   const [veille] = await db
     .select()
     .from(schema.veillesIa)
-    .where(eq(schema.veillesIa.id, veilleId));
+    .where(
+      and(
+        eq(schema.veillesIa.id, veilleId),
+        eq(schema.veillesIa.organizationId, user.organizationId)
+      )
+    );
 
   if (!veille) {
     return c.json({ success: false, error: 'Veille not found' }, 404);
   }
 
   if (user.role !== 'admin') {
-    const userDept = user.department;
-    if (!userDept || !veille.departments.includes(userDept)) {
+    const hasDeptAccess = user.department && veille.departments.includes(user.department);
+    const hasUserAccess = (veille.userIds ?? []).includes(user.id);
+    if (!hasDeptAccess && !hasUserAccess) {
       return c.json({ success: false, error: 'Access denied' }, 403);
     }
   }
@@ -251,6 +290,10 @@ veilleIaRoutes.post('/', requireAdmin, zValidator('json', createVeilleIaSchema),
   const user = c.get('user');
   const data = c.req.valid('json');
 
+  if (!user.organizationId) {
+    return c.json({ success: false, error: 'Organization required' }, 403);
+  }
+
   const [veille] = await db
     .insert(schema.veillesIa)
     .values({
@@ -259,6 +302,8 @@ veilleIaRoutes.post('/', requireAdmin, zValidator('json', createVeilleIaSchema),
       prompt: data.prompt,
       frequency: data.frequency,
       departments: data.departments,
+      userIds: data.userIds || [],
+      organizationId: user.organizationId,
       createdBy: user.id,
     })
     .returning();
@@ -292,8 +337,13 @@ veilleIaRoutes.post('/', requireAdmin, zValidator('json', createVeilleIaSchema),
 
 // PUT /api/veille-ia/:id - Update a veille IA (admin only)
 veilleIaRoutes.put('/:id', requireAdmin, zValidator('json', updateVeilleIaSchema), async (c) => {
+  const user = c.get('user');
   const veilleId = c.req.param('id');
   const data = c.req.valid('json');
+
+  if (!user.organizationId) {
+    return c.json({ success: false, error: 'Organization required' }, 403);
+  }
 
   const [veille] = await db
     .update(schema.veillesIa)
@@ -301,7 +351,12 @@ veilleIaRoutes.put('/:id', requireAdmin, zValidator('json', updateVeilleIaSchema
       ...data,
       updatedAt: new Date(),
     })
-    .where(eq(schema.veillesIa.id, veilleId))
+    .where(
+      and(
+        eq(schema.veillesIa.id, veilleId),
+        eq(schema.veillesIa.organizationId, user.organizationId)
+      )
+    )
     .returning();
 
   if (!veille) {
@@ -313,24 +368,44 @@ veilleIaRoutes.put('/:id', requireAdmin, zValidator('json', updateVeilleIaSchema
 
 // DELETE /api/veille-ia/:id - Delete a veille IA (admin only)
 veilleIaRoutes.delete('/:id', requireAdmin, async (c) => {
+  const user = c.get('user');
   const veilleId = c.req.param('id');
+
+  if (!user.organizationId) {
+    return c.json({ success: false, error: 'Organization required' }, 403);
+  }
 
   await db
     .delete(schema.veillesIa)
-    .where(eq(schema.veillesIa.id, veilleId));
+    .where(
+      and(
+        eq(schema.veillesIa.id, veilleId),
+        eq(schema.veillesIa.organizationId, user.organizationId)
+      )
+    );
 
   return c.json({ success: true });
 });
 
 // POST /api/veille-ia/:id/favorite - Toggle favorite status (admin only)
 veilleIaRoutes.post('/:id/favorite', requireAdmin, async (c) => {
+  const user = c.get('user');
   const veilleId = c.req.param('id');
 
-  // Get current state
+  if (!user.organizationId) {
+    return c.json({ success: false, error: 'Organization required' }, 403);
+  }
+
+  // Get current state (scoped by org)
   const [veille] = await db
     .select()
     .from(schema.veillesIa)
-    .where(eq(schema.veillesIa.id, veilleId));
+    .where(
+      and(
+        eq(schema.veillesIa.id, veilleId),
+        eq(schema.veillesIa.organizationId, user.organizationId)
+      )
+    );
 
   if (!veille) {
     return c.json({ success: false, error: 'Veille not found' }, 404);
@@ -340,7 +415,12 @@ veilleIaRoutes.post('/:id/favorite', requireAdmin, async (c) => {
   const [updated] = await db
     .update(schema.veillesIa)
     .set({ isFavorite: !veille.isFavorite, updatedAt: new Date() })
-    .where(eq(schema.veillesIa.id, veilleId))
+    .where(
+      and(
+        eq(schema.veillesIa.id, veilleId),
+        eq(schema.veillesIa.organizationId, user.organizationId)
+      )
+    )
     .returning();
 
   return c.json({ success: true, data: updated });
@@ -348,12 +428,22 @@ veilleIaRoutes.post('/:id/favorite', requireAdmin, async (c) => {
 
 // POST /api/veille-ia/:id/generate - Generate a new edition using Perplexity (admin only)
 veilleIaRoutes.post('/:id/generate', requireAdmin, async (c) => {
+  const user = c.get('user');
   const veilleId = c.req.param('id');
+
+  if (!user.organizationId) {
+    return c.json({ success: false, error: 'Organization required' }, 403);
+  }
 
   const [veille] = await db
     .select()
     .from(schema.veillesIa)
-    .where(eq(schema.veillesIa.id, veilleId));
+    .where(
+      and(
+        eq(schema.veillesIa.id, veilleId),
+        eq(schema.veillesIa.organizationId, user.organizationId)
+      )
+    );
 
   if (!veille) {
     return c.json({ success: false, error: 'Veille not found' }, 404);
@@ -484,12 +574,23 @@ RÈGLES CRITIQUES :
   return { content, sources };
 }
 
-// POST /api/veille-ia/generate-all - Generate all active veilles IA (admin only)
+// POST /api/veille-ia/generate-all - Generate all active veilles IA in org (admin only)
 veilleIaRoutes.post('/generate-all', requireAdmin, async (c) => {
+  const user = c.get('user');
+
+  if (!user.organizationId) {
+    return c.json({ success: false, error: 'Organization required' }, 403);
+  }
+
   const veilles = await db
     .select()
     .from(schema.veillesIa)
-    .where(eq(schema.veillesIa.isActive, true));
+    .where(
+      and(
+        eq(schema.veillesIa.isActive, true),
+        eq(schema.veillesIa.organizationId, user.organizationId)
+      )
+    );
 
   console.log(`[Admin] Generating ${veilles.length} veilles IA...`);
 
