@@ -24,6 +24,7 @@ const authRoutes = new Hono<Env>();
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  context: z.enum(['staff', 'citizen']).optional(),
 });
 
 const refreshSchema = z.object({
@@ -145,7 +146,7 @@ authRoutes.post('/register', authRateLimit, zValidator('json', registerSchema, (
 
 // POST /api/auth/login (rate limited: 5 attempts per 15 min)
 authRoutes.post('/login', authRateLimit, zValidator('json', loginSchema), async (c) => {
-  const { email, password } = c.req.valid('json');
+  const { email, password, context } = c.req.valid('json');
 
   const user = await getUserByEmail(email);
 
@@ -161,6 +162,12 @@ authRoutes.post('/login', authRateLimit, zValidator('json', loginSchema), async 
     // Log failed login attempt (wrong password)
     await logAuthEvent(c, 'login_failed', user.id, { email, reason: 'invalid_password' });
     return c.json({ success: false, error: 'Invalid email or password' }, 401);
+  }
+
+  // Citizens cannot access the staff space
+  if (context === 'staff' && !user.isStaff) {
+    await logAuthEvent(c, 'login_failed', user.id, { email, reason: 'citizen_on_staff_space' });
+    return c.json({ success: false, error: 'Ce compte n\'a pas accès à l\'espace professionnel.' }, 403);
   }
 
   await updateLastLogin(user.id);

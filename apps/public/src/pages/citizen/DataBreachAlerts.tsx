@@ -91,12 +91,10 @@ export function DataBreachAlerts() {
     setIsSearching(true);
     setHasSearched(false);
 
-    // Simulate API call - in production, this would call Have I Been Pwned API
     setTimeout(() => {
       setIsSearching(false);
       setHasSearched(true);
 
-      // Demo: show some breaches for any email containing common domains
       if (email.includes('@gmail') || email.includes('@hotmail') || email.includes('@yahoo')) {
         setBreaches(exampleBreaches.slice(0, 2));
       } else if (email.includes('@')) {
@@ -126,7 +124,7 @@ export function DataBreachAlerts() {
       {/* Back link */}
       <NavLink
         to="/outils"
-        className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-900 transition-colors"
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Retour aux outils
@@ -134,30 +132,30 @@ export function DataBreachAlerts() {
 
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 text-amber-600 text-sm font-medium">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400 text-sm font-medium">
           <AlertTriangle className="h-4 w-4" />
           Alertes Violations
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
           Vos données ont-elles fuité ?
         </h1>
-        <p className="text-gray-500 max-w-xl mx-auto">
+        <p className="text-muted-foreground max-w-xl mx-auto text-pretty">
           Vérifiez si votre adresse email apparaît dans des fuites de données
           connues. Basé sur la base de données Have I Been Pwned.
         </p>
       </div>
 
       {/* Search */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 md:p-8">
+      <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Entrez votre adresse email"
-              className="bg-gray-50 border-gray-200 pl-10 h-12"
+              className="bg-muted border-border pl-10 h-12"
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
@@ -180,7 +178,7 @@ export function DataBreachAlerts() {
           </Button>
         </div>
 
-        <p className="text-xs text-gray-400 mt-3 flex items-center gap-1">
+        <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
           <Shield className="h-3 w-3" />
           Votre email n'est pas stocké ni partagé. La vérification est anonyme.
         </p>
@@ -191,12 +189,12 @@ export function DataBreachAlerts() {
         <div className="space-y-6">
           {/* Status */}
           {breaches.length === 0 ? (
-            <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-center">
-              <ShieldCheck className="h-12 w-12 text-green-600 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
+            <div className="rounded-2xl border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 p-6 text-center">
+              <ShieldCheck className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-foreground mb-2">
                 Bonne nouvelle !
               </h2>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground text-pretty">
                 Aucune fuite de données connue n'a été trouvée pour cette
                 adresse email. Restez vigilant et continuez à utiliser des mots
                 de passe uniques.
@@ -204,14 +202,14 @@ export function DataBreachAlerts() {
             </div>
           ) : (
             <>
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+              <div className="rounded-2xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 p-6">
                 <div className="flex items-start gap-4">
-                  <ShieldAlert className="h-10 w-10 text-red-600 shrink-0" />
+                  <ShieldAlert className="h-10 w-10 text-red-600 dark:text-red-400 shrink-0" />
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">
+                    <h2 className="text-xl font-bold text-foreground mb-2">
                       Attention : {breaches.length} fuite(s) détectée(s)
                     </h2>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground text-pretty">
                       Votre adresse email a été trouvée dans {breaches.length}{' '}
                       violation(s) de données. Nous vous recommandons de changer
                       vos mots de passe et d'activer l'authentification à deux
@@ -223,38 +221,38 @@ export function DataBreachAlerts() {
 
               {/* Breach List */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-foreground">
                   Détail des fuites
                 </h3>
                 {breaches.map((breach, idx) => (
                   <div
                     key={idx}
-                    className="rounded-xl border border-gray-200 bg-white p-5"
+                    className="rounded-xl border border-border bg-card p-5"
                   >
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div>
-                        <h4 className="text-lg font-semibold text-gray-900">
+                        <h4 className="text-lg font-semibold text-foreground">
                           {breach.name}
                         </h4>
-                        <p className="text-sm text-gray-400">{breach.domain}</p>
+                        <p className="text-sm text-muted-foreground">{breach.domain}</p>
                       </div>
                       <div className="text-right">
-                        <div className="flex items-center gap-1 text-gray-500 text-sm">
+                        <div className="flex items-center gap-1 text-muted-foreground text-sm">
                           <Calendar className="h-4 w-4" />
                           {new Date(breach.date).toLocaleDateString('fr-FR')}
                         </div>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           {formatNumber(breach.pwnCount)} comptes touchés
                         </p>
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-4">
+                    <p className="text-sm text-muted-foreground mb-4 text-pretty">
                       {breach.description}
                     </p>
 
                     <div>
-                      <p className="text-xs text-gray-400 mb-2">
+                      <p className="text-xs text-muted-foreground mb-2">
                         Données compromises :
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -263,7 +261,7 @@ export function DataBreachAlerts() {
                           return (
                             <span
                               key={i}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-xs"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-muted text-muted-foreground text-xs"
                             >
                               <Icon className="h-3 w-3" />
                               {dataClass}
@@ -282,22 +280,22 @@ export function DataBreachAlerts() {
 
       {/* Security Tips */}
       <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-foreground">
           Conseils de sécurité
         </h3>
         <div className="grid sm:grid-cols-2 gap-4">
           {securityTips.map((tip, idx) => (
             <div
               key={idx}
-              className="rounded-xl border border-gray-200 bg-white p-4"
+              className="rounded-xl border border-border bg-card p-4"
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400">
                   <tip.icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900 text-sm">{tip.title}</h4>
-                  <p className="text-xs text-gray-500 mt-1">{tip.description}</p>
+                  <h4 className="font-medium text-foreground text-sm">{tip.title}</h4>
+                  <p className="text-xs text-muted-foreground mt-1 text-pretty">{tip.description}</p>
                 </div>
               </div>
             </div>
@@ -306,14 +304,14 @@ export function DataBreachAlerts() {
       </section>
 
       {/* About HIBP */}
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-6">
+      <div className="rounded-xl border border-border bg-muted p-6">
         <div className="flex items-start gap-4">
-          <Shield className="h-6 w-6 text-[#57C5B6] shrink-0" />
+          <Shield className="h-6 w-6 text-primary shrink-0" />
           <div>
-            <h4 className="font-medium text-gray-900 mb-2">
+            <h4 className="font-medium text-foreground mb-2">
               À propos de cette vérification
             </h4>
-            <p className="text-sm text-gray-500 mb-3">
+            <p className="text-sm text-muted-foreground mb-3 text-pretty">
               Cette fonctionnalité utilise la base de données Have I Been Pwned
               (HIBP), une ressource gratuite créée par l'expert en sécurité Troy
               Hunt. Elle agrège des données provenant de fuites de données
@@ -323,7 +321,7 @@ export function DataBreachAlerts() {
               href="https://haveibeenpwned.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-[#57C5B6] hover:underline"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
             >
               En savoir plus sur HIBP
               <ExternalLink className="h-3 w-3" />
@@ -333,7 +331,7 @@ export function DataBreachAlerts() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-xs text-gray-400 text-center">
+      <p className="text-xs text-muted-foreground text-center">
         Note : Cette démonstration simule une vérification. En production, le
         service utiliserait l'API officielle Have I Been Pwned pour des
         résultats réels.

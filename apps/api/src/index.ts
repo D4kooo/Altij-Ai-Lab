@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
+import { serveStatic } from 'hono/bun';
 import { corsMiddleware } from './middleware/cors';
 import { defaultBodyLimit } from './middleware/bodyLimit';
 import { apiRateLimit } from './middleware/rateLimit';
@@ -62,6 +63,30 @@ app.route('/api/assistants', documentsRoutes); // Documents routes nested under 
 app.route('/api/courses', coursesRoutes);
 app.route('/api/campaigns', campaignsRoutes);
 app.route('/api/templates', templatesRoutes);
+
+// Production: serve SPAs as static files
+if (process.env.NODE_ENV === 'production') {
+  const staticBase = import.meta.dir + '/../static';
+
+  // Staff app: static assets then SPA fallback
+  app.use('/app/*', serveStatic({
+    root: staticBase + '/app',
+    rewriteRequestPath: (path) => path.replace(/^\/app/, ''),
+  }));
+  app.get('/app/*', (c) => {
+    return new Response(Bun.file(staticBase + '/app/index.html'), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  });
+
+  // Public site: static assets then SPA fallback
+  app.use('*', serveStatic({ root: staticBase + '/public' }));
+  app.get('*', (c) => {
+    return new Response(Bun.file(staticBase + '/public/index.html'), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  });
+}
 
 // 404 handler
 app.notFound((c) => {

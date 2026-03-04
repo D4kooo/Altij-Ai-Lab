@@ -178,20 +178,24 @@ export function Sidebar() {
         <p className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
           Site public
         </p>
-        <NavLink
-          to="/welcome"
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
           className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-200"
         >
           <ExternalLink className="h-4 w-4" strokeWidth={1.5} />
           Landing page
-        </NavLink>
-        <NavLink
-          to="/school"
+        </a>
+        <a
+          href="/school"
+          target="_blank"
+          rel="noopener noreferrer"
           className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-200"
         >
           <GraduationCap className="h-4 w-4" strokeWidth={1.5} />
           Espace Citoyen
-        </NavLink>
+        </a>
       </ScrollArea>
 
       {/* User - Dark theme */}

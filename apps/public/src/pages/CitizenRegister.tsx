@@ -2,10 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { authApi } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2, ArrowRight, Check } from 'lucide-react';
+import { Loader2, ArrowRight } from 'lucide-react';
 
 export function CitizenRegister() {
   const navigate = useNavigate();
@@ -61,51 +58,40 @@ export function CitizenRegister() {
     }
   };
 
-  const benefits = [
-    'Accès aux parcours éducatifs personnalisés',
-    'Outils RGPD et protection de vos données',
-    'Participation aux actions collectives',
-    'Newsletter et alertes sécurité',
-  ];
-
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="min-h-[100svh] bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground flex overflow-hidden">
       {/* Left side - Form */}
-      <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mx-auto w-full max-w-md">
-          {/* Logo */}
-          <NavLink to="/" className="block mb-8">
-            <img
-              src="/assets/logo-dataring-black.png"
-              alt="Data Ring"
-              className="h-10 w-auto"
-              onError={(e) => {
-                e.currentTarget.src = '/assets/logo-dataring.png';
-              }}
-            />
+      <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-8 py-12 relative z-10 w-full lg:w-1/2">
+
+        <div className="mx-auto w-full max-w-md relative animate-[float-up_1s_cubic-bezier(0.16,1,0.3,1)_forwards] opacity-0">
+          <NavLink to="/" className="flex items-center gap-3 justify-start mb-12 group cursor-pointer w-fit">
+            <div className="w-2.5 h-2.5 rounded-full bg-foreground/90 group-hover:bg-primary transition-colors duration-700"></div>
+            <span className="font-medium tracking-[0.35em] text-[10px] sm:text-[11px] uppercase text-foreground/80 group-hover:text-foreground transition-colors duration-700">
+              Data Ring
+            </span>
           </NavLink>
 
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+          <h1 className="text-3xl font-light tracking-tight text-foreground mb-2 text-balance">
             Créer un compte
           </h1>
-          <p className="text-gray-500 mb-8">
-            Rejoignez la communauté Data Ring et accédez à tous nos outils
-            gratuits.
+          <p className="text-sm font-light text-muted-foreground mb-8 max-w-[280px] text-pretty">
+            Rejoignez la communauté Data Ring et accédez à nos parcours citoyens
+            libres.
           </p>
 
           {error && (
-            <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
+            <div className="mb-8 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-left">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName" className="text-gray-700">
+              <div className="space-y-1.5">
+                <label htmlFor="firstName" className="text-[10px] font-medium tracking-[0.15em] text-muted-foreground uppercase ml-2">
                   Prénom
-                </Label>
-                <Input
+                </label>
+                <input
                   id="firstName"
                   type="text"
                   required
@@ -116,15 +102,15 @@ export function CitizenRegister() {
                       firstName: e.target.value,
                     }))
                   }
-                  className="mt-1.5 border-gray-200 focus:border-[#57C5B6] focus:ring-[#57C5B6]"
+                  className="w-full px-5 py-3.5 bg-muted border border-border hover:border-foreground/20 focus:border-primary/50 focus:bg-muted/80 rounded-2xl outline-none text-foreground text-sm transition-all duration-300 placeholder:text-muted-foreground/50"
                   placeholder="Jean"
                 />
               </div>
-              <div>
-                <Label htmlFor="lastName" className="text-gray-700">
+              <div className="space-y-1.5">
+                <label htmlFor="lastName" className="text-[10px] font-medium tracking-[0.15em] text-muted-foreground uppercase ml-2">
                   Nom
-                </Label>
-                <Input
+                </label>
+                <input
                   id="lastName"
                   type="text"
                   required
@@ -135,17 +121,17 @@ export function CitizenRegister() {
                       lastName: e.target.value,
                     }))
                   }
-                  className="mt-1.5 border-gray-200 focus:border-[#57C5B6] focus:ring-[#57C5B6]"
+                  className="w-full px-5 py-3.5 bg-muted border border-border hover:border-foreground/20 focus:border-primary/50 focus:bg-muted/80 rounded-2xl outline-none text-foreground text-sm transition-all duration-300 placeholder:text-muted-foreground/50"
                   placeholder="Dupont"
                 />
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="email" className="text-gray-700">
-                Email
-              </Label>
-              <Input
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="text-[10px] font-medium tracking-[0.15em] text-muted-foreground uppercase ml-2">
+                Adresse Email
+              </label>
+              <input
                 id="email"
                 type="email"
                 required
@@ -153,108 +139,121 @@ export function CitizenRegister() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, email: e.target.value }))
                 }
-                className="mt-1.5 border-gray-200 focus:border-[#57C5B6] focus:ring-[#57C5B6]"
-                placeholder="jean.dupont@email.com"
+                className="w-full px-5 py-3.5 bg-muted border border-border hover:border-foreground/20 focus:border-primary/50 focus:bg-muted/80 rounded-2xl outline-none text-foreground text-sm transition-all duration-300 placeholder:text-muted-foreground/50"
+                placeholder="citoyen@email.com"
               />
             </div>
 
-            <div>
-              <Label htmlFor="password" className="text-gray-700">
-                Mot de passe
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, password: e.target.value }))
-                }
-                className="mt-1.5 border-gray-200 focus:border-[#57C5B6] focus:ring-[#57C5B6]"
-                placeholder="8 caractères minimum"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="text-[10px] font-medium tracking-[0.15em] text-muted-foreground uppercase ml-2">
+                  SÉCURITÉ D'ACCÈS
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, password: e.target.value }))
+                  }
+                  className="w-full px-5 py-3.5 bg-muted border border-border hover:border-foreground/20 focus:border-primary/50 focus:bg-muted/80 rounded-2xl outline-none text-foreground text-sm transition-all duration-300 placeholder:text-muted-foreground/50"
+                  placeholder="8 caractères min."
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="confirmPassword" className="text-[10px] font-medium tracking-[0.15em] text-muted-foreground uppercase ml-2">
+                  CONFIRMATION
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      confirmPassword: e.target.value,
+                    }))
+                  }
+                  className="w-full px-5 py-3.5 bg-muted border border-border hover:border-foreground/20 focus:border-primary/50 focus:bg-muted/80 rounded-2xl outline-none text-foreground text-sm transition-all duration-300 placeholder:text-muted-foreground/50"
+                  placeholder="Répétez"
+                />
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="confirmPassword" className="text-gray-700">
-                Confirmer le mot de passe
-              </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    confirmPassword: e.target.value,
-                  }))
-                }
-                className="mt-1.5 border-gray-200 focus:border-[#57C5B6] focus:ring-[#57C5B6]"
-                placeholder="Confirmez votre mot de passe"
-              />
-            </div>
-
-            <Button
+            <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#57C5B6] hover:bg-[#4AB0A2] text-white h-11"
+              className="w-full mt-6 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold tracking-[0.2em] uppercase rounded-full h-12 transition-all duration-500 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  Créer mon compte
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  Adhérer
+                  <ArrowRight className="h-4 w-4 ml-3 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
-            </Button>
+            </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-500">
-            Déjà un compte ?{' '}
+          <p className="mt-8 text-center text-[11px] text-muted-foreground tracking-[0.05em] mb-4">
+            Déjà inscrit ?{' '}
             <NavLink
               to="/citizen/login"
-              className="text-[#57C5B6] hover:underline font-medium"
+              className="text-primary hover:text-foreground transition-colors duration-300"
             >
-              Se connecter
+              Me connecter
             </NavLink>
           </p>
 
-          <p className="mt-4 text-center text-xs text-gray-400">
-            Membre Data Ring ?{' '}
-            <a href={import.meta.env.VITE_APP_URL || 'http://localhost:5174'} className="hover:underline">
+          <div className="text-center">
+            <a href={import.meta.env.VITE_APP_URL || '/app/'} className="text-[10px] tracking-[0.15em] font-medium text-muted-foreground/50 hover:text-muted-foreground uppercase transition-colors duration-300">
               Espace Staff
             </a>
-          </p>
+          </div>
         </div>
       </div>
 
-      {/* Right side - Benefits */}
-      <div className="hidden lg:flex flex-1 bg-gray-50 items-center justify-center p-12">
-        <div className="max-w-md">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Ce que vous obtenez
-          </h2>
-          <ul className="space-y-4">
-            {benefits.map((benefit, idx) => (
-              <li key={idx} className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#57C5B6]/10 flex items-center justify-center mt-0.5">
-                  <Check className="h-3 w-3 text-[#57C5B6]" />
-                </div>
-                <span className="text-gray-600">{benefit}</span>
-              </li>
-            ))}
-          </ul>
+      {/* Right side - Decorative */}
+      <div className="hidden lg:flex flex-1 relative bg-card items-center justify-center p-12 border-l border-border">
 
-          <div className="mt-10 p-6 bg-white rounded-xl border border-gray-100">
-            <p className="text-sm text-gray-500 mb-2">100% gratuit</p>
-            <p className="text-gray-900">
-              Data Ring est une association d'intérêt général. Nous ne vendons
-              pas vos données.
-            </p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden">
+          <div className="relative z-20 max-w-sm ml-auto mr-12 mt-12 text-right">
+            <div className="inline-flex items-center gap-3 justify-end mb-6 opacity-60">
+              <span className="w-6 h-[1px] bg-primary/80"></span>
+              <span className="text-primary text-[9px] font-medium tracking-[0.3em] uppercase">
+                Résistance Citoyenne
+              </span>
+            </div>
+
+            <h2 className="text-3xl font-light text-foreground tracking-tight mb-8 leading-[1.1] text-balance">
+              Prenez part à la<br />
+              souveraineté numérique.
+            </h2>
+
+            <div className="space-y-6 text-muted-foreground font-light text-sm">
+              <div className="flex flex-col gap-1 items-end group">
+                <span className="text-[10px] text-primary/80 tracking-[0.2em] uppercase font-medium">01</span>
+                <span className="group-hover:text-foreground transition-colors duration-300">Exploration éducative ciblée.</span>
+              </div>
+              <div className="flex flex-col gap-1 items-end group">
+                <span className="text-[10px] text-primary/80 tracking-[0.2em] uppercase font-medium">02</span>
+                <span className="group-hover:text-foreground transition-colors duration-300">Accès aux outils RGPD automatisés.</span>
+              </div>
+              <div className="flex flex-col gap-1 items-end group">
+                <span className="text-[10px] text-primary/80 tracking-[0.2em] uppercase font-medium">03</span>
+                <span className="group-hover:text-foreground transition-colors duration-300">Soutien des actions collectives.</span>
+              </div>
+              <div className="flex flex-col gap-1 items-end group">
+                <span className="text-[10px] text-primary/80 tracking-[0.2em] uppercase font-medium">04</span>
+                <span className="group-hover:text-foreground transition-colors duration-300">Alertes sur les failles de sécurité.</span>
+              </div>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );

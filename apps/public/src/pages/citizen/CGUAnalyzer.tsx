@@ -122,7 +122,6 @@ export function CGUAnalyzer() {
   const handleSearch = () => {
     const query = searchQuery.toLowerCase().trim();
 
-    // Check if we have a pre-analyzed result
     if (preAnalyzedServices[query]) {
       setResult(preAnalyzedServices[query]);
     } else if (query.includes('google')) {
@@ -130,7 +129,6 @@ export function CGUAnalyzer() {
     } else if (query.includes('facebook') || query.includes('meta')) {
       setResult(preAnalyzedServices['facebook']);
     } else {
-      // Simulate analysis for unknown services
       setIsAnalyzing(true);
       setTimeout(() => {
         setIsAnalyzing(false);
@@ -150,7 +148,6 @@ export function CGUAnalyzer() {
     if (!pastedText.trim()) return;
 
     setIsAnalyzing(true);
-    // Simulate AI analysis
     setTimeout(() => {
       setIsAnalyzing(false);
       setResult({
@@ -172,9 +169,9 @@ export function CGUAnalyzer() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 70) return 'text-green-600';
-    if (score >= 50) return 'text-amber-600';
-    return 'text-red-600';
+    if (score >= 70) return 'text-green-600 dark:text-green-400';
+    if (score >= 50) return 'text-amber-600 dark:text-amber-400';
+    return 'text-red-600 dark:text-red-400';
   };
 
   const getScoreLabel = (score: number) => {
@@ -186,13 +183,13 @@ export function CGUAnalyzer() {
   const getPointIcon = (type: AnalysisPoint['type']) => {
     switch (type) {
       case 'good':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
+        return <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />;
       case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-amber-600" />;
+        return <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />;
       case 'danger':
-        return <XCircle className="h-5 w-5 text-red-600" />;
+        return <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />;
       case 'info':
-        return <Info className="h-5 w-5 text-blue-600" />;
+        return <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />;
     }
   };
 
@@ -201,7 +198,7 @@ export function CGUAnalyzer() {
       {/* Back link */}
       <NavLink
         to="/outils"
-        className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-900 transition-colors"
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Retour aux outils
@@ -209,15 +206,15 @@ export function CGUAnalyzer() {
 
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-50 text-purple-600 text-sm font-medium">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-50 dark:bg-purple-500/5 text-purple-600 dark:text-purple-400 text-sm font-medium">
           <FileText className="h-4 w-4" />
           Analyseur de CGU
-          <span className="px-1.5 py-0.5 rounded bg-purple-100 text-xs">IA</span>
+          <span className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-500/10 text-xs">IA</span>
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
           Comprenez les CGU
         </h1>
-        <p className="text-gray-500 max-w-xl mx-auto">
+        <p className="text-muted-foreground max-w-xl mx-auto text-pretty">
           Découvrez ce que cachent les conditions d'utilisation des services que
           vous utilisez. Résumé clair, points de vigilance, score de confiance.
         </p>
@@ -225,14 +222,14 @@ export function CGUAnalyzer() {
 
       {/* Mode Toggle */}
       <div className="flex justify-center">
-        <div className="inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50">
+        <div className="inline-flex rounded-lg border border-border p-1 bg-muted">
           <button
             onClick={() => setMode('search')}
             className={cn(
               'px-4 py-2 rounded-md text-sm font-medium transition-all',
               mode === 'search'
-                ? 'bg-[#57C5B6] text-white'
-                : 'text-gray-500 hover:text-gray-900'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             <Search className="h-4 w-4 inline mr-2" />
@@ -243,8 +240,8 @@ export function CGUAnalyzer() {
             className={cn(
               'px-4 py-2 rounded-md text-sm font-medium transition-all',
               mode === 'paste'
-                ? 'bg-[#57C5B6] text-white'
-                : 'text-gray-500 hover:text-gray-900'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             <FileText className="h-4 w-4 inline mr-2" />
@@ -261,13 +258,13 @@ export function CGUAnalyzer() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Ex: Google, Facebook, Amazon..."
-              className="bg-white border-gray-200 flex-1"
+              className="bg-card border-border flex-1"
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
             <Button
               onClick={handleSearch}
               disabled={!searchQuery.trim() || isAnalyzing}
-              className="bg-[#57C5B6] hover:bg-[#4AB0A2] text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {isAnalyzing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -279,7 +276,7 @@ export function CGUAnalyzer() {
 
           {/* Pre-analyzed services */}
           <div className="space-y-3">
-            <p className="text-sm text-gray-500">Services déjà analysés :</p>
+            <p className="text-sm text-muted-foreground">Services déjà analysés :</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(preAnalyzedServices).map(([key, service]) => (
                 <button
@@ -288,7 +285,7 @@ export function CGUAnalyzer() {
                     setSearchQuery(service.serviceName);
                     setResult(service);
                   }}
-                  className="px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
                 >
                   {service.serviceName}
                 </button>
@@ -305,12 +302,12 @@ export function CGUAnalyzer() {
             value={pastedText}
             onChange={(e) => setPastedText(e.target.value)}
             placeholder="Collez ici le texte des CGU/CGV que vous souhaitez analyser..."
-            className="bg-white border-gray-200 min-h-[200px]"
+            className="bg-card border-border min-h-[200px]"
           />
           <Button
             onClick={handlePasteAnalysis}
             disabled={!pastedText.trim() || isAnalyzing}
-            className="bg-[#57C5B6] hover:bg-[#4AB0A2] text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isAnalyzing ? (
               <>
@@ -331,7 +328,7 @@ export function CGUAnalyzer() {
       {result && (
         <div className="space-y-6">
           {/* Score Card */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+          <div className="rounded-2xl border border-border bg-card p-6">
             <div className="flex flex-col md:flex-row md:items-center gap-6">
               {/* Score */}
               <div className="text-center md:text-left">
@@ -342,7 +339,7 @@ export function CGUAnalyzer() {
                   )}
                 >
                   {result.score}
-                  <span className="text-2xl text-gray-400">/100</span>
+                  <span className="text-2xl text-muted-foreground">/100</span>
                 </div>
                 <p className={cn('text-sm font-medium', getScoreColor(result.score))}>
                   {getScoreLabel(result.score)}
@@ -351,11 +348,11 @@ export function CGUAnalyzer() {
 
               {/* Summary */}
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl font-bold text-foreground mb-2">
                   {result.serviceName}
                 </h2>
-                <p className="text-gray-500">{result.summary}</p>
-                <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <p className="text-muted-foreground text-pretty">{result.summary}</p>
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   Dernière mise à jour : {result.lastUpdated}
                 </p>
@@ -366,7 +363,7 @@ export function CGUAnalyzer() {
           {/* Analysis Points */}
           {result.points.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-foreground">
                 Points d'attention
               </h3>
               <div className="space-y-3">
@@ -375,21 +372,21 @@ export function CGUAnalyzer() {
                     key={idx}
                     className={cn(
                       'rounded-xl border p-4',
-                      point.type === 'danger' && 'border-red-200 bg-red-50',
-                      point.type === 'warning' && 'border-amber-200 bg-amber-50',
-                      point.type === 'good' && 'border-green-200 bg-green-50',
-                      point.type === 'info' && 'border-blue-200 bg-blue-50'
+                      point.type === 'danger' && 'border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5',
+                      point.type === 'warning' && 'border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5',
+                      point.type === 'good' && 'border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5',
+                      point.type === 'info' && 'border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/5'
                     )}
                   >
                     <div className="flex items-start gap-3">
                       {getPointIcon(point.type)}
                       <div>
-                        <h4 className="font-medium text-gray-900">{point.title}</h4>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <h4 className="font-medium text-foreground">{point.title}</h4>
+                        <p className="text-sm text-muted-foreground mt-1 text-pretty">
                           {point.description}
                         </p>
                         {point.article && (
-                          <p className="text-xs text-gray-400 mt-2">
+                          <p className="text-xs text-muted-foreground mt-2">
                             Source : {point.article}
                           </p>
                         )}
@@ -402,24 +399,24 @@ export function CGUAnalyzer() {
           )}
 
           {/* Legend */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <h4 className="text-sm font-medium text-gray-500 mb-3">Légende</h4>
+          <div className="rounded-xl border border-border bg-muted p-4">
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">Légende</h4>
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-gray-600">Bon pour vous</span>
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <span className="text-muted-foreground">Bon pour vous</span>
               </div>
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <span className="text-gray-600">À surveiller</span>
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-muted-foreground">À surveiller</span>
               </div>
               <div className="flex items-center gap-2">
-                <XCircle className="h-4 w-4 text-red-600" />
-                <span className="text-gray-600">Préoccupant</span>
+                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <span className="text-muted-foreground">Préoccupant</span>
               </div>
               <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-blue-600" />
-                <span className="text-gray-600">Information</span>
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-muted-foreground">Information</span>
               </div>
             </div>
           </div>
@@ -432,7 +429,7 @@ export function CGUAnalyzer() {
               setSearchQuery('');
               setPastedText('');
             }}
-            className="border-gray-200"
+            className="border-border"
           >
             Nouvelle analyse
           </Button>
@@ -460,11 +457,11 @@ export function CGUAnalyzer() {
         ].map((item, idx) => (
           <div
             key={idx}
-            className="p-4 rounded-xl border border-gray-200 bg-white"
+            className="p-4 rounded-xl border border-border bg-card"
           >
-            <item.icon className="h-5 w-5 text-purple-600 mb-2" />
-            <h4 className="font-medium text-gray-900 text-sm">{item.title}</h4>
-            <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+            <item.icon className="h-5 w-5 text-purple-600 dark:text-purple-400 mb-2" />
+            <h4 className="font-medium text-foreground text-sm">{item.title}</h4>
+            <p className="text-xs text-muted-foreground mt-1 text-pretty">{item.description}</p>
           </div>
         ))}
       </div>

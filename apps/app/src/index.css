@@ -187,29 +187,63 @@
 }
 
 .typing-cursor::after {
-  content: '|';
+  content: '▍';
   animation: blink 1s infinite;
-  @apply ml-0.5 text-primary font-light;
+  @apply ml-0.5 text-primary/60 font-light;
 }
 
 /* ============================================
-   CHAT INTERFACE - Modern ChatGPT-inspired
+   CHAT INTERFACE
    ============================================ */
 
-/* Chat Input Container */
+/* Layout */
+.chat-layout {
+  @apply flex h-[calc(100vh-8rem)] gap-3;
+}
+
+.chat-main {
+  @apply flex flex-1 flex-col overflow-hidden;
+  @apply bg-white rounded-2xl border border-black/[0.04];
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+/* Chat Header */
+.chat-header {
+  @apply flex items-center gap-3 px-5 py-3;
+  @apply border-b border-black/[0.04];
+}
+
+.chat-header-avatar {
+  @apply flex h-8 w-8 items-center justify-center rounded-xl;
+}
+
+/* Messages container */
+.chat-messages-container {
+  @apply px-5 py-6 md:px-8;
+}
+
+/* Chat Input */
+.chat-input-wrapper {
+  @apply px-4 pb-4 pt-2;
+}
+
 .chat-input-container {
-  @apply bg-white border border-gray-200 rounded-2xl shadow-lg;
+  @apply relative flex items-end gap-1.5;
+  @apply bg-muted/40 border border-black/[0.06] rounded-2xl;
+  @apply px-2 py-1.5;
   @apply transition-all duration-200 ease-out;
 }
 
 .chat-input-container:focus-within {
-  @apply border-gray-300 shadow-xl;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+  @apply bg-white border-black/[0.1];
+  box-shadow: 0 0 0 3px rgba(33, 178, 170, 0.06), 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .chat-input-textarea {
-  @apply bg-transparent border-none outline-none resize-none;
-  @apply text-sm leading-relaxed;
+  @apply flex-1 bg-transparent border-none outline-none resize-none;
+  @apply py-2.5 px-2 min-h-[44px] max-h-[200px];
+  @apply text-[14px] leading-relaxed;
+  @apply placeholder:text-muted-foreground/40;
   scrollbar-width: none;
 }
 
@@ -217,16 +251,25 @@
   display: none;
 }
 
-/* Send Button Animation */
+.chat-attach-btn {
+  @apply p-2 rounded-xl shrink-0 self-end mb-0.5;
+  @apply text-muted-foreground/30 hover:text-muted-foreground/50;
+  @apply transition-colors duration-150;
+}
+
 .chat-send-btn {
+  @apply p-2 rounded-xl shrink-0 self-end mb-0.5;
+  @apply bg-muted/60 text-muted-foreground/30;
   @apply transition-all duration-200 ease-out;
+  @apply cursor-not-allowed;
 }
 
-.chat-send-btn:not(:disabled):hover {
-  @apply scale-105;
+.chat-send-btn--active {
+  @apply bg-primary text-white cursor-pointer;
+  @apply hover:bg-primary/90;
 }
 
-.chat-send-btn:not(:disabled):active {
+.chat-send-btn--active:active {
   @apply scale-95;
 }
 
@@ -234,7 +277,7 @@
 @keyframes message-appear {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -248,7 +291,7 @@
 }
 
 .message-animate {
-  animation: message-appear 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: message-appear 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .message-fade {
@@ -261,18 +304,22 @@
 }
 
 .message-actions {
-  @apply opacity-0 transition-all duration-200 ease-out;
-  @apply -translate-y-1;
+  @apply opacity-0 transition-all duration-150 ease-out;
 }
 
 .message-container:hover .message-actions {
-  @apply opacity-100 translate-y-0;
+  @apply opacity-100;
 }
 
-/* User Message Bubble */
+/* Message Avatar */
+.message-avatar {
+  @apply flex h-7 w-7 items-center justify-center rounded-lg;
+}
+
+/* User Message */
 .message-user {
-  @apply bg-primary text-primary-foreground;
-  @apply rounded-2xl rounded-br-md;
+  @apply bg-muted/60 text-foreground;
+  @apply rounded-2xl rounded-br-lg;
   @apply px-4 py-3;
 }
 
@@ -281,35 +328,65 @@
   @apply bg-transparent;
 }
 
-/* Streaming indicator */
-@keyframes pulse-dot {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+/* Thinking indicator */
+.thinking-indicator {
+  @apply flex items-center gap-3 py-3;
 }
 
-.streaming-dot {
-  animation: pulse-dot 1.5s ease-in-out infinite;
+.thinking-dots {
+  @apply flex gap-1;
 }
 
-.streaming-dot:nth-child(2) {
-  animation-delay: 0.2s;
+.thinking-dots span {
+  @apply h-[6px] w-[6px] rounded-full opacity-40;
+  animation: thinking-bounce 1.4s ease-in-out infinite;
 }
 
-.streaming-dot:nth-child(3) {
-  animation-delay: 0.4s;
+.thinking-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes thinking-bounce {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 
 /* Conversation Sidebar */
+.conv-sidebar {
+  @apply flex h-full flex-col rounded-2xl border border-black/[0.04] bg-white overflow-hidden;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.conv-sidebar-header {
+  @apply flex items-center justify-between px-3.5 py-3;
+}
+
+.conv-search {
+  @apply flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/40;
+}
+
 .conversation-item {
+  @apply flex items-center gap-2 rounded-xl px-3 py-2;
   @apply transition-all duration-150 ease-out;
+  @apply cursor-pointer;
 }
 
 .conversation-item:hover {
-  @apply bg-muted/80;
+  @apply bg-muted/50;
 }
 
 .conversation-item.active {
-  @apply bg-primary/10 text-primary;
+  @apply bg-primary/[0.06];
 }
 
 .conversation-item .delete-btn {
@@ -317,32 +394,33 @@
 }
 
 .conversation-item:hover .delete-btn {
-  @apply opacity-100;
+  @apply opacity-60;
 }
 
 /* Date Group Headers */
 .date-group-header {
-  @apply text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70;
+  @apply text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40;
   @apply px-3 py-2;
+}
+
+/* Welcome Screen */
+.welcome-icon {
+  @apply flex h-14 w-14 items-center justify-center rounded-2xl;
 }
 
 /* Welcome Screen Cards */
 .suggestion-card {
-  @apply bg-white border border-gray-100 rounded-xl;
-  @apply p-4 cursor-pointer;
+  @apply bg-muted/30 border border-black/[0.04] rounded-xl;
+  @apply p-3.5 cursor-pointer;
   @apply transition-all duration-200 ease-out;
-  @apply hover:border-gray-200 hover:shadow-md hover:-translate-y-0.5;
+  @apply hover:bg-muted/50 hover:border-black/[0.06];
 }
 
 /* Action buttons under messages */
 .message-action-btn {
-  @apply p-1.5 rounded-lg text-muted-foreground/60;
-  @apply hover:text-muted-foreground hover:bg-muted;
+  @apply p-1.5 rounded-lg;
+  @apply text-muted-foreground/30 hover:text-muted-foreground/60 hover:bg-muted/50;
   @apply transition-all duration-150;
-}
-
-.message-action-btn:hover {
-  @apply scale-105;
 }
 
 /* Smooth scroll behavior for chat */

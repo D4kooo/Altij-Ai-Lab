@@ -7,11 +7,13 @@ import {
   X,
   LogOut,
   User,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 interface NavItem {
   name: string;
@@ -41,28 +43,25 @@ export function CitizenLayout() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-[100svh] bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground flex flex-col relative overflow-hidden">
+
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
+        <div className="mx-auto max-w-6xl px-6 lg:px-8">
+          <div className="flex h-20 items-center justify-between">
             {/* Logo */}
-            <NavLink to="/" className="flex items-center gap-3">
-              <img
-                src="/assets/logo-dataring-black.png"
-                alt="Data Ring"
-                className="h-8 w-auto"
-                onError={(e) => {
-                  // Fallback si le logo noir n'existe pas
-                  e.currentTarget.src = '/assets/logo-dataring.png';
-                }}
-              />
+            <NavLink to="/" className="flex items-center gap-4 group cursor-pointer">
+              <div className="w-2.5 h-2.5 rounded-full bg-foreground/90 group-hover:bg-primary transition-colors duration-700"></div>
+              <span className="font-medium tracking-[0.3em] text-[10px] sm:text-[11px] uppercase text-foreground/80 group-hover:text-foreground transition-colors duration-700">
+                Data Ring
+              </span>
             </NavLink>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-2">
               {navigation.map((item) => {
                 const isActive = location.pathname.startsWith(item.href);
                 return (
@@ -70,12 +69,13 @@ export function CitizenLayout() {
                     key={item.name}
                     to={item.href}
                     className={cn(
-                      'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                      'px-5 py-2.5 rounded-full text-[10px] font-medium tracking-[0.15em] uppercase transition-all duration-500 flex items-center gap-2.5 border',
                       isActive
-                        ? 'bg-[#57C5B6] text-white'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        ? 'bg-muted text-foreground border-border'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted border-transparent'
                     )}
                   >
+                    <item.icon className="w-3.5 h-3.5" strokeWidth={2} />
                     {item.name}
                   </NavLink>
                 );
@@ -83,41 +83,55 @@ export function CitizenLayout() {
             </nav>
 
             {/* User menu */}
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
-                <User className="h-4 w-4" />
+            <div className="flex items-center gap-4">
+              {/* Theme toggle */}
+              <button
+                onClick={toggleTheme}
+                className="text-muted-foreground hover:text-foreground transition-colors p-2"
+                aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
+
+              <div className="hidden sm:flex items-center gap-3 text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground">
+                <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
+                  <User className="h-3 w-3" />
+                </div>
                 <span>{user?.firstName}</span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
+
+              <button
                 onClick={() => logout()}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-primary transition-colors hidden sm:block p-2"
+                aria-label="Se déconnecter"
               >
                 <LogOut className="h-4 w-4" />
-              </Button>
+              </button>
 
               {/* Mobile menu button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden text-gray-600"
+              <button
+                className="md:hidden text-muted-foreground hover:text-foreground transition-colors p-2"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
               >
                 {mobileMenuOpen ? (
                   <X className="h-5 w-5" />
                 ) : (
                   <Menu className="h-5 w-5" />
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white">
-            <nav className="px-4 py-4 space-y-1">
+          <div className="md:hidden border-t border-border bg-background/95 absolute w-full pb-6">
+            <nav className="px-6 py-6 flex flex-col gap-4">
               {navigation.map((item) => {
                 const isActive = location.pathname.startsWith(item.href);
                 return (
@@ -126,51 +140,54 @@ export function CitizenLayout() {
                     to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                      'flex items-center gap-4 px-5 py-4 rounded-2xl transition-colors tracking-[0.15em] text-xs uppercase font-medium border',
                       isActive
-                        ? 'bg-[#57C5B6] text-white'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        ? 'bg-muted text-foreground border-border'
+                        : 'text-muted-foreground hover:bg-muted border-transparent'
                     )}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className="h-4 w-4 text-primary" />
                     {item.name}
                   </NavLink>
                 );
               })}
+              <button
+                onClick={() => {
+                  logout();
+                  setMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-4 px-5 py-4 text-xs font-medium uppercase tracking-[0.15em] text-red-400 hover:bg-red-400/10 rounded-2xl transition-colors mt-4 border border-transparent"
+              >
+                <LogOut className="h-4 w-4" />
+                Déconnexion
+              </button>
             </nav>
           </div>
         )}
       </header>
 
       {/* Main content */}
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative z-10 flex-1 w-full mx-auto max-w-6xl px-6 lg:px-8 py-10 lg:py-16">
         <Outlet />
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-100 bg-gray-50 mt-auto">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <img
-                src="/assets/logo-dataring-black.png"
-                alt="Data Ring"
-                className="h-5 w-auto opacity-50"
-                onError={(e) => {
-                  e.currentTarget.src = '/assets/logo-dataring.png';
-                }}
-              />
-              <p className="text-sm text-gray-400">
-                Association d'intérêt général
-              </p>
+      <footer className="border-t border-border bg-background mt-auto relative z-10 w-full pb-safe">
+        <div className="mx-auto max-w-6xl px-6 lg:px-8 py-8 md:py-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-4">
+            <div className="flex items-center gap-4 text-[10px] font-medium tracking-[0.2em] text-muted-foreground uppercase">
+              <span className="flex items-center gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary opacity-50"></span>
+                Intérêt Général
+              </span>
             </div>
 
-            <div className="flex items-center gap-6 text-sm text-gray-400">
+            <div className="flex items-center gap-8 text-[9px] sm:text-[10px] font-medium tracking-[0.15em] text-muted-foreground uppercase">
               <a
                 href="https://www.data-ring.net"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-gray-600 transition-colors"
+                className="hover:text-foreground transition-colors"
               >
                 data-ring.net
               </a>
@@ -178,7 +195,7 @@ export function CitizenLayout() {
                 href="https://www.data-ring.net/mentions-legales"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-gray-600 transition-colors"
+                className="hover:text-foreground transition-colors"
               >
                 Mentions légales
               </a>

@@ -42,7 +42,7 @@ export async function fetchApi<T>(
       }
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+      window.location.href = `${import.meta.env.BASE_URL}login`;
     }
     throw new ApiError(data.error || 'An error occurred', response.status);
   }

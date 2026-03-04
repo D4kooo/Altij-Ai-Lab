@@ -19,7 +19,6 @@ interface Tool {
   description: string;
   icon: typeof Shield;
   color: string;
-  bgColor: string;
   iconBg: string;
   features: string[];
   href: string;
@@ -33,9 +32,8 @@ const tools: Tool[] = [
     description:
       'Créez des demandes personnalisées pour exercer vos droits sur vos données personnelles.',
     icon: Scale,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    iconBg: 'bg-blue-100',
+    color: 'text-blue-400',
+    iconBg: 'bg-blue-400/10 border-blue-400/20',
     features: [
       "Droit d'accès",
       'Droit de rectification',
@@ -50,9 +48,8 @@ const tools: Tool[] = [
     description:
       "Comprenez ce que cachent les conditions d'utilisation des services que vous utilisez.",
     icon: FileText,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    iconBg: 'bg-purple-100',
+    color: 'text-purple-400',
+    iconBg: 'bg-purple-400/10 border-purple-400/20',
     features: [
       'Analyse IA des CGU',
       'Points de vigilance',
@@ -68,9 +65,8 @@ const tools: Tool[] = [
     description:
       'Vérifiez si vos données ont été compromises dans une fuite de données.',
     icon: AlertTriangle,
-    color: 'text-amber-600',
-    bgColor: 'bg-amber-50',
-    iconBg: 'bg-amber-100',
+    color: 'text-amber-400',
+    iconBg: 'bg-amber-400/10 border-amber-400/20',
     features: [
       'Recherche par email',
       'Historique des fuites',
@@ -106,21 +102,22 @@ const gdprRights = [
 
 export function CitizenTools() {
   return (
-    <div className="space-y-12">
+    <div className="space-y-24 animate-[float-up_1s_cubic-bezier(0.16,1,0.3,1)_forwards] opacity-0">
       {/* Hero */}
-      <section className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#57C5B6]/10 text-[#57C5B6] text-sm font-medium">
+      <section className="text-center space-y-6 pt-10">
+        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-[10px] sm:text-xs font-medium tracking-[0.2em] uppercase">
           <Shield className="h-4 w-4" />
           Outils Citoyens
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
-          Protégez vos
-          <span className="block text-[#57C5B6]">données personnelles</span>
+        <h1 className="text-4xl md:text-6xl font-light text-foreground tracking-tight leading-[1.1] text-balance">
+          Protégez vos <br />
+          <span className="font-medium">
+            données personnelles
+          </span>
         </h1>
-        <p className="text-lg text-gray-500 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground font-light max-w-2xl mx-auto leading-relaxed text-pretty">
           Des outils gratuits pour exercer vos droits numériques, comprendre les
-          services que vous utilisez, et vérifier si vos données ont été
-          compromises.
+          services que vous utilisez, et vérifier si vos données ont été compromises.
         </p>
       </section>
 
@@ -131,48 +128,47 @@ export function CitizenTools() {
             key={tool.id}
             to={tool.href}
             className={cn(
-              'group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300',
-              'hover:border-gray-300 hover:shadow-lg'
+              'group relative overflow-hidden rounded-3xl border border-border bg-card p-8 transition-all duration-500',
+              'hover:border-foreground/20 hover:bg-muted'
             )}
           >
-            {/* Background gradient */}
-            <div
-              className={cn(
-                'absolute inset-0 opacity-50 transition-opacity group-hover:opacity-70',
-                tool.bgColor
-              )}
-            />
-
-            <div className="relative space-y-4">
+            <div className="relative z-10 flex flex-col h-full">
               {/* Icon & Badge */}
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between mb-8">
                 <div
-                  className={cn('p-3 rounded-xl', tool.iconBg, tool.color)}
+                  className={cn(
+                    'p-4 rounded-2xl border transition-colors duration-500',
+                    tool.iconBg,
+                    tool.color,
+                    'group-hover:bg-opacity-20'
+                  )}
                 >
-                  <tool.icon className="h-6 w-6" />
+                  <tool.icon className="h-6 w-6" strokeWidth={1.5} />
                 </div>
                 {tool.badge && (
-                  <span className="text-xs font-medium text-[#57C5B6] bg-[#57C5B6]/10 px-2 py-1 rounded">
+                  <span className="text-[9px] font-medium text-primary tracking-[0.2em] uppercase bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-full">
                     {tool.badge}
                   </span>
                 )}
               </div>
 
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-1">
+              <div className="mb-8 flex-grow">
+                <h2 className="text-2xl font-light text-foreground mb-3 text-balance">
                   {tool.title}
                 </h2>
-                <p className="text-sm text-gray-500">{tool.description}</p>
+                <p className="text-sm font-light text-muted-foreground leading-relaxed text-pretty">
+                  {tool.description}
+                </p>
               </div>
 
               {/* Features */}
-              <ul className="space-y-2">
+              <ul className="space-y-3 mb-10">
                 {tool.features.map((feature, idx) => (
                   <li
                     key={idx}
-                    className="flex items-center gap-2 text-sm text-gray-600"
+                    className="flex items-center gap-3 text-sm text-muted-foreground font-light"
                   >
-                    <CheckCircle className={cn('h-3.5 w-3.5', tool.color)} />
+                    <CheckCircle className={cn('h-3 w-3', tool.color)} />
                     {feature}
                   </li>
                 ))}
@@ -181,7 +177,7 @@ export function CitizenTools() {
               {/* CTA */}
               <div
                 className={cn(
-                  'flex items-center gap-2 text-sm font-medium pt-2',
+                  'flex items-center gap-2 text-[11px] font-bold tracking-[0.15em] uppercase pt-4 border-t border-border mt-auto transition-colors',
                   tool.color
                 )}
               >
@@ -194,14 +190,14 @@ export function CitizenTools() {
       </section>
 
       {/* GDPR Rights Explainer */}
-      <section className="space-y-6">
+      <section className="space-y-8 relative">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-light text-foreground mb-2 text-balance">
             Vos droits RGPD en un coup d'œil
           </h2>
-          <p className="text-gray-500">
+          <p className="text-sm font-light text-muted-foreground text-pretty">
             Le Règlement Général sur la Protection des Données vous donne des
-            droits sur vos informations personnelles.
+            droits sur vos informations.
           </p>
         </div>
 
@@ -209,29 +205,29 @@ export function CitizenTools() {
           {gdprRights.map((right, idx) => (
             <div
               key={idx}
-              className="p-5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-all"
+              className="p-6 rounded-2xl border border-border bg-card hover:bg-muted hover:border-foreground/10 transition-all duration-300"
             >
-              <div className="p-2 rounded-lg bg-blue-50 text-blue-600 w-fit mb-3">
-                <right.icon className="h-5 w-5" />
+              <div className="p-3 rounded-xl bg-blue-400/10 border border-blue-400/20 text-blue-400 w-fit mb-5">
+                <right.icon className="h-5 w-5" strokeWidth={1.5} />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1">{right.title}</h3>
-              <p className="text-sm text-gray-500">{right.description}</p>
+              <h3 className="font-medium text-foreground/80 mb-2">{right.title}</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed text-pretty">{right.description}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Security Tips */}
-      <section className="rounded-2xl border border-gray-200 bg-gray-50 p-8">
-        <div className="flex items-start gap-6">
-          <div className="p-4 rounded-xl bg-[#57C5B6]/10 text-[#57C5B6] hidden sm:block">
-            <Lock className="h-8 w-8" />
+      <section className="relative rounded-3xl border border-border bg-card p-10 md:p-12 overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-10">
+          <div className="p-6 rounded-2xl bg-primary/10 border border-primary/20 text-primary hidden sm:block">
+            <Lock className="h-10 w-10" strokeWidth={1.5} />
           </div>
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Conseils de sécurité
+          <div className="space-y-6">
+            <h2 className="text-3xl font-light text-foreground text-center md:text-left text-balance">
+              Conseils de souveraineté
             </h2>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4">
               {[
                 'Utilisez un mot de passe unique pour chaque service',
                 "Activez l'authentification à deux facteurs (2FA)",
@@ -240,9 +236,9 @@ export function CitizenTools() {
                 'Mettez à jour vos applications et systèmes régulièrement',
                 'Limitez les permissions accordées aux applications',
               ].map((tip, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-[#57C5B6] mt-0.5 shrink-0" />
-                  <span className="text-sm text-gray-600">{tip}</span>
+                <div key={idx} className="flex items-start gap-4">
+                  <CheckCircle className="h-4 w-4 text-primary mt-0.5 shrink-0 opacity-80" />
+                  <span className="text-sm font-light text-muted-foreground leading-relaxed">{tip}</span>
                 </div>
               ))}
             </div>
@@ -251,21 +247,21 @@ export function CitizenTools() {
       </section>
 
       {/* Stats */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-10">
         {[
           { value: '100%', label: 'Gratuit' },
           { value: '0', label: 'Données collectées' },
           { value: 'RGPD', label: 'Conforme' },
-          { value: 'Open', label: 'Source ouverte' },
+          { value: 'Open', label: 'Transparence' },
         ].map((stat, idx) => (
           <div
             key={idx}
-            className="text-center p-6 rounded-xl bg-gray-50 border border-gray-100"
+            className="text-center p-8 rounded-2xl bg-card border border-border"
           >
-            <p className="text-3xl font-bold text-[#57C5B6]">
+            <p className="text-4xl font-light text-primary mb-2">
               {stat.value}
             </p>
-            <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+            <p className="text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground">{stat.label}</p>
           </div>
         ))}
       </section>

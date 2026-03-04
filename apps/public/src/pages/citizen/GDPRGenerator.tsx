@@ -36,28 +36,28 @@ const rights: RightOption[] = [
     title: "Droit d'accès",
     description: "Obtenir une copie de toutes les données qu'une entreprise détient sur vous.",
     icon: Eye,
-    color: 'text-blue-600 bg-blue-50 border-blue-200',
+    color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/5 border-blue-200 dark:border-blue-500/20',
   },
   {
     id: 'rectification',
     title: 'Droit de rectification',
     description: "Corriger des informations inexactes ou incomplètes vous concernant.",
     icon: FileText,
-    color: 'text-green-600 bg-green-50 border-green-200',
+    color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/5 border-green-200 dark:border-green-500/20',
   },
   {
     id: 'erasure',
     title: "Droit à l'effacement",
     description: "Demander la suppression de vos données personnelles (droit à l'oubli).",
     icon: Trash2,
-    color: 'text-red-600 bg-red-50 border-red-200',
+    color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20',
   },
   {
     id: 'portability',
     title: 'Droit à la portabilité',
     description: "Récupérer vos données dans un format structuré et réutilisable.",
     icon: Download,
-    color: 'text-purple-600 bg-purple-50 border-purple-200',
+    color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/5 border-purple-200 dark:border-purple-500/20',
   },
 ];
 
@@ -194,7 +194,7 @@ ${formData.userName}`;
       {/* Back link */}
       <NavLink
         to="/outils"
-        className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-900 transition-colors"
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Retour aux outils
@@ -202,14 +202,14 @@ ${formData.userName}`;
 
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-600 text-sm font-medium">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-500/5 text-blue-600 dark:text-blue-400 text-sm font-medium">
           <Scale className="h-4 w-4" />
           Générateur RGPD
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
           Exercez vos droits RGPD
         </h1>
-        <p className="text-gray-500 max-w-xl mx-auto">
+        <p className="text-muted-foreground max-w-xl mx-auto text-pretty">
           Générez une lettre personnalisée pour demander l'accès, la
           rectification, la suppression ou la portabilité de vos données.
         </p>
@@ -223,8 +223,8 @@ ${formData.userName}`;
               className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all',
                 step >= s
-                  ? 'bg-[#57C5B6] text-white'
-                  : 'bg-gray-100 text-gray-400'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground'
               )}
             >
               {s}
@@ -232,7 +232,7 @@ ${formData.userName}`;
             <span
               className={cn(
                 'text-sm hidden sm:block',
-                step >= s ? 'text-gray-900' : 'text-gray-400'
+                step >= s ? 'text-foreground' : 'text-muted-foreground'
               )}
             >
               {s === 1 && 'Choisir le droit'}
@@ -240,7 +240,7 @@ ${formData.userName}`;
               {s === 3 && 'Lettre générée'}
             </span>
             {s < 3 && (
-              <ChevronRight className="h-4 w-4 text-gray-300 hidden sm:block" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground hidden sm:block" />
             )}
           </div>
         ))}
@@ -249,7 +249,7 @@ ${formData.userName}`;
       {/* Step 1: Select Right */}
       {step === 1 && (
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold text-gray-900 text-center">
+          <h2 className="text-xl font-semibold text-foreground text-center">
             Quel droit souhaitez-vous exercer ?
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -261,17 +261,17 @@ ${formData.userName}`;
                   setStep(2);
                 }}
                 className={cn(
-                  'p-5 rounded-xl border text-left transition-all hover:scale-[1.02] hover:shadow-md',
+                  'p-5 rounded-xl border text-left transition-all hover:scale-[1.02] hover:shadow-sm',
                   right.color
                 )}
               >
                 <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-lg bg-white/50">
+                  <div className="p-2 rounded-lg bg-card">
                     <right.icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">{right.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <h3 className="font-semibold text-foreground">{right.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1 text-pretty">
                       {right.description}
                     </p>
                   </div>
@@ -285,13 +285,13 @@ ${formData.userName}`;
       {/* Step 2: Form */}
       {step === 2 && (
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-foreground">
             Vos informations
           </h2>
 
           {/* Popular companies */}
           <div className="space-y-3">
-            <Label className="text-gray-500">Entreprises courantes</Label>
+            <Label className="text-muted-foreground">Entreprises courantes</Label>
             <div className="flex flex-wrap gap-2">
               {popularCompanies.map((company) => (
                 <button
@@ -300,8 +300,8 @@ ${formData.userName}`;
                   className={cn(
                     'px-3 py-1.5 rounded-lg text-sm transition-all',
                     formData.companyName === company.name
-                      ? 'bg-[#57C5B6] text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   )}
                 >
                   {company.name}
@@ -313,7 +313,7 @@ ${formData.userName}`;
           <div className="grid sm:grid-cols-2 gap-6">
             {/* Company Info */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Building2 className="h-4 w-4" />
                 <span className="font-medium">Entreprise destinataire</span>
               </div>
@@ -330,7 +330,7 @@ ${formData.userName}`;
                       }))
                     }
                     placeholder="Ex: Google, Amazon..."
-                    className="bg-white border-gray-200"
+                    className="bg-card border-border"
                   />
                 </div>
                 <div>
@@ -346,7 +346,7 @@ ${formData.userName}`;
                       }))
                     }
                     placeholder="dpo@entreprise.com"
-                    className="bg-white border-gray-200"
+                    className="bg-card border-border"
                   />
                 </div>
               </div>
@@ -354,7 +354,7 @@ ${formData.userName}`;
 
             {/* User Info */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <User className="h-4 w-4" />
                 <span className="font-medium">Vos informations</span>
               </div>
@@ -371,7 +371,7 @@ ${formData.userName}`;
                       }))
                     }
                     placeholder="Jean Dupont"
-                    className="bg-white border-gray-200"
+                    className="bg-card border-border"
                   />
                 </div>
                 <div>
@@ -387,7 +387,7 @@ ${formData.userName}`;
                       }))
                     }
                     placeholder="jean.dupont@email.com"
-                    className="bg-white border-gray-200"
+                    className="bg-card border-border"
                   />
                 </div>
               </div>
@@ -414,7 +414,7 @@ ${formData.userName}`;
                     ? 'Précisez les informations à corriger...'
                     : 'Précisez votre demande si nécessaire...'
                 }
-                className="bg-white border-gray-200 min-h-[100px]"
+                className="bg-card border-border min-h-[100px]"
               />
             </div>
           )}
@@ -423,7 +423,7 @@ ${formData.userName}`;
             <Button
               variant="outline"
               onClick={() => setStep(1)}
-              className="border-gray-200"
+              className="border-border"
             >
               Retour
             </Button>
@@ -435,7 +435,7 @@ ${formData.userName}`;
                 !formData.userName ||
                 !formData.userEmail
               }
-              className="bg-[#57C5B6] hover:bg-[#4AB0A2] text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               Générer la lettre
             </Button>
@@ -447,13 +447,13 @@ ${formData.userName}`;
       {step === 3 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-foreground">
               Votre lettre est prête
             </h2>
             <Button
               onClick={handleCopy}
               variant="outline"
-              className="border-gray-200"
+              className="border-border"
             >
               {copied ? (
                 <>
@@ -469,18 +469,18 @@ ${formData.userName}`;
             </Button>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
+          <div className="rounded-xl border border-border bg-card p-6">
+            <pre className="whitespace-pre-wrap text-sm text-foreground/70 font-mono">
               {generateLetter()}
             </pre>
           </div>
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-4">
             <div className="flex items-start gap-3">
-              <Mail className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <Mail className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-amber-700">Prochaine étape</p>
-                <p className="text-gray-600 mt-1">
+                <p className="font-medium text-amber-700 dark:text-amber-400">Prochaine étape</p>
+                <p className="text-muted-foreground mt-1 text-pretty">
                   Envoyez cette lettre à <strong>{formData.companyEmail}</strong>{' '}
                   depuis votre boîte email ({formData.userEmail}). L'entreprise a
                   légalement un mois pour vous répondre.
@@ -503,7 +503,7 @@ ${formData.userName}`;
                   additionalInfo: '',
                 });
               }}
-              className="border-gray-200"
+              className="border-border"
             >
               Nouvelle demande
             </Button>

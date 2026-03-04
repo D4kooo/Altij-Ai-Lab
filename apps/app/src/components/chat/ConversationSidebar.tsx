@@ -54,7 +54,6 @@ export function ConversationSidebar({
   onDeleteConversation,
   isCreating = false,
 }: ConversationSidebarProps) {
-  // Group conversations by date
   const groupedConversations = useMemo(() => {
     const groups: Record<DateGroup, Conversation[]> = {
       today: [],
@@ -69,7 +68,6 @@ export function ConversationSidebar({
       groups[group].push(conv);
     });
 
-    // Sort within each group (most recent first)
     Object.keys(groups).forEach((key) => {
       groups[key as DateGroup].sort(
         (a, b) =>
@@ -84,50 +82,40 @@ export function ConversationSidebar({
   const hasConversations = conversations.length > 0;
 
   return (
-    <div className="flex h-full flex-col bg-muted/30 rounded-xl border">
+    <div className="conv-sidebar">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b bg-background/50">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Conversations</span>
-          {hasConversations && (
-            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-              {conversations.length}
-            </span>
-          )}
-        </div>
+      <div className="conv-sidebar-header">
+        <span className="text-[13px] font-medium text-foreground/80">Conversations</span>
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+          className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary"
           onClick={onNewConversation}
           disabled={isCreating}
           title="Nouvelle conversation"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
 
-      {/* Search (placeholder for future) */}
-      <div className="p-2 border-b">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/80 text-muted-foreground/50">
-          <Search className="h-4 w-4" />
-          <span className="text-xs">Rechercher...</span>
+      {/* Search */}
+      <div className="px-2.5 pb-2">
+        <div className="conv-search">
+          <Search className="h-3.5 w-3.5 text-muted-foreground/40" />
+          <span className="text-[12px] text-muted-foreground/40">Rechercher...</span>
         </div>
       </div>
 
-      {/* Conversations List */}
+      {/* List */}
       <ScrollArea className="flex-1">
-        <div className="p-2">
+        <div className="px-2 pb-2">
           {!hasConversations ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <MessageSquare className="h-8 w-8 text-muted-foreground/30 mb-2" />
-              <p className="text-xs text-muted-foreground">Aucune conversation</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1">
-                Cliquez sur + pour commencer
-              </p>
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <MessageSquare className="h-6 w-6 text-muted-foreground/20 mb-2" />
+              <p className="text-[12px] text-muted-foreground/50">Aucune conversation</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {groupOrder.map((group) => {
                 const items = groupedConversations[group];
                 if (items.length === 0) return null;
@@ -135,7 +123,7 @@ export function ConversationSidebar({
                 return (
                   <div key={group}>
                     <div className="date-group-header">{groupLabels[group]}</div>
-                    <div className="space-y-0.5">
+                    <div className="space-y-px">
                       {items.map((conv) => (
                         <ConversationItem
                           key={conv.id}
@@ -168,14 +156,13 @@ function ConversationItem({ conversation, isActive, assistantId, onDelete }: Con
   return (
     <div
       className={cn(
-        'conversation-item group flex items-center gap-2 rounded-lg px-3 py-2',
+        'conversation-item group',
         isActive && 'active'
       )}
     >
-      <MessageSquare className="h-4 w-4 shrink-0 opacity-50" />
       <Link
         to={`/assistants/${assistantId}/chat/${conversation.id}`}
-        className="flex-1 truncate text-sm"
+        className="flex-1 truncate text-[13px]"
       >
         {conversation.title || 'Nouvelle conversation'}
       </Link>
@@ -186,12 +173,12 @@ function ConversationItem({ conversation, isActive, assistantId, onDelete }: Con
           onDelete();
         }}
         className={cn(
-          'delete-btn p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-colors',
-          isActive && 'opacity-100'
+          'delete-btn p-1 rounded-md hover:bg-destructive/10 hover:text-destructive transition-all duration-150',
+          isActive && 'opacity-60'
         )}
         title="Supprimer"
       >
-        <Trash2 className="h-3.5 w-3.5" />
+        <Trash2 className="h-3 w-3" />
       </button>
     </div>
   );

@@ -17,7 +17,7 @@ export const authApi = {
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
     const data = await fetchApi<AuthResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(credentials),
+      body: JSON.stringify({ ...credentials, context: 'staff' }),
     });
     localStorage.setItem('token', data.token);
     localStorage.setItem('refreshToken', data.refreshToken);

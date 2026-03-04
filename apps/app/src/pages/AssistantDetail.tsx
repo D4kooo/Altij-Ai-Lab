@@ -121,9 +121,9 @@ export function AssistantDetail() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4">
+    <div className="chat-layout">
       {/* Sidebar */}
-      <div className="hidden w-64 lg:block">
+      <div className="hidden w-[260px] lg:block shrink-0">
         <ConversationSidebar
           conversations={assistantConversations}
           activeConversationId={conversationId}
@@ -135,30 +135,30 @@ export function AssistantDetail() {
       </div>
 
       {/* Chat */}
-      <div className="flex flex-1 flex-col rounded-xl border bg-card overflow-hidden">
+      <div className="chat-main">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center gap-3 border-b bg-card/95 backdrop-blur-sm px-4 py-3">
+        <div className="chat-header">
           <Button variant="ghost" size="icon" asChild className="lg:hidden h-8 w-8">
             <Link to="/assistants">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-full"
-            style={{ backgroundColor: `${assistant.color}15`, color: assistant.color }}
+            className="chat-header-avatar"
+            style={{ backgroundColor: `${assistant.color}10`, color: assistant.color }}
           >
-            <DynamicIcon name={assistant.icon} className="h-4.5 w-4.5" />
+            <DynamicIcon name={assistant.icon} className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate">{assistant.name}</p>
-            <p className="text-xs text-muted-foreground">{assistant.specialty}</p>
+            <p className="text-[13.5px] font-semibold truncate">{assistant.name}</p>
+            <p className="text-[11.5px] text-muted-foreground/60">{assistant.specialty}</p>
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => createConversation.mutate()}
             disabled={createConversation.isPending}
-            className="hidden sm:flex gap-1.5 text-xs"
+            className="hidden sm:flex gap-1.5 text-xs h-8 rounded-lg hover:bg-muted"
           >
             <Plus className="h-3.5 w-3.5" />
             Nouveau
@@ -168,16 +168,14 @@ export function AssistantDetail() {
         {/* Messages Area */}
         <ScrollArea className="flex-1 chat-scroll-area">
           {!conversationId ? (
-            /* Welcome Screen */
             <WelcomeScreen
               assistant={assistant}
               onStartConversation={() => createConversation.mutate()}
               isCreating={createConversation.isPending}
             />
           ) : (
-            /* Messages */
-            <div className="p-4 md:p-6">
-              <div className="space-y-6 max-w-3xl mx-auto">
+            <div className="chat-messages-container">
+              <div className="space-y-5 max-w-3xl mx-auto">
                 {conversation?.messages.map((msg, index) => (
                   <ChatMessage
                     key={msg.id}
@@ -189,7 +187,6 @@ export function AssistantDetail() {
                   />
                 ))}
 
-                {/* Streaming Message */}
                 {isStreaming && (
                   <StreamingMessage
                     content={streamingMessage}
@@ -235,33 +232,32 @@ interface WelcomeScreenProps {
 
 function WelcomeScreen({ assistant, onStartConversation, isCreating }: WelcomeScreenProps) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-4 py-12">
-      <div className="max-w-2xl w-full text-center space-y-6">
+    <div className="flex h-full flex-col items-center justify-center px-4 py-16">
+      <div className="max-w-xl w-full text-center space-y-8">
         {/* Icon */}
         <div
-          className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg"
-          style={{
-            backgroundColor: assistant.color,
-            color: 'white',
-          }}
+          className="welcome-icon mx-auto"
+          style={{ backgroundColor: `${assistant.color}10`, color: assistant.color }}
         >
-          <DynamicIcon name={assistant.icon} className="h-8 w-8" />
+          <DynamicIcon name={assistant.icon} className="h-7 w-7" />
         </div>
 
         {/* Title & Description */}
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">{assistant.name}</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">{assistant.description}</p>
+        <div className="space-y-2.5">
+          <h2 className="text-xl font-semibold tracking-tight">{assistant.name}</h2>
+          <p className="text-[14px] text-muted-foreground/70 max-w-md mx-auto leading-relaxed">
+            {assistant.description}
+          </p>
         </div>
 
         {/* Suggested Prompts */}
         {assistant.suggestedPrompts && assistant.suggestedPrompts.length > 0 && (
-          <div className="pt-4">
-            <p className="text-xs text-muted-foreground mb-4 flex items-center justify-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5" />
-              Suggestions pour commencer
+          <div className="pt-2">
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground/40 mb-4 flex items-center justify-center gap-1.5">
+              <Sparkles className="h-3 w-3" />
+              Suggestions
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-w-lg mx-auto">
               {assistant.suggestedPrompts.map((prompt, i) => (
                 <button
                   key={i}
@@ -269,7 +265,7 @@ function WelcomeScreen({ assistant, onStartConversation, isCreating }: WelcomeSc
                   disabled={isCreating}
                   className="suggestion-card text-left"
                 >
-                  <p className="text-sm text-foreground/80 line-clamp-2">{prompt}</p>
+                  <p className="text-[13px] text-foreground/70 line-clamp-2 leading-relaxed">{prompt}</p>
                 </button>
               ))}
             </div>
@@ -277,15 +273,15 @@ function WelcomeScreen({ assistant, onStartConversation, isCreating }: WelcomeSc
         )}
 
         {/* Start Button */}
-        <div className="pt-4">
+        <div className="pt-2">
           <Button
             onClick={onStartConversation}
             disabled={isCreating}
             size="lg"
-            className="gap-2 px-6"
+            className="gap-2 px-8 h-11 rounded-xl text-[13px] font-medium"
           >
             <Plus className="h-4 w-4" />
-            Demarrer une conversation
+            Démarrer une conversation
           </Button>
         </div>
       </div>

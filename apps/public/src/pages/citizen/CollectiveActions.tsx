@@ -13,7 +13,6 @@ import {
   Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 
 interface Campaign {
   id: string;
@@ -109,22 +108,22 @@ const getStatusBadge = (status: Campaign['status']) => {
   switch (status) {
     case 'active':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-medium tracking-[0.2em] uppercase">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           En cours
         </span>
       );
     case 'upcoming':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">
-          <Clock className="h-3 w-3" />
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-medium tracking-[0.2em] uppercase">
+          <Clock className="h-2.5 w-2.5" />
           À venir
         </span>
       );
     case 'completed':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs">
-          <CheckCircle className="h-3 w-3" />
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-medium tracking-[0.2em] uppercase">
+          <CheckCircle className="h-2.5 w-2.5" />
           Terminée
         </span>
       );
@@ -133,20 +132,22 @@ const getStatusBadge = (status: Campaign['status']) => {
 
 export function CollectiveActions() {
   return (
-    <div className="space-y-12">
+    <div className="space-y-24 animate-[float-up_1s_cubic-bezier(0.16,1,0.3,1)_forwards] opacity-0">
       {/* Hero */}
-      <section className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#57C5B6]/10 text-[#57C5B6] text-sm font-medium">
+      <section className="text-center space-y-6 pt-10">
+        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-[10px] sm:text-xs font-medium tracking-[0.2em] uppercase">
           <Users className="h-4 w-4" />
           Actions Collectives
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
-          Ensemble, faisons
-          <span className="block text-[#57C5B6]">bouger les lignes</span>
+        <h1 className="text-4xl md:text-6xl font-light text-foreground tracking-tight leading-[1.1] text-balance">
+          Ensemble, faisons <br />
+          <span className="font-medium">
+            bouger les lignes
+          </span>
         </h1>
-        <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-          Rejoignez des campagnes citoyennes pour défendre vos droits
-          numériques. La force du collectif face aux géants du numérique.
+        <p className="text-lg text-muted-foreground font-light max-w-2xl mx-auto leading-relaxed text-pretty">
+          Rejoignez des campagnes citoyennes pour défendre vos droits numériques.
+          La force du collectif face à l'empreinte technologique.
         </p>
       </section>
 
@@ -160,52 +161,54 @@ export function CollectiveActions() {
         ].map((stat, idx) => (
           <div
             key={idx}
-            className="text-center p-6 rounded-xl bg-gray-50 border border-gray-200"
+            className="text-center p-8 rounded-2xl bg-card border border-border"
           >
-            <p className="text-3xl font-bold text-[#57C5B6]">
+            <p className="text-4xl font-light text-primary mb-2">
               {stat.value}
             </p>
-            <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+            <p className="text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground">{stat.label}</p>
           </div>
         ))}
       </section>
 
       {/* Active Campaigns */}
-      <section className="space-y-6">
+      <section className="space-y-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Campagnes en cours</h2>
-          <span className="text-sm text-gray-500">
+          <h2 className="text-3xl font-light text-foreground text-balance">Campagnes en cours</h2>
+          <span className="text-sm font-light text-muted-foreground">
             {campaigns.filter((c) => c.status === 'active').length} campagnes
             actives
           </span>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {campaigns.map((campaign) => (
             <div
               key={campaign.id}
-              className="rounded-2xl border border-gray-200 bg-white p-6 hover:border-gray-300 hover:shadow-sm transition-all"
+              className="rounded-3xl border border-border bg-card p-8 hover:bg-muted hover:border-foreground/10 transition-all duration-300"
             >
-              <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+              <div className="flex flex-col lg:flex-row lg:items-start gap-10">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-4 mb-4">
                     {getStatusBadge(campaign.status)}
-                    <span className="text-xs text-gray-400">
+                    <span className="text-[9px] font-medium tracking-[0.15em] text-muted-foreground uppercase px-3 py-1 rounded-full border border-border bg-muted">
                       {campaign.category}
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  <h3 className="text-2xl font-light text-foreground mb-3 text-balance">
                     {campaign.title}
                   </h3>
-                  <p className="text-gray-500 mb-4">{campaign.description}</p>
+                  <p className="text-sm font-light text-muted-foreground leading-relaxed mb-6 text-pretty">
+                    {campaign.description}
+                  </p>
 
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                    <div className="flex items-center gap-1">
-                      <Target className="h-4 w-4" />
+                  <div className="flex flex-wrap gap-6 text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-3.5 w-3.5" />
                       <span>Cible : {campaign.target}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5" />
                       <span>
                         Début :{' '}
                         {new Date(campaign.startDate).toLocaleDateString('fr-FR')}
@@ -214,24 +217,24 @@ export function CollectiveActions() {
                   </div>
                 </div>
 
-                <div className="lg:w-64 space-y-4">
+                <div className="lg:w-72 space-y-6">
                   {/* Progress */}
                   {campaign.status !== 'upcoming' && (
-                    <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-500">
-                          {campaign.participants.toLocaleString()} participants
+                    <div className="p-5 rounded-2xl bg-muted border border-border">
+                      <div className="flex justify-between text-[10px] font-medium tracking-[0.1em] uppercase mb-3">
+                        <span className="text-muted-foreground">
+                          {campaign.participants.toLocaleString()} mobilisés
                         </span>
-                        <span className="text-[#57C5B6] font-medium">
+                        <span className="text-primary">
                           {Math.round(
                             (campaign.participants / campaign.goal) * 100
                           )}
                           %
                         </span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-border rounded-full overflow-hidden mb-3">
                         <div
-                          className="h-full bg-[#57C5B6] rounded-full transition-all"
+                          className="h-full bg-primary rounded-full transition-all duration-1000"
                           style={{
                             width: `${Math.min(
                               (campaign.participants / campaign.goal) * 100,
@@ -240,40 +243,40 @@ export function CollectiveActions() {
                           }}
                         />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Objectif : {campaign.goal.toLocaleString()} participants
+                      <p className="text-[9px] tracking-[0.1em] uppercase text-muted-foreground text-right">
+                        Objectif : {campaign.goal.toLocaleString()}
                       </p>
                     </div>
                   )}
 
-                  <Button
+                  <button
                     className={cn(
-                      'w-full',
+                      'w-full py-4 px-6 rounded-2xl text-[10px] font-bold tracking-[0.2em] uppercase flex items-center justify-center transition-all duration-300',
                       campaign.status === 'active'
-                        ? 'bg-[#57C5B6] hover:bg-[#4AB0A2] text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-500'
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'bg-muted text-muted-foreground border border-border cursor-not-allowed'
                     )}
                     disabled={campaign.status === 'upcoming'}
                   >
                     {campaign.status === 'active' && (
                       <>
-                        <Users className="h-4 w-4 mr-2" />
+                        <Users className="h-3.5 w-3.5 mr-3" />
                         Rejoindre
                       </>
                     )}
                     {campaign.status === 'upcoming' && (
                       <>
-                        <Clock className="h-4 w-4 mr-2" />
+                        <Clock className="h-3.5 w-3.5 mr-3" />
                         Bientôt disponible
                       </>
                     )}
                     {campaign.status === 'completed' && (
                       <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
+                        <CheckCircle className="h-3.5 w-3.5 mr-3" />
                         Voir les résultats
                       </>
                     )}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>
@@ -282,15 +285,18 @@ export function CollectiveActions() {
       </section>
 
       {/* Templates */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Modèles juridiques</h2>
+      <section className="space-y-8 relative">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="text-3xl font-light text-foreground mb-2 text-balance">Modèles juridiques</h2>
+            <p className="text-sm font-light text-muted-foreground">Gagnez du temps dans vos démarches</p>
+          </div>
           <NavLink
             to="/outils/gdpr"
-            className="text-sm text-[#57C5B6] hover:underline flex items-center gap-1"
+            className="text-[10px] font-medium tracking-[0.1em] uppercase text-primary hover:text-foreground transition-colors duration-300 flex items-center gap-2"
           >
             Générateur RGPD
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-3.5 w-3.5" />
           </NavLink>
         </div>
 
@@ -298,26 +304,28 @@ export function CollectiveActions() {
           {templates.map((template) => (
             <div
               key={template.id}
-              className="group rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
+              className="group rounded-2xl border border-border bg-card p-6 hover:border-foreground/10 hover:bg-muted transition-all duration-300 cursor-pointer"
             >
-              <div className="flex items-start gap-4">
-                <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
-                  <FileText className="h-5 w-5" />
+              <div className="flex items-start gap-5">
+                <div className="p-3 rounded-xl bg-blue-400/10 border border-blue-400/20 text-blue-400">
+                  <FileText className="h-5 w-5" strokeWidth={1.5} />
                 </div>
                 <div className="flex-1">
-                  <span className="text-xs text-gray-400">
-                    {template.category}
-                  </span>
-                  <h3 className="font-medium text-gray-900 group-hover:text-[#57C5B6] transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[9px] font-medium tracking-[0.1em] uppercase text-muted-foreground border border-border px-2 py-1 rounded-md">
+                      {template.category}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[9px] font-medium tracking-[0.1em] uppercase text-primary">
+                      <Download className="h-3 w-3" />
+                      {template.downloadCount.toLocaleString()}
+                    </div>
+                  </div>
+                  <h3 className="font-medium text-foreground/90 group-hover:text-foreground transition-colors mb-2">
                     {template.title}
                   </h3>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-xs font-light text-muted-foreground leading-relaxed text-pretty">
                     {template.description}
                   </p>
-                  <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-                    <Download className="h-3 w-3" />
-                    {template.downloadCount.toLocaleString()} téléchargements
-                  </div>
                 </div>
               </div>
             </div>
@@ -326,84 +334,85 @@ export function CollectiveActions() {
       </section>
 
       {/* How it works */}
-      <section className="rounded-2xl border border-gray-200 bg-gray-50 p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-          Comment ça marche ?
-        </h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          {[
-            {
-              step: '1',
-              icon: Users,
-              title: 'Rejoignez une campagne',
-              description:
-                'Choisissez une cause qui vous tient à cœur et ajoutez votre voix au collectif.',
-            },
-            {
-              step: '2',
-              icon: Megaphone,
-              title: 'Action coordonnée',
-              description:
-                'Quand l\'objectif est atteint, nous envoyons une action collective (lettre, pétition, signalement).',
-            },
-            {
-              step: '3',
-              icon: Scale,
-              title: 'Suivi juridique',
-              description:
-                'Nos experts juridiques assurent le suivi et vous informent des avancées.',
-            },
-          ].map((item, idx) => (
-            <div key={idx} className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#57C5B6]/10 text-[#57C5B6] mb-4">
-                <item.icon className="h-6 w-6" />
+      <section className="rounded-3xl border border-border bg-card p-10 md:p-14 relative overflow-hidden">
+        <div className="relative z-10">
+          <h2 className="text-3xl font-light text-foreground mb-10 text-center text-balance">
+            Comment ça marche ?
+          </h2>
+          <div className="grid md:grid-cols-3 gap-10">
+            {[
+              {
+                step: '1',
+                icon: Users,
+                title: 'Rejoignez une campagne',
+                description:
+                  'Choisissez une cause qui vous tient à cœur et ajoutez votre voix au collectif citoyen.',
+              },
+              {
+                step: '2',
+                icon: Megaphone,
+                title: 'Action coordonnée',
+                description:
+                  'Quand l\'objectif est atteint, nous envoyons une action collective formelle (lettre, plainte, signalement).',
+              },
+              {
+                step: '3',
+                icon: Scale,
+                title: 'Suivi juridique',
+                description:
+                  'Nos experts assurent le suivi de la contestation et vous informent en toute transparence.',
+              },
+            ].map((item, idx) => (
+              <div key={idx} className="text-center group">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 text-primary mb-6 transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-sm">
+                  <item.icon className="h-7 w-7" strokeWidth={1.5} />
+                </div>
+                <h3 className="font-medium text-foreground mb-3 text-lg">{item.title}</h3>
+                <p className="text-sm font-light text-muted-foreground leading-relaxed text-pretty">{item.description}</p>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
-              <p className="text-sm text-gray-500">{item.description}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="rounded-2xl border border-[#57C5B6]/20 bg-gradient-to-br from-[#57C5B6]/5 to-teal-500/5 p-8 text-center">
-        <Heart className="h-12 w-12 text-[#57C5B6] mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Soutenez nos actions
-        </h2>
-        <p className="text-gray-500 max-w-lg mx-auto mb-6">
-          Data Ring est une association d'intérêt général. Vos dons nous
-          permettent de mener des actions juridiques pour défendre les droits
-          numériques de tous.
-        </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <a
-            href="https://www.data-ring.net/soutenir"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button className="bg-[#57C5B6] hover:bg-[#4AB0A2] text-white">
-              <Heart className="h-4 w-4 mr-2" />
-              Faire un don
-            </Button>
-          </a>
-          <a
-            href="https://www.data-ring.net/adhesion"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button
-              variant="outline"
-              className="border-[#57C5B6]/30 text-[#57C5B6] hover:bg-[#57C5B6]/10"
+      <section className="rounded-3xl border border-primary/20 bg-primary/10 p-10 md:p-16 text-center relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/30 mb-6">
+            <Heart className="h-7 w-7 text-primary animate-pulse" strokeWidth={1.5} />
+          </div>
+          <h2 className="text-3xl font-light text-foreground mb-4 text-balance">
+            Soutenez nos actions
+          </h2>
+          <p className="text-muted-foreground font-light max-w-lg mx-auto mb-10 leading-relaxed text-pretty">
+            Data Ring est une association d'intérêt général. Vos dons nous
+            permettent de mener des actions juridiques pour défendre librement les
+            droits numériques de tous.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <a
+              href="https://www.data-ring.net/soutenir"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-primary text-primary-foreground text-[10px] font-bold tracking-[0.2em] uppercase rounded-full hover:bg-primary/90 transition-colors flex items-center justify-center"
             >
-              <Users className="h-4 w-4 mr-2" />
+              <Heart className="h-3.5 w-3.5 mr-2" />
+              Faire un don
+            </a>
+            <a
+              href="https://www.data-ring.net/adhesion"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-muted border border-border text-foreground text-[10px] font-bold tracking-[0.2em] uppercase rounded-full hover:bg-muted/80 hover:border-foreground/20 transition-colors flex items-center justify-center"
+            >
+              <Users className="h-3.5 w-3.5 mr-2" />
               Devenir membre
-            </Button>
-          </a>
+            </a>
+          </div>
+          <p className="text-[9px] font-medium tracking-[0.1em] text-primary uppercase mt-6 opacity-80">
+            66% de votre don est déductible de vos impôts
+          </p>
         </div>
-        <p className="text-xs text-gray-400 mt-4">
-          66% de votre don est déductible de vos impôts
-        </p>
       </section>
     </div>
   );

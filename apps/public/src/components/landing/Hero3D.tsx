@@ -1,245 +1,98 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Sparkles, PerspectiveCamera } from '@react-three/drei';
+import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Constants
-const PRIMARY_COLOR = "#21B2AA";
-const ACCENT_COLOR = "#5EEAD4";
-const THREAT_COLOR = "#ef4444"; // Red for malicious trackers
+function Torus() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
 
-function Shield({ color = PRIMARY_COLOR }) {
-  const shieldRef = useRef<THREE.Group>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
-
-  // 1. Slower Shield Rotation
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    if (shieldRef.current) {
-      shieldRef.current.rotation.y = t * 0.02;
-    }
-    // Pulse effect
-    if (glowRef.current) {
-      glowRef.current.scale.setScalar(1.02 + Math.sin(t * 1.5) * 0.01);
-    }
-  });
-
-  return (
-    <group ref={shieldRef} position={[0, -1, 0]}>
-      {/* Core Shield Glass */}
-      <mesh>
-        <sphereGeometry args={[2.8, 64, 64, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshPhysicalMaterial
-          color={color}
-          roughness={0.1}
-          metalness={0.1}
-          transmission={0.6}
-          thickness={0.5}
-          side={THREE.DoubleSide}
-          transparent={true}
-          opacity={0.3}
-          clearcoat={1}
-          clearcoatRoughness={0}
-        />
-      </mesh>
-
-      {/* Wireframe overlay */}
-      <mesh>
-        <sphereGeometry args={[2.81, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshBasicMaterial
-          color={ACCENT_COLOR}
-          wireframe
-          transparent
-          opacity={0.05}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Outer Glow / Force Field Edge */}
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[2.85, 64, 64, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.1}
-          side={THREE.BackSide}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-
-      {/* Base Rings */}
-      <group position={[0, 0, 0]}>
-        {[0, 1, 2].map((i) => (
-          <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05 * i, 0]}>
-            <ringGeometry args={[2.9 + i * 0.2, 2.92 + i * 0.2, 64]} />
-            <meshBasicMaterial
-              color={ACCENT_COLOR}
-              transparent
-              opacity={0.3 - i * 0.1}
-              side={THREE.DoubleSide}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-        ))}
-      </group>
-    </group>
-  );
-}
-
-function ProtectedCity() {
-  const groupRef = useRef<THREE.Group>(null);
-
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.02;
-    }
-  });
-
-  return (
-    <group ref={groupRef} position={[0, -1, 0]}>
-      {/* Base Platform Removed */}
-
-      {/* Central Tower (Core Data) */}
-      <mesh position={[0, 1, 0]}>
-        <boxGeometry args={[0.8, 2, 0.8]} />
-        <meshStandardMaterial color="#ffffff" emissive={PRIMARY_COLOR} emissiveIntensity={0.2} />
-      </mesh>
-
-      {/* Surrounding Buildings (Personal Data/Users) */}
-      {[...Array(6)].map((_, i) => {
-        const radius = 1.2;
-        const angle = (i / 6) * Math.PI * 2;
-        const x = Math.cos(angle) * radius;
-        const z = Math.sin(angle) * radius;
-        return (
-          <mesh key={i} position={[x, 0.6, z]}>
-            <boxGeometry args={[0.5, 1.2, 0.5]} />
-            <meshStandardMaterial color={PRIMARY_COLOR} />
-          </mesh>
-        );
-      })}
-
-      {/* Data Flow Lines */}
-      {[...Array(3)].map((_, i) => (
-        <mesh key={`ring-${i}`} position={[0, 0.5 + i * 0.5, 0]}>
-          <torusGeometry args={[1.5, 0.02, 16, 100]} />
-          <meshBasicMaterial color={ACCENT_COLOR} transparent opacity={0.5} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function ExternalThreats() {
-  const count = 40;
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-  const tempObject = new THREE.Object3D();
-
-  // Initial positions outside the shield
-  const particles = useMemo(() => {
-    return new Array(count).fill(0).map(() => {
-      const direction = new THREE.Vector3(
-        (Math.random() - 0.5),
-        (Math.random() * 0.5 + 0.1), // Coming more from top/sides
-        (Math.random() - 0.5)
-      ).normalize();
-
-      return {
-        direction,
-        distance: 5 + Math.random() * 5,
-        speed: 0.005 + Math.random() * 0.01,
-        rotationSpeed: Math.random() * 0.1
-      };
-    });
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current.x = (e.clientX / window.innerWidth - 0.5) * 2;
+      mouseRef.current.y = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   useFrame((state) => {
     if (!meshRef.current) return;
+    const time = state.clock.getElapsedTime();
 
-    particles.forEach((p, i) => {
-      // Update distance
-      p.distance -= p.speed;
+    // Slow Y rotation (~35s/tour)
+    meshRef.current.rotation.y += 0.003;
 
-      // If hits shield (radius approx 2.8), reset
-      if (p.distance < 2.9) {
-        p.distance = 8 + Math.random() * 2;
-        // Optional: visual flair on impact
-      }
+    // Gentle X oscillation
+    meshRef.current.rotation.x = Math.sin(time * 0.5) * 0.15;
 
-      // Calculate position
-      const pos = p.direction.clone().multiplyScalar(p.distance);
+    // Floating Y
+    meshRef.current.position.y = Math.sin(time * 0.8) * 0.12;
 
-      // Update matrix
-      tempObject.position.copy(pos);
-      tempObject.lookAt(0, 0, 0); // Point towards center
-      tempObject.rotateZ(state.clock.elapsedTime * 0.5 + i); // spin slower
-      tempObject.scale.setScalar(1 - (p.distance - 3) * 0.1);
-      if (tempObject.scale.x < 0.2) tempObject.scale.setScalar(0.2);
-
-      tempObject.updateMatrix();
-      meshRef.current!.setMatrixAt(i, tempObject.matrix);
-    });
-    meshRef.current.instanceMatrix.needsUpdate = true;
+    // Subtle mouse tilt (max 0.1 rad)
+    const targetTiltX = -mouseRef.current.y * 0.1;
+    const targetTiltZ = mouseRef.current.x * 0.1;
+    meshRef.current.rotation.x += (targetTiltX - meshRef.current.rotation.x) * 0.02;
+    meshRef.current.rotation.z += (targetTiltZ - meshRef.current.rotation.z) * 0.02;
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      <tetrahedronGeometry args={[0.15, 0]} />
-      <meshBasicMaterial color={THREAT_COLOR} />
-    </instancedMesh>
-  );
-}
-
-function FloatingPixels() {
-  return (
-    <Sparkles
-      count={50}
-      scale={6}
-      size={3}
-      speed={0.2}
-      opacity={0.3}
-      color={ACCENT_COLOR}
-      position={[0, 2, 0]}
-    />
+    <mesh ref={meshRef}>
+      <torusGeometry args={[2.2, 0.35, 64, 128]} />
+      <meshPhysicalMaterial
+        color="#57C5B6"
+        roughness={0.15}
+        metalness={0.1}
+        transmission={0.3}
+        thickness={0.5}
+        clearcoat={1.0}
+        clearcoatRoughness={0.1}
+        transparent
+        opacity={0.85}
+      />
+    </mesh>
   );
 }
 
 function Scene() {
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 2, 8]} fov={45} />
-
-      <ambientLight intensity={0.5} color="#ffffff" />
-      <directionalLight position={[10, 10, 5]} intensity={1} color="#ffffff" />
-
-      {/* Light coming from the "safe core" */}
-      <pointLight position={[0, 2, 0]} intensity={2} color={PRIMARY_COLOR} distance={10} />
-
-      <Shield />
-      <ProtectedCity />
-      <ExternalThreats />
-      <FloatingPixels />
-
-      <fog attach="fog" args={['#ffffff', 5, 25]} />
+      <ambientLight intensity={0.6} color="#fffaf0" />
+      <directionalLight position={[5, 8, 5]} intensity={1.0} />
+      <directionalLight position={[-3, -2, 3]} intensity={0.3} />
+      <Torus />
+      <Environment preset="city" />
     </>
   );
 }
 
 export function Hero3D() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  if (isMobile) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="w-48 h-48 sm:w-64 sm:h-64 rounded-full border-[12px] border-landing-accent/30 bg-landing-accent/5" />
+      </div>
+    );
+  }
+
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden">
-      <Canvas
-        dpr={[1, 2]}
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: 'high-performance'
-        }}
-        style={{ pointerEvents: 'none' }}
-      >
-        <Scene />
-      </Canvas>
-    </div>
+    <Canvas
+      dpr={[1, 2]}
+      gl={{ antialias: true, alpha: true }}
+      camera={{ position: [0, 0, 7], fov: 45 }}
+      style={{ background: 'transparent' }}
+    >
+      <Scene />
+    </Canvas>
   );
 }
 

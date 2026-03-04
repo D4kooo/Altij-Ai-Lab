@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Loader2, ArrowRight } from 'lucide-react';
 
 export function CitizenLogin() {
@@ -29,98 +26,97 @@ export function CitizenLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <NavLink to="/" className="block mb-8">
-          <img
-            src="/assets/logo-dataring-black.png"
-            alt="Data Ring"
-            className="h-10 w-auto mx-auto"
-            onError={(e) => {
-              e.currentTarget.src = '/assets/logo-dataring.png';
-            }}
-          />
-        </NavLink>
+    <div className="min-h-[100svh] bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground flex items-center justify-center relative overflow-hidden px-4">
 
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-            Connexion
-          </h1>
-          <p className="text-gray-500">
-            Accédez à votre espace Data Ring
-          </p>
-        </div>
+      <div className="relative z-10 w-full max-w-sm flex flex-col items-center">
+        {/* Animated Float up content */}
+        <div className="w-full opacity-0 animate-[float-up_1s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
-        {authError && (
-          <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
-            {authError}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <Label htmlFor="email" className="text-gray-700">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 border-gray-200 focus:border-[#57C5B6] focus:ring-[#57C5B6]"
-              placeholder="jean.dupont@email.com"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="password" className="text-gray-700">
-              Mot de passe
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1.5 border-gray-200 focus:border-[#57C5B6] focus:ring-[#57C5B6]"
-              placeholder="Votre mot de passe"
-            />
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-[#57C5B6] hover:bg-[#4AB0A2] text-white h-11"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                Se connecter
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </>
-            )}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-500">
-          Pas encore de compte ?{' '}
-          <NavLink
-            to="/citizen/register"
-            className="text-[#57C5B6] hover:underline font-medium"
-          >
-            Créer un compte
+          <NavLink to="/" className="flex items-center gap-3 justify-center mb-12 group cursor-pointer">
+            <div className="w-2.5 h-2.5 rounded-full bg-foreground/90 group-hover:bg-primary transition-colors duration-700"></div>
+            <span className="font-medium tracking-[0.35em] text-[10px] sm:text-[11px] uppercase text-foreground/80 group-hover:text-foreground transition-colors duration-700">
+              Data Ring
+            </span>
           </NavLink>
-        </p>
 
-        <p className="mt-4 text-center text-xs text-gray-400">
-          Membre Data Ring ?{' '}
-          <a href={import.meta.env.VITE_APP_URL || 'http://localhost:5174'} className="hover:underline">
-            Espace Staff
-          </a>
-        </p>
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-light tracking-tight text-foreground mb-2 text-balance">
+              Bon retour.
+            </h1>
+            <p className="text-sm font-light text-muted-foreground text-pretty">
+              Sécurisez vos données avec Data Ring.
+            </p>
+          </div>
+
+          {authError && (
+            <div className="mb-8 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center">
+              {authError}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate className="space-y-6 w-full mb-10">
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="text-[10px] font-medium tracking-[0.15em] text-muted-foreground uppercase ml-2">
+                Adresse Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-5 py-3.5 bg-muted border border-border hover:border-foreground/20 focus:border-primary/50 focus:bg-muted/80 rounded-2xl outline-none text-foreground text-sm transition-all duration-300 placeholder:text-muted-foreground/50"
+                placeholder="citoyen@email.com"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="text-[10px] font-medium tracking-[0.15em] text-muted-foreground uppercase ml-2">
+                Mot de passe
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-5 py-3.5 bg-muted border border-border hover:border-foreground/20 focus:border-primary/50 focus:bg-muted/80 rounded-2xl outline-none text-foreground text-sm transition-all duration-300 placeholder:text-muted-foreground/50"
+                placeholder="********"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold tracking-[0.2em] uppercase rounded-full h-12 transition-all duration-500 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed group"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  Se connecter
+                  <ArrowRight className="h-4 w-4 ml-3 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-[11px] text-muted-foreground tracking-[0.05em] mb-4">
+            Nouveau parmi nous ?{' '}
+            <NavLink
+              to="/citizen/register"
+              className="text-primary hover:text-foreground transition-colors duration-300"
+            >
+              Créer un compte
+            </NavLink>
+          </p>
+
+          <div className="text-center">
+            <a href={import.meta.env.VITE_APP_URL || '/app/'} className="text-[10px] tracking-[0.15em] font-medium text-muted-foreground/50 hover:text-muted-foreground uppercase transition-colors duration-300">
+              Accès Membre du Staff
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

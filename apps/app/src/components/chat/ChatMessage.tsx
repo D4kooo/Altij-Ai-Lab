@@ -36,8 +36,8 @@ export function ChatMessage({
   if (role === 'user') {
     return (
       <div className={cn('flex justify-end', isNew && 'message-animate')}>
-        <div className="message-user max-w-[85%] md:max-w-[70%]">
-          <p className="text-[15px] whitespace-pre-wrap leading-relaxed">{content}</p>
+        <div className="message-user max-w-[80%] md:max-w-[65%]">
+          <p className="text-[14.5px] whitespace-pre-wrap leading-[1.65]">{content}</p>
         </div>
       </div>
     );
@@ -45,39 +45,39 @@ export function ChatMessage({
 
   return (
     <div className={cn('message-container group', isNew && 'message-animate')}>
-      <div className="flex gap-3">
+      <div className="flex gap-3.5">
         {/* Avatar */}
         <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full mt-1"
-          style={{ backgroundColor: `${assistantColor}15`, color: assistantColor }}
+          className="message-avatar shrink-0 mt-0.5"
+          style={{ backgroundColor: `${assistantColor}12`, color: assistantColor }}
         >
           <AssistantIcon className="h-4 w-4" />
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex-1 min-w-0 space-y-1.5">
           <div className={cn('message-assistant', isStreaming && 'typing-cursor')}>
-            <div className="markdown text-[15px]">
+            <div className="markdown text-[14.5px]">
               <ReactMarkdown>{content}</ReactMarkdown>
             </div>
           </div>
 
-          {/* Actions - shown on hover */}
+          {/* Actions */}
           {!isStreaming && content && (
-            <div className="message-actions flex items-center gap-1 -ml-1">
+            <div className="message-actions flex items-center gap-0.5">
               <button
                 onClick={handleCopy}
                 className="message-action-btn"
-                title={copied ? 'Copie !' : 'Copier'}
+                title={copied ? 'Copié !' : 'Copier'}
               >
                 {copied ? (
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
                 ) : (
-                  <Copy className="h-4 w-4" />
+                  <Copy className="h-3.5 w-3.5" />
                 )}
               </button>
-              <button className="message-action-btn" title="Regenerer">
-                <RotateCcw className="h-4 w-4" />
+              <button className="message-action-btn" title="Régénérer">
+                <RotateCcw className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
@@ -103,14 +103,14 @@ export function StreamingMessage({
 }: StreamingMessageProps) {
   return (
     <div className="message-container message-fade">
-      <div className="flex gap-3">
-        {/* Avatar with pulse when thinking */}
+      <div className="flex gap-3.5">
+        {/* Avatar */}
         <div
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full mt-1',
+            'message-avatar shrink-0 mt-0.5',
             isThinking && !content && 'animate-pulse'
           )}
-          style={{ backgroundColor: `${assistantColor}15`, color: assistantColor }}
+          style={{ backgroundColor: `${assistantColor}12`, color: assistantColor }}
         >
           <AssistantIcon className="h-4 w-4" />
         </div>
@@ -119,27 +119,18 @@ export function StreamingMessage({
         <div className="flex-1 min-w-0">
           {content ? (
             <div className="message-assistant typing-cursor">
-              <div className="markdown text-[15px]">
+              <div className="markdown text-[14.5px]">
                 <ReactMarkdown>{content}</ReactMarkdown>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3 py-2">
-              <div className="flex gap-1">
-                <span
-                  className="streaming-dot h-2 w-2 rounded-full"
-                  style={{ backgroundColor: assistantColor }}
-                />
-                <span
-                  className="streaming-dot h-2 w-2 rounded-full"
-                  style={{ backgroundColor: assistantColor }}
-                />
-                <span
-                  className="streaming-dot h-2 w-2 rounded-full"
-                  style={{ backgroundColor: assistantColor }}
-                />
+            <div className="thinking-indicator">
+              <div className="thinking-dots">
+                <span style={{ backgroundColor: assistantColor }} />
+                <span style={{ backgroundColor: assistantColor }} />
+                <span style={{ backgroundColor: assistantColor }} />
               </div>
-              <span className="text-sm text-muted-foreground">Reflexion en cours...</span>
+              <span className="text-[13px] text-muted-foreground/60">Réflexion en cours...</span>
             </div>
           )}
         </div>

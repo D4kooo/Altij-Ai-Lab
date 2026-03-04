@@ -1,5 +1,5 @@
 import { useRef, useEffect, KeyboardEvent } from 'react';
-import { Send, Loader2, Paperclip } from 'lucide-react';
+import { ArrowUp, Loader2, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
@@ -21,7 +21,6 @@ export function ChatInput({
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -41,17 +40,17 @@ export function ChatInput({
   const canSend = value.trim() && !isStreaming;
 
   return (
-    <div className="px-4 pb-4 pt-2">
+    <div className="chat-input-wrapper">
       <div className="max-w-3xl mx-auto">
-        <div className="chat-input-container relative flex items-end gap-2 p-2">
-          {/* Attachment button (placeholder for future) */}
+        <div className="chat-input-container">
+          {/* Attachment */}
           <button
             type="button"
-            className="p-2 rounded-xl text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors shrink-0 self-end mb-0.5"
+            className="chat-attach-btn"
             disabled
-            title="Attachements (bientot disponible)"
+            title="Pièces jointes (bientôt disponible)"
           >
-            <Paperclip className="h-5 w-5" />
+            <Paperclip className="h-[18px] w-[18px]" />
           </button>
 
           {/* Textarea */}
@@ -61,34 +60,30 @@ export function ChatInput({
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder || `Message ${assistantName}...`}
-            className="chat-input-textarea flex-1 py-2.5 px-1 min-h-[44px] max-h-[200px] text-[15px] placeholder:text-muted-foreground/50"
+            className="chat-input-textarea"
             disabled={isStreaming}
             rows={1}
           />
 
-          {/* Send button */}
+          {/* Send */}
           <button
             onClick={onSend}
             disabled={!canSend}
             className={cn(
-              'chat-send-btn shrink-0 self-end mb-0.5',
-              'p-2.5 rounded-xl',
-              canSend
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-muted text-muted-foreground/40 cursor-not-allowed'
+              'chat-send-btn',
+              canSend && 'chat-send-btn--active'
             )}
           >
             {isStreaming ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-5 w-5" />
+              <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
             )}
           </button>
         </div>
 
-        {/* Helper text */}
-        <p className="text-[11px] text-center text-muted-foreground/50 mt-2">
-          Appuyez sur Entree pour envoyer, Maj+Entree pour un retour a la ligne
+        <p className="text-[11px] text-center text-muted-foreground/40 mt-2.5 select-none">
+          Entrée pour envoyer · Maj+Entrée pour un retour à la ligne
         </p>
       </div>
     </div>
