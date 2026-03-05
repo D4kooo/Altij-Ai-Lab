@@ -140,6 +140,7 @@ export interface Course {
   audience: 'juniors' | 'adultes' | 'seniors';
   icon: string;
   color: string;
+  category: string | null;
   isPublished: boolean;
   isActive: boolean;
   order: number;

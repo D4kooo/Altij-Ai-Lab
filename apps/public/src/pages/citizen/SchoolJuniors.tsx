@@ -11,11 +11,12 @@ import {
   Sparkles,
   Play,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
-import { juniorsModules } from '@/data/schoolContent';
+import { useCoursesData } from '@/hooks/useCoursesData';
 
 // Map icon strings to components
 const iconMap: Record<string, typeof Shield> = {
@@ -37,13 +38,34 @@ const badges = [
 export function SchoolJuniors() {
   const navigate = useNavigate();
   const { isModuleCompleted, getCompletedCount } = useSchoolProgress();
+  const { allModules, loading, error } = useCoursesData('juniors');
 
   const completedCount = getCompletedCount('juniors');
-  const progress = (completedCount / juniorsModules.length) * 100;
+  const totalModules = allModules.length;
+  const progress = totalModules > 0 ? (completedCount / totalModules) * 100 : 0;
 
   const handleStartModule = (moduleId: string) => {
     navigate(`/school/juniors/module/${moduleId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">{error}</p>
+        <Button onClick={() => window.location.reload()} className="mt-4">
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -84,7 +106,7 @@ export function SchoolJuniors() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">Ta progression</h2>
             <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-              {completedCount}/{juniorsModules.length}
+              {completedCount}/{totalModules}
             </span>
           </div>
           <div className="h-3 bg-muted rounded-full overflow-hidden">
@@ -96,7 +118,7 @@ export function SchoolJuniors() {
           <p className="text-sm text-muted-foreground mt-2">
             {completedCount === 0
               ? 'Commence ton aventure !'
-              : completedCount === juniorsModules.length
+              : completedCount === totalModules
               ? 'Bravo, tu as tout terminé ! 🎉'
               : 'Continue comme ça, tu es sur la bonne voie !'}
           </p>
@@ -139,10 +161,10 @@ export function SchoolJuniors() {
       <section className="space-y-4">
         <h2 className="text-xl font-bold text-foreground">Les modules</h2>
         <div className="grid gap-4">
-          {juniorsModules.map((module, index) => {
+          {allModules.map((module, index) => {
             const completed = isModuleCompleted('juniors', module.id);
             // Modules are locked if previous module isn't completed (except first)
-            const locked = index > 0 && !isModuleCompleted('juniors', juniorsModules[index - 1].id) && !completed;
+            const locked = index > 0 && !isModuleCompleted('juniors', allModules[index - 1].id) && !completed;
             const IconComponent = iconMap[module.icon] || Shield;
 
             return (

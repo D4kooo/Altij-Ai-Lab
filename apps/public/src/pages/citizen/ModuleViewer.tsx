@@ -3,18 +3,17 @@ import { useParams, useNavigate, NavLink } from 'react-router-dom';
 import {
   ArrowLeft,
   CheckCircle2,
-  AlertTriangle,
-  Lightbulb,
-  HelpCircle,
   Volume2,
   ChevronLeft,
   ChevronRight,
   Trophy,
   RefreshCw,
+  HelpCircle,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { getModule } from '@/data/schoolContent';
+import { coursesApi, type ModuleWithDetails } from '@/lib/api';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
 
 // Audience colors
@@ -51,10 +50,38 @@ const audienceConfig = {
   },
 };
 
+// Transform API quiz questions to the format the UI expects
+interface UIQuizQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  questionId: string;
+  selectedOptionId?: string;
+}
+
+function transformQuizQuestions(quiz: ModuleWithDetails['quiz']): UIQuizQuestion[] {
+  if (!quiz?.questions) return [];
+  return quiz.questions.map((q) => {
+    const correctIdx = q.options.findIndex((o) => o.isCorrect);
+    return {
+      question: q.question,
+      options: q.options.map((o) => o.text),
+      correctIndex: correctIdx >= 0 ? correctIdx : 0,
+      explanation: q.explanation || '',
+      questionId: q.id,
+    };
+  });
+}
+
 export function ModuleViewer() {
   const { audience, moduleId } = useParams<{ audience: string; moduleId: string }>();
   const navigate = useNavigate();
   const { isModuleCompleted, completeModule, getQuizScore, saveQuizScore } = useSchoolProgress();
+
+  const [moduleData, setModuleData] = useState<ModuleWithDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [currentSection, setCurrentSection] = useState(0);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -64,7 +91,46 @@ export function ModuleViewer() {
 
   // Validate audience
   const validAudience = audience as 'juniors' | 'adultes' | 'seniors';
-  if (!['juniors', 'adultes', 'seniors'].includes(audience || '')) {
+  const isValidAudience = ['juniors', 'adultes', 'seniors'].includes(audience || '');
+  const config = isValidAudience ? audienceConfig[validAudience] : audienceConfig.adultes;
+
+  // Fetch module data from API
+  useEffect(() => {
+    if (!moduleId || !isValidAudience) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setFetchError(null);
+
+    coursesApi.getModule(moduleId).then((data) => {
+      if (!cancelled) {
+        setModuleData(data);
+        setLoading(false);
+      }
+    }).catch((err) => {
+      if (!cancelled) {
+        setFetchError(err instanceof Error ? err.message : 'Module non trouvé');
+        setLoading(false);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [moduleId, isValidAudience]);
+
+  // Derived data from API response
+  const lessons = moduleData?.lessons || [];
+  const quizQuestions = moduleData ? transformQuizQuestions(moduleData.quiz) : [];
+  const hasQuiz = quizQuestions.length > 0;
+  const totalSections = lessons.length;
+
+  // Initialize quiz answers when quiz data changes
+  useEffect(() => {
+    if (quizQuestions.length > 0) {
+      setQuizAnswers(new Array(quizQuestions.length).fill(null));
+    }
+  }, [quizQuestions.length]);
+
+  if (!isValidAudience) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Parcours non trouvé</p>
@@ -75,13 +141,18 @@ export function ModuleViewer() {
     );
   }
 
-  const module = getModule(validAudience, moduleId || '');
-  const config = audienceConfig[validAudience];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  if (!module) {
+  if (fetchError || !moduleData) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Module non trouvé</p>
+        <p className="text-muted-foreground">{fetchError || 'Module non trouvé'}</p>
         <Button onClick={() => navigate(config.backPath)} className="mt-4">
           Retour au parcours
         </Button>
@@ -89,25 +160,17 @@ export function ModuleViewer() {
     );
   }
 
-  const isCompleted = isModuleCompleted(validAudience, module.id);
-  const previousScore = getQuizScore(validAudience, module.id);
-  const totalSections = module.sections.length;
-  const hasQuiz = module.quiz && module.quiz.length > 0;
+  const isCompleted = isModuleCompleted(validAudience, moduleData.id);
+  const previousScore = getQuizScore(validAudience, moduleData.id);
   const isLastSection = currentSection === totalSections - 1;
-
-  // Initialize quiz answers
-  useEffect(() => {
-    if (module.quiz) {
-      setQuizAnswers(new Array(module.quiz.length).fill(null));
-    }
-  }, [module.quiz]);
 
   const handleNext = () => {
     if (isLastSection) {
       if (hasQuiz) {
         setShowQuiz(true);
       } else {
-        completeModule(validAudience, module.id);
+        completeModule(validAudience, moduleData.id);
+        coursesApi.completeModule(moduleData.id).catch(() => {});
         navigate(config.backPath);
       }
     } else {
@@ -133,25 +196,49 @@ export function ModuleViewer() {
     }
   };
 
-  const handleSubmitQuiz = () => {
-    if (!module.quiz) return;
+  const handleSubmitQuiz = async () => {
+    if (!moduleData.quiz || quizQuestions.length === 0) return;
 
-    const correctCount = module.quiz.reduce((count, q, idx) => {
-      return count + (quizAnswers[idx] === q.correctIndex ? 1 : 0);
-    }, 0);
+    // Build answers for API submission
+    const apiAnswers = quizQuestions.map((q, idx) => {
+      const selectedIdx = quizAnswers[idx];
+      const originalQuestion = moduleData.quiz!.questions![idx];
+      const selectedOption = selectedIdx !== null ? originalQuestion.options[selectedIdx] : null;
+      return {
+        questionId: q.questionId,
+        selectedOptionId: selectedOption?.id || '',
+      };
+    });
 
-    const score = Math.round((correctCount / module.quiz.length) * 100);
-    setQuizScore(score);
-    setQuizSubmitted(true);
-    saveQuizScore(validAudience, module.id, score);
+    try {
+      const result = await coursesApi.submitQuiz(moduleData.quiz.id, apiAnswers);
+      const score = Math.round((result.correctAnswers / result.totalQuestions) * 100);
+      setQuizScore(score);
+      setQuizSubmitted(true);
+      saveQuizScore(validAudience, moduleData.id, score);
 
-    if (score >= 70) {
-      completeModule(validAudience, module.id);
+      if (result.passed) {
+        completeModule(validAudience, moduleData.id);
+      }
+    } catch {
+      // Fallback to local scoring if API fails
+      const correctCount = quizQuestions.reduce((count, q, idx) => {
+        return count + (quizAnswers[idx] === q.correctIndex ? 1 : 0);
+      }, 0);
+      const score = Math.round((correctCount / quizQuestions.length) * 100);
+      setQuizScore(score);
+      setQuizSubmitted(true);
+      saveQuizScore(validAudience, moduleData.id, score);
+
+      if (score >= 70) {
+        completeModule(validAudience, moduleData.id);
+        coursesApi.completeModule(moduleData.id).catch(() => {});
+      }
     }
   };
 
   const handleRetryQuiz = () => {
-    setQuizAnswers(new Array(module.quiz?.length || 0).fill(null));
+    setQuizAnswers(new Array(quizQuestions.length).fill(null));
     setQuizSubmitted(false);
     setQuizScore(null);
   };
@@ -160,10 +247,10 @@ export function ModuleViewer() {
     navigate(config.backPath);
   };
 
-  const currentSectionData = module.sections[currentSection];
+  const currentLesson = lessons[currentSection];
   const progress = showQuiz
     ? 100
-    : Math.round(((currentSection + 1) / totalSections) * (hasQuiz ? 80 : 100));
+    : totalSections > 0 ? Math.round(((currentSection + 1) / totalSections) * (hasQuiz ? 80 : 100)) : 0;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -185,22 +272,22 @@ export function ModuleViewer() {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-foreground text-balance">{module.title}</h1>
+              <h1 className="text-2xl font-bold text-foreground text-balance">{moduleData.title}</h1>
               {isCompleted && (
                 <span className="px-2 py-1 rounded bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-sm flex items-center gap-1">
                   <CheckCircle2 className="h-4 w-4" />
                   Terminé
                 </span>
               )}
-              {module.hasAudio && (
+              {moduleData.hasAudio && (
                 <span className={cn('px-2 py-1 rounded text-sm flex items-center gap-1', config.accentBg, config.accentColor)}>
                   <Volume2 className="h-4 w-4" />
                   Audio
                 </span>
               )}
             </div>
-            <p className="text-muted-foreground">{module.description}</p>
-            <p className="text-sm text-muted-foreground mt-2">Durée estimée : {module.duration}</p>
+            <p className="text-muted-foreground">{moduleData.description}</p>
+            <p className="text-sm text-muted-foreground mt-2">Durée estimée : {moduleData.duration}</p>
           </div>
         </div>
 
@@ -223,79 +310,44 @@ export function ModuleViewer() {
 
       {/* Content */}
       {!showQuiz ? (
-        <div className="rounded-xl border border-border bg-card p-8">
-          <h2 className="text-xl font-semibold text-foreground mb-6">
-            {currentSectionData.title}
-          </h2>
+        currentLesson ? (
+          <div className="rounded-xl border border-border bg-card p-8">
+            <h2 className="text-xl font-semibold text-foreground mb-6">
+              {currentLesson.title}
+            </h2>
 
-          {/* Main content */}
-          <div className="prose prose-gray dark:prose-invert max-w-none">
-            {currentSectionData.content.split('\n\n').map((paragraph, idx) => {
-              if (paragraph.includes('\n- ')) {
-                const [intro, ...items] = paragraph.split('\n- ');
+            {/* Main content */}
+            <div className="prose prose-gray dark:prose-invert max-w-none">
+              {(currentLesson.content || '').split('\n\n').map((paragraph, idx) => {
+                if (paragraph.includes('\n- ')) {
+                  const [intro, ...items] = paragraph.split('\n- ');
+                  return (
+                    <div key={idx} className="mb-4">
+                      {intro && <p className="mb-2">{intro}</p>}
+                      <ul className="list-disc pl-6 space-y-1">
+                        {items.map((item, i) => (
+                          <li key={i} className="text-foreground/70">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                }
+
+                const formattedParagraph = paragraph
+                  .split(/\*\*(.*?)\*\*/g)
+                  .map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part);
+
                 return (
-                  <div key={idx} className="mb-4">
-                    {intro && <p className="mb-2">{intro}</p>}
-                    <ul className="list-disc pl-6 space-y-1">
-                      {items.map((item, i) => (
-                        <li key={i} className="text-foreground/70">{item}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  <p key={idx} className="mb-4 text-foreground/70 leading-relaxed">
+                    {formattedParagraph}
+                  </p>
                 );
-              }
-
-              const formattedParagraph = paragraph
-                .split(/\*\*(.*?)\*\*/g)
-                .map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part);
-
-              return (
-                <p key={idx} className="mb-4 text-foreground/70 leading-relaxed">
-                  {formattedParagraph}
-                </p>
-              );
-            })}
+              })}
+            </div>
           </div>
-
-          {/* Tip box */}
-          {currentSectionData.tip && (
-            <div className={cn('mt-6 rounded-xl border p-4 flex items-start gap-3', config.borderColor, config.accentBg)}>
-              <div className={cn('p-2 rounded-lg bg-card', config.accentColor)}>
-                <Lightbulb className="h-5 w-5" />
-              </div>
-              <div>
-                <p className={cn('font-medium mb-1', config.accentColor)}>Le saviez-vous ?</p>
-                <p className="text-muted-foreground">{currentSectionData.tip}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Warning box */}
-          {currentSectionData.warning && (
-            <div className="mt-6 rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 p-4 flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-card text-red-600 dark:text-red-400">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-medium text-red-700 dark:text-red-400 mb-1">Attention !</p>
-                <p className="text-muted-foreground">{currentSectionData.warning}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Example box */}
-          {currentSectionData.example && (
-            <div className="mt-6 rounded-xl border border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/5 p-4 flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-card text-blue-600 dark:text-blue-400">
-                <HelpCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-medium text-blue-700 dark:text-blue-400 mb-1">Exemple</p>
-                <p className="text-muted-foreground">{currentSectionData.example}</p>
-              </div>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">Aucun contenu disponible</div>
+        )
       ) : (
         /* Quiz */
         <div className="rounded-xl border border-border bg-card p-8">
@@ -346,7 +398,7 @@ export function ModuleViewer() {
           )}
 
           <div className="space-y-8">
-            {module.quiz?.map((question, qIdx) => {
+            {quizQuestions.map((question, qIdx) => {
               const userAnswer = quizAnswers[qIdx];
               const isCorrect = userAnswer === question.correctIndex;
 
@@ -471,7 +523,7 @@ export function ModuleViewer() {
       {/* Section dots navigation */}
       {!showQuiz && totalSections > 1 && (
         <div className="flex items-center justify-center gap-2">
-          {module.sections.map((_, idx) => (
+          {lessons.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentSection(idx)}

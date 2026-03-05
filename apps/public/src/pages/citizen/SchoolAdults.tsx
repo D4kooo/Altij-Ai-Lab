@@ -12,11 +12,12 @@ import {
   Clock,
   CheckCircle2,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
-import { adultesModules } from '@/data/schoolContent';
+import { useCoursesData } from '@/hooks/useCoursesData';
 
 // Map icon strings to components
 const iconMap: Record<string, typeof Shield> = {
@@ -26,31 +27,64 @@ const iconMap: Record<string, typeof Shield> = {
   FileText,
   Lock,
   Briefcase,
+  BookOpen,
 };
 
-const categories = [
-  { id: 'rgpd', name: 'RGPD & Droits', icon: Scale, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-400/10' },
-  { id: 'ia', name: 'Intelligence Artificielle', icon: Brain, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-400/10' },
-  { id: 'security', name: 'Cybersécurité', icon: Shield, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-400/10' },
-  { id: 'work', name: 'Numérique au travail', icon: Briefcase, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-400/10' },
+// Color palette for dynamic categories
+const categoryColors = [
+  { color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-400/10', bar: 'bg-blue-600' },
+  { color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-400/10', bar: 'bg-purple-600' },
+  { color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-400/10', bar: 'bg-green-600' },
+  { color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-400/10', bar: 'bg-amber-600' },
+  { color: 'text-rose-600 dark:text-rose-400', bgColor: 'bg-rose-100 dark:bg-rose-400/10', bar: 'bg-rose-600' },
+  { color: 'text-cyan-600 dark:text-cyan-400', bgColor: 'bg-cyan-100 dark:bg-cyan-400/10', bar: 'bg-cyan-600' },
 ];
 
 export function SchoolAdults() {
   const navigate = useNavigate();
   const { isModuleCompleted, getCompletedCount } = useSchoolProgress();
+  const { allModules, loading, error } = useCoursesData('adultes');
 
   const completedCount = getCompletedCount('adultes');
-  const progress = (completedCount / adultesModules.length) * 100;
+  const totalModules = allModules.length;
+  const progress = totalModules > 0 ? (completedCount / totalModules) * 100 : 0;
+
+  // Extract unique categories dynamically
+  const categoryNames = [...new Set(allModules.map((m) => m.courseCategory).filter(Boolean))] as string[];
+  const categories = categoryNames.map((name, idx) => ({
+    id: name,
+    name,
+    colors: categoryColors[idx % categoryColors.length],
+  }));
 
   // Calculate total duration
-  const totalDuration = adultesModules.reduce((acc, m) => {
-    const mins = parseInt(m.duration.replace(' min', ''));
+  const totalDuration = allModules.reduce((acc, m) => {
+    const mins = parseInt(m.duration.replace(/[^\d]/g, '')) || 0;
     return acc + mins;
   }, 0);
 
   const handleStartModule = (moduleId: string) => {
     navigate(`/school/adultes/module/${moduleId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">{error}</p>
+        <Button onClick={() => window.location.reload()} className="mt-4">
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -91,7 +125,7 @@ export function SchoolAdults() {
           <div>
             <h2 className="text-lg font-semibold text-foreground">Votre progression</h2>
             <p className="text-sm text-muted-foreground">
-              {completedCount} modules terminés sur {adultesModules.length}
+              {completedCount} modules terminés sur {totalModules}
             </p>
           </div>
           <div className="text-right">
@@ -109,56 +143,60 @@ export function SchoolAdults() {
       </div>
 
       {/* Categories */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-bold text-foreground">Catégories</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {categories.map((cat) => {
-            const catModules = adultesModules.filter((m) => m.category === cat.id);
-            const catCompleted = catModules.filter((m) => isModuleCompleted('adultes', m.id)).length;
-            return (
-              <div
-                key={cat.id}
-                className="group rounded-xl border border-border bg-card p-4 hover:border-foreground/20 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={cn('p-2 rounded-lg', cat.bgColor, cat.color)}>
-                    <cat.icon className="h-5 w-5" />
+      {categories.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-foreground">Catégories</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {categories.map((cat) => {
+              const catModules = allModules.filter((m) => m.courseCategory === cat.id);
+              const catCompleted = catModules.filter((m) => isModuleCompleted('adultes', m.id)).length;
+              return (
+                <div
+                  key={cat.id}
+                  className="group rounded-xl border border-border bg-card p-4 hover:border-foreground/20 hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={cn('p-2 rounded-lg', cat.colors.bgColor, cat.colors.color)}>
+                      <BookOpen className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-foreground">{cat.name}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {catCompleted}/{catModules.length} terminés
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-foreground">{cat.name}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {catCompleted}/{catModules.length} terminés
-                    </p>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn('h-full rounded-full', cat.colors.bar)}
+                      style={{
+                        width: `${catModules.length > 0 ? (catCompleted / catModules.length) * 100 : 0}%`,
+                      }}
+                    />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </div>
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={cn('h-full rounded-full', cat.color.split(' ')[0].replace('text-', 'bg-'))}
-                    style={{
-                      width: `${catModules.length > 0 ? (catCompleted / catModules.length) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* All Modules */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-foreground">Tous les modules</h2>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            ~{Math.round(totalDuration / 60)}h de contenu
-          </div>
+          {totalDuration > 0 && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              ~{Math.round(totalDuration / 60)}h de contenu
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4">
-          {adultesModules.map((module) => {
-            const category = categories.find((c) => c.id === module.category);
+          {allModules.map((module) => {
+            const category = categories.find((c) => c.id === module.courseCategory);
             const completed = isModuleCompleted('adultes', module.id);
             const IconComponent = iconMap[module.icon] || Shield;
 
@@ -178,8 +216,8 @@ export function SchoolAdults() {
                       'p-3 rounded-xl',
                       completed
                         ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400'
-                        : category?.bgColor,
-                      !completed && category?.color
+                        : category?.colors.bgColor,
+                      !completed && category?.colors.color
                     )}
                   >
                     {completed ? (
@@ -200,18 +238,18 @@ export function SchoolAdults() {
                     </div>
                     <p className="text-sm text-muted-foreground">{module.description}</p>
                     <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span className={category?.color}>{category?.name}</span>
-                      <span>•</span>
+                      {category && <span className={category.colors.color}>{category.name}</span>}
+                      {category && <span>•</span>}
                       <span>{module.duration}</span>
                       <span>•</span>
                       <span
                         className={cn(
-                          module.level === 'débutant' && 'text-green-600 dark:text-green-400',
-                          module.level === 'intermédiaire' && 'text-amber-600 dark:text-amber-400',
-                          module.level === 'avancé' && 'text-red-600 dark:text-red-400'
+                          module.difficulty === 'facile' && 'text-green-600 dark:text-green-400',
+                          module.difficulty === 'moyen' && 'text-amber-600 dark:text-amber-400',
+                          module.difficulty === 'expert' && 'text-red-600 dark:text-red-400'
                         )}
                       >
-                        {module.level && module.level.charAt(0).toUpperCase() + module.level.slice(1)}
+                        {module.difficulty && module.difficulty.charAt(0).toUpperCase() + module.difficulty.slice(1)}
                       </span>
                     </div>
                   </div>

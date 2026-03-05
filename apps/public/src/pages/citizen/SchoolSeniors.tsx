@@ -14,11 +14,12 @@ import {
   Volume2,
   Eye,
   Lock,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
-import { seniorsModules } from '@/data/schoolContent';
+import { useCoursesData } from '@/hooks/useCoursesData';
 
 // Map icon strings to components
 const iconMap: Record<string, typeof Phone> = {
@@ -51,13 +52,34 @@ const scamAlerts = [
 export function SchoolSeniors() {
   const navigate = useNavigate();
   const { isModuleCompleted, getCompletedCount } = useSchoolProgress();
+  const { allModules, loading, error } = useCoursesData('seniors');
 
   const completedCount = getCompletedCount('seniors');
-  const progress = (completedCount / seniorsModules.length) * 100;
+  const totalModules = allModules.length;
+  const progress = totalModules > 0 ? (completedCount / totalModules) * 100 : 0;
 
   const handleStartModule = (moduleId: string) => {
     navigate(`/school/seniors/module/${moduleId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">{error}</p>
+        <Button onClick={() => window.location.reload()} className="mt-4">
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -116,7 +138,7 @@ export function SchoolSeniors() {
           <div>
             <h2 className="text-xl font-semibold text-foreground">Votre progression</h2>
             <p className="text-muted-foreground">
-              Vous avez terminé {completedCount} leçon(s) sur {seniorsModules.length}
+              Vous avez terminé {completedCount} leçon(s) sur {totalModules}
             </p>
           </div>
           <div className="text-right">
@@ -175,7 +197,7 @@ export function SchoolSeniors() {
       <section className="space-y-4">
         <h2 className="text-xl font-bold text-foreground">Les leçons</h2>
         <div className="grid gap-4">
-          {seniorsModules.map((module) => {
+          {allModules.map((module) => {
             const completed = isModuleCompleted('seniors', module.id);
             const IconComponent = iconMap[module.icon] || HelpCircle;
 
