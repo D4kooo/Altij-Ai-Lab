@@ -67,6 +67,7 @@ export function CourseEditor() {
     name: '',
     description: '',
     audience: 'adultes',
+    category: null,
     icon: 'BookOpen',
     color: '#57C5B6',
     isPublished: false,
@@ -132,6 +133,7 @@ export function CourseEditor() {
           name: course.name,
           description: course.description || undefined,
           audience: course.audience as 'juniors' | 'adultes' | 'seniors',
+          category: course.category || undefined,
           icon: course.icon,
           color: course.color,
           isPublished: course.isPublished,
@@ -143,6 +145,7 @@ export function CourseEditor() {
           name: course.name,
           description: course.description || undefined,
           audience: course.audience as 'juniors' | 'adultes' | 'seniors',
+          category: course.category || undefined,
           icon: course.icon,
           color: course.color,
           isPublished: course.isPublished,
@@ -376,6 +379,22 @@ export function CourseEditor() {
               rows={3}
               className="bg-gray-50"
             />
+          </div>
+
+          {/* Category / Thématique */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Thématique
+            </label>
+            <Input
+              value={course.category || ''}
+              onChange={(e) => setCourse({ ...course, category: e.target.value || null })}
+              placeholder="Ex: Protection des données, Droits numériques..."
+              className="bg-gray-50"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Utilisé pour grouper les cours dans le gestionnaire
+            </p>
           </div>
 
           {/* Audience */}

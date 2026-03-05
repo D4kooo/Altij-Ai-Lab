@@ -179,7 +179,7 @@ export function Sidebar() {
           Site public
         </p>
         <a
-          href="/"
+          href={import.meta.env.VITE_PUBLIC_URL || '/'}
           target="_blank"
           rel="noopener noreferrer"
           className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-200"
@@ -188,7 +188,7 @@ export function Sidebar() {
           Landing page
         </a>
         <a
-          href="/school"
+          href={`${import.meta.env.VITE_PUBLIC_URL || ''}/school`}
           target="_blank"
           rel="noopener noreferrer"
           className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-200"

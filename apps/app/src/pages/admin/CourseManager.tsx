@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -10,19 +10,27 @@ import {
   Users,
   GraduationCap,
   Search,
-  Filter,
   Loader2,
   AlertCircle,
+  ChevronDown,
+  ChevronRight,
+  FolderOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { coursesApi, type Course } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
-const audienceLabels: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  juniors: { label: 'Juniors (7-15 ans)', icon: <Users className="h-4 w-4" />, color: 'bg-purple-100 text-purple-700' },
-  adultes: { label: 'Adultes (16-60 ans)', icon: <GraduationCap className="h-4 w-4" />, color: 'bg-blue-100 text-blue-700' },
-  seniors: { label: 'Seniors (60+ ans)', icon: <Users className="h-4 w-4" />, color: 'bg-amber-100 text-amber-700' },
+const audienceTabs = [
+  { key: 'juniors', label: 'Juniors', subtitle: '7-15 ans', icon: <Users className="h-4 w-4" />, color: 'purple' },
+  { key: 'adultes', label: 'Adultes', subtitle: '16-60 ans', icon: <GraduationCap className="h-4 w-4" />, color: 'blue' },
+  { key: 'seniors', label: 'Seniors', subtitle: '60+ ans', icon: <Users className="h-4 w-4" />, color: 'amber' },
+] as const;
+
+const tabColors: Record<string, { active: string; badge: string }> = {
+  purple: { active: 'border-purple-500 text-purple-700', badge: 'bg-purple-100 text-purple-700' },
+  blue: { active: 'border-blue-500 text-blue-700', badge: 'bg-blue-100 text-blue-700' },
+  amber: { active: 'border-amber-500 text-amber-700', badge: 'bg-amber-100 text-amber-700' },
 };
 
 export function CourseManager() {
@@ -31,8 +39,9 @@ export function CourseManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterAudience, setFilterAudience] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('juniors');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadCourses();
@@ -76,12 +85,49 @@ export function CourseManager() {
     }
   };
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (course.description?.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesAudience = !filterAudience || course.audience === filterAudience;
-    return matchesSearch && matchesAudience;
-  });
+  // Count courses per audience
+  const audienceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const tab of audienceTabs) {
+      counts[tab.key] = courses.filter(c => c.audience === tab.key).length;
+    }
+    return counts;
+  }, [courses]);
+
+  // Filter and group courses for active tab
+  const groupedCourses = useMemo(() => {
+    const tabCourses = courses.filter(c => {
+      if (c.audience !== activeTab) return false;
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return c.name.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q);
+    });
+
+    const groups = new Map<string, Course[]>();
+    for (const course of tabCourses) {
+      const cat = course.category || 'Non catégorisé';
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push(course);
+    }
+
+    // Sort: named categories first alphabetically, "Non catégorisé" last
+    const sorted = [...groups.entries()].sort(([a], [b]) => {
+      if (a === 'Non catégorisé') return 1;
+      if (b === 'Non catégorisé') return -1;
+      return a.localeCompare(b);
+    });
+
+    return sorted;
+  }, [courses, activeTab, searchQuery]);
+
+  const toggleCategory = (cat: string) => {
+    setCollapsedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  };
 
   if (loading) {
     return (
@@ -110,39 +156,47 @@ export function CourseManager() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Rechercher un cours..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-white"
-          />
+      {/* Audience Tabs */}
+      <div className="border-b border-gray-200">
+        <div className="flex gap-0">
+          {audienceTabs.map((tab) => {
+            const isActive = activeTab === tab.key;
+            const colors = tabColors[tab.color];
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'flex items-center gap-2 px-5 py-3 border-b-2 transition-colors text-sm font-medium',
+                  isActive
+                    ? colors.active
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                )}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+                <span className="text-xs text-gray-400">({tab.subtitle})</span>
+                <span className={cn(
+                  'ml-1 px-1.5 py-0.5 rounded-full text-xs font-medium',
+                  isActive ? colors.badge : 'bg-gray-100 text-gray-500'
+                )}>
+                  {audienceCounts[tab.key] || 0}
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant={filterAudience === null ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilterAudience(null)}
-            className={filterAudience === null ? 'bg-[#57C5B6] hover:bg-[#4AB0A2]' : ''}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Tous
-          </Button>
-          {Object.entries(audienceLabels).map(([key, { label }]) => (
-            <Button
-              key={key}
-              variant={filterAudience === key ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilterAudience(key)}
-              className={filterAudience === key ? 'bg-[#57C5B6] hover:bg-[#4AB0A2]' : ''}
-            >
-              {label.split(' ')[0]}
-            </Button>
-          ))}
-        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Rechercher un cours..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 bg-white"
+        />
       </div>
 
       {/* Error */}
@@ -153,19 +207,19 @@ export function CourseManager() {
         </div>
       )}
 
-      {/* Courses List */}
-      {filteredCourses.length === 0 ? (
+      {/* Course Groups */}
+      {groupedCourses.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
           <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {searchQuery || filterAudience ? 'Aucun cours trouvé' : 'Aucun cours'}
+            {searchQuery ? 'Aucun cours trouvé' : 'Aucun cours pour cette audience'}
           </h3>
           <p className="text-gray-500 mb-4">
-            {searchQuery || filterAudience
-              ? 'Modifiez vos filtres ou créez un nouveau cours'
-              : 'Commencez par créer votre premier cours'}
+            {searchQuery
+              ? 'Modifiez votre recherche ou créez un nouveau cours'
+              : 'Commencez par créer un cours pour ce parcours'}
           </p>
-          {!searchQuery && !filterAudience && (
+          {!searchQuery && (
             <Button
               onClick={() => navigate('/admin/courses/new')}
               className="bg-[#57C5B6] hover:bg-[#4AB0A2] text-white"
@@ -176,110 +230,113 @@ export function CourseManager() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4">
-          {filteredCourses.map((course) => {
-            const audienceInfo = audienceLabels[course.audience];
+        <div className="space-y-4">
+          {groupedCourses.map(([category, categoryCourses]) => {
+            const isCollapsed = collapsedCategories.has(category);
             return (
-              <div
-                key={course.id}
-                className="rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div
-                    className="p-3 rounded-xl shrink-0"
-                    style={{ backgroundColor: `${course.color}20`, color: course.color }}
-                  >
-                    <BookOpen className="h-6 w-6" />
-                  </div>
+              <div key={category} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                {/* Category Header */}
+                <button
+                  onClick={() => toggleCategory(category)}
+                  className="flex items-center gap-3 w-full px-5 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  )}
+                  <FolderOpen className="h-4 w-4 text-[#57C5B6]" />
+                  <span className="font-semibold text-gray-900">{category}</span>
+                  <span className="text-xs text-gray-400">
+                    {categoryCourses.length} cours
+                  </span>
+                </button>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="font-semibold text-gray-900 truncate">
-                        {course.name}
-                      </h3>
-                      <span className={cn(
-                        'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs',
-                        audienceInfo.color
-                      )}>
-                        {audienceInfo.icon}
-                        {audienceInfo.label.split(' ')[0]}
-                      </span>
-                      {course.isPublished ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs">
-                          <Eye className="h-3 w-3" />
-                          Publié
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-gray-600 text-xs">
-                          <EyeOff className="h-3 w-3" />
-                          Brouillon
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-500 text-sm line-clamp-2">
-                      {course.description || 'Aucune description'}
-                    </p>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
-                      <span>{course.moduleCount || 0} module(s)</span>
-                      <span>Ordre: {course.order}</span>
-                    </div>
-                  </div>
+                {/* Course Cards */}
+                {!isCollapsed && (
+                  <div className="divide-y divide-gray-100">
+                    {categoryCourses.map((course) => (
+                      <div
+                        key={course.id}
+                        className="flex items-start gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors"
+                      >
+                        {/* Icon */}
+                        <div
+                          className="p-2.5 rounded-lg shrink-0"
+                          style={{ backgroundColor: `${course.color}20`, color: course.color }}
+                        >
+                          <BookOpen className="h-5 w-5" />
+                        </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleTogglePublish(course)}
-                      title={course.isPublished ? 'Dépublier' : 'Publier'}
-                    >
-                      {course.isPublished ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-green-600" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/admin/courses/${course.id}`)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(course.id)}
-                      disabled={deletingId === course.id}
-                    >
-                      {deletingId === course.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      )}
-                    </Button>
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <h3 className="font-semibold text-gray-900 truncate text-sm">
+                              {course.name}
+                            </h3>
+                            {course.isPublished ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-xs">
+                                <Eye className="h-3 w-3" />
+                                Publié
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-xs">
+                                <EyeOff className="h-3 w-3" />
+                                Brouillon
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-gray-500 text-xs line-clamp-1">
+                            {course.description || 'Aucune description'}
+                          </p>
+                          <span className="text-xs text-gray-400 mt-1 inline-block">
+                            {course.moduleCount || 0} module(s)
+                          </span>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTogglePublish(course)}
+                            title={course.isPublished ? 'Dépublier' : 'Publier'}
+                          >
+                            {course.isPublished ? (
+                              <EyeOff className="h-4 w-4 text-gray-400" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-green-600" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/admin/courses/${course.id}`)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(course.id)}
+                            disabled={deletingId === course.id}
+                          >
+                            {deletingId === course.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-        {Object.entries(audienceLabels).map(([key, { label }]) => {
-          const count = courses.filter(c => c.audience === key).length;
-          return (
-            <div key={key} className="text-center p-4 rounded-xl bg-gray-50">
-              <p className="text-2xl font-bold text-gray-900">{count}</p>
-              <p className="text-sm text-gray-500">{label.split(' ')[0]}</p>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

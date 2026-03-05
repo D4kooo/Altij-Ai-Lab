@@ -391,6 +391,7 @@ export const courses = pgTable('courses', {
   icon: text('icon').default('BookOpen'),
   color: text('color').default('#57C5B6'),
 
+  category: text('category'),
   isPublished: boolean('is_published').default(false).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
   order: integer('order').default(0),

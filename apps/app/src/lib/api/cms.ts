@@ -8,6 +8,7 @@ export interface Course {
   name: string;
   description: string | null;
   audience: 'juniors' | 'adultes' | 'seniors';
+  category: string | null;
   icon: string;
   color: string;
   isPublished: boolean;
@@ -98,6 +99,7 @@ export const coursesApi = {
     name: string;
     description?: string;
     audience: 'juniors' | 'adultes' | 'seniors';
+    category?: string;
     icon?: string;
     color?: string;
     isPublished?: boolean;
@@ -109,6 +111,7 @@ export const coursesApi = {
     name: string;
     description: string;
     audience: 'juniors' | 'adultes' | 'seniors';
+    category: string;
     icon: string;
     color: string;
     isPublished: boolean;
