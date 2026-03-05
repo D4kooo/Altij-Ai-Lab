@@ -18,6 +18,8 @@ import {
   Lock,
   Unlock,
   Volume2,
+  Check,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +30,8 @@ import {
   type Module,
   type ModuleWithDetails,
   type Lesson,
+  type QuizQuestion,
+  type QuizOption,
 } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -79,6 +83,9 @@ export function CourseEditor() {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [moduleDetails, setModuleDetails] = useState<Map<string, ModuleWithDetails>>(new Map());
   const [loadingModules, setLoadingModules] = useState<Set<string>>(new Set());
+
+  // Expanded lessons (to show content editor)
+  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (id && id !== 'new') {
@@ -218,6 +225,8 @@ export function CourseEditor() {
         }
         return next;
       });
+      // Auto-expand the new lesson
+      setExpandedLessons(prev => new Set(prev).add(lesson.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création de la leçon');
     }
@@ -258,6 +267,11 @@ export function CourseEditor() {
         }
         return next;
       });
+      setExpandedLessons(prev => {
+        const next = new Set(prev);
+        next.delete(lessonId);
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
     }
@@ -284,6 +298,103 @@ export function CourseEditor() {
     }
   };
 
+  const handleDeleteQuiz = async (quizId: string, moduleId: string) => {
+    if (!confirm('Voulez-vous vraiment supprimer ce quiz et toutes ses questions ?')) return;
+
+    try {
+      await coursesApi.deleteQuiz(quizId);
+      setModuleDetails(prev => {
+        const next = new Map(prev);
+        const current = next.get(moduleId);
+        if (current) {
+          next.set(moduleId, { ...current, quiz: null });
+        }
+        return next;
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression du quiz');
+    }
+  };
+
+  const handleAddQuestion = async (quizId: string, moduleId: string) => {
+    try {
+      const question = await coursesApi.addQuestion(quizId, {
+        question: 'Nouvelle question',
+        questionType: 'multiple_choice',
+        options: [
+          { id: crypto.randomUUID(), text: 'Option A', isCorrect: true },
+          { id: crypto.randomUUID(), text: 'Option B', isCorrect: false },
+        ],
+        explanation: '',
+        order: moduleDetails.get(moduleId)?.quiz?.questions?.length || 0,
+      });
+      setModuleDetails(prev => {
+        const next = new Map(prev);
+        const current = next.get(moduleId);
+        if (current?.quiz) {
+          next.set(moduleId, {
+            ...current,
+            quiz: {
+              ...current.quiz,
+              questions: [...(current.quiz.questions || []), question],
+            },
+          });
+        }
+        return next;
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création de la question');
+    }
+  };
+
+  const handleUpdateQuestion = async (questionId: string, moduleId: string, data: Partial<QuizQuestion>) => {
+    try {
+      const updated = await coursesApi.updateQuestion(questionId, cleanNulls(data));
+      setModuleDetails(prev => {
+        const next = new Map(prev);
+        const current = next.get(moduleId);
+        if (current?.quiz) {
+          next.set(moduleId, {
+            ...current,
+            quiz: {
+              ...current.quiz,
+              questions: current.quiz.questions?.map(q =>
+                q.id === questionId ? { ...q, ...updated } : q
+              ),
+            },
+          });
+        }
+        return next;
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la question');
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId: string, moduleId: string) => {
+    if (!confirm('Voulez-vous vraiment supprimer cette question ?')) return;
+
+    try {
+      await coursesApi.deleteQuestion(questionId);
+      setModuleDetails(prev => {
+        const next = new Map(prev);
+        const current = next.get(moduleId);
+        if (current?.quiz) {
+          next.set(moduleId, {
+            ...current,
+            quiz: {
+              ...current.quiz,
+              questions: current.quiz.questions?.filter(q => q.id !== questionId),
+            },
+          });
+        }
+        return next;
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression de la question');
+    }
+  };
+
   const toggleModuleExpanded = (moduleId: string) => {
     const newExpanded = new Set(expandedModules);
     if (newExpanded.has(moduleId)) {
@@ -295,6 +406,70 @@ export function CourseEditor() {
       }
     }
     setExpandedModules(newExpanded);
+  };
+
+  const toggleLessonExpanded = (lessonId: string) => {
+    setExpandedLessons(prev => {
+      const next = new Set(prev);
+      if (next.has(lessonId)) {
+        next.delete(lessonId);
+      } else {
+        next.add(lessonId);
+      }
+      return next;
+    });
+  };
+
+  // Local state helpers for lesson content editing
+  const updateLessonLocal = (moduleId: string, lessonId: string, field: string, value: string) => {
+    setModuleDetails(prev => {
+      const next = new Map(prev);
+      const current = next.get(moduleId);
+      if (current) {
+        next.set(moduleId, {
+          ...current,
+          lessons: current.lessons.map(l =>
+            l.id === lessonId ? { ...l, [field]: value } : l
+          ),
+        });
+      }
+      return next;
+    });
+  };
+
+  // Local state helpers for quiz editing
+  const updateQuizLocal = (moduleId: string, field: string, value: string | number) => {
+    setModuleDetails(prev => {
+      const next = new Map(prev);
+      const current = next.get(moduleId);
+      if (current?.quiz) {
+        next.set(moduleId, {
+          ...current,
+          quiz: { ...current.quiz, [field]: value },
+        });
+      }
+      return next;
+    });
+  };
+
+  // Local state helpers for question editing
+  const updateQuestionLocal = (moduleId: string, questionId: string, field: string, value: unknown) => {
+    setModuleDetails(prev => {
+      const next = new Map(prev);
+      const current = next.get(moduleId);
+      if (current?.quiz) {
+        next.set(moduleId, {
+          ...current,
+          quiz: {
+            ...current.quiz,
+            questions: current.quiz.questions?.map(q =>
+              q.id === questionId ? { ...q, [field]: value } : q
+            ),
+          },
+        });
+      }
+      return next;
+    });
   };
 
   if (loading) {
@@ -647,50 +822,75 @@ export function CourseEditor() {
                               <p className="text-sm text-gray-400 py-2">Aucune leçon</p>
                             ) : (
                               <div className="space-y-2">
-                                {moduleDetails.get(module.id)?.lessons.map((lesson, lessonIndex) => (
-                                  <div
-                                    key={lesson.id}
-                                    className="flex items-center gap-2 p-2 bg-gray-50 rounded"
-                                  >
-                                    <span className="text-xs text-gray-400 w-6">{lessonIndex + 1}.</span>
-                                    <Input
-                                      value={lesson.title}
-                                      onChange={(e) => {
-                                        const newDetails = new Map(moduleDetails);
-                                        const current = newDetails.get(module.id);
-                                        if (current) {
-                                          newDetails.set(module.id, {
-                                            ...current,
-                                            lessons: current.lessons.map(l =>
-                                              l.id === lesson.id ? { ...l, title: e.target.value } : l
-                                            ),
-                                          });
-                                          setModuleDetails(newDetails);
-                                        }
-                                      }}
-                                      onBlur={() => handleUpdateLesson(lesson.id, module.id, { title: lesson.title })}
-                                      className="flex-1 h-7 text-sm bg-white"
-                                    />
-                                    <select
-                                      value={lesson.contentType}
-                                      onChange={(e) => handleUpdateLesson(lesson.id, module.id, { contentType: e.target.value as 'text' | 'video' | 'image' | 'audio' })}
-                                      className="h-7 text-xs border border-gray-200 rounded bg-white px-2"
+                                {moduleDetails.get(module.id)?.lessons.map((lesson, lessonIndex) => {
+                                  const isLessonExpanded = expandedLessons.has(lesson.id);
+                                  return (
+                                    <div
+                                      key={lesson.id}
+                                      className="border border-gray-200 rounded-lg overflow-hidden"
                                     >
-                                      <option value="text">Texte</option>
-                                      <option value="video">Vidéo</option>
-                                      <option value="image">Image</option>
-                                      <option value="audio">Audio</option>
-                                    </select>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 w-7 p-0"
-                                      onClick={() => handleDeleteLesson(lesson.id, module.id)}
-                                    >
-                                      <Trash2 className="h-3 w-3 text-red-500" />
-                                    </Button>
-                                  </div>
-                                ))}
+                                      {/* Lesson header row */}
+                                      <div className="flex items-center gap-2 p-2 bg-gray-50">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleLessonExpanded(lesson.id)}
+                                          className="text-gray-400 hover:text-gray-600"
+                                        >
+                                          {isLessonExpanded ? (
+                                            <ChevronDown className="h-4 w-4" />
+                                          ) : (
+                                            <ChevronRight className="h-4 w-4" />
+                                          )}
+                                        </button>
+                                        <span className="text-xs text-gray-400 w-6">{lessonIndex + 1}.</span>
+                                        <Input
+                                          value={lesson.title}
+                                          onChange={(e) => updateLessonLocal(module.id, lesson.id, 'title', e.target.value)}
+                                          onBlur={() => handleUpdateLesson(lesson.id, module.id, { title: lesson.title })}
+                                          className="flex-1 h-7 text-sm bg-white"
+                                        />
+                                        <select
+                                          value={lesson.contentType}
+                                          onChange={(e) => handleUpdateLesson(lesson.id, module.id, { contentType: e.target.value as 'text' | 'video' | 'image' | 'audio' })}
+                                          className="h-7 text-xs border border-gray-200 rounded bg-white px-2"
+                                        >
+                                          <option value="text">Texte</option>
+                                          <option value="video">Vidéo</option>
+                                          <option value="image">Image</option>
+                                          <option value="audio">Audio</option>
+                                        </select>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 w-7 p-0"
+                                          onClick={() => handleDeleteLesson(lesson.id, module.id)}
+                                        >
+                                          <Trash2 className="h-3 w-3 text-red-500" />
+                                        </Button>
+                                      </div>
+
+                                      {/* Lesson content editor */}
+                                      {isLessonExpanded && (
+                                        <div className="p-3 border-t border-gray-200 bg-white">
+                                          <label className="block text-xs font-medium text-gray-500 mb-1">
+                                            Contenu de la leçon
+                                          </label>
+                                          <Textarea
+                                            value={lesson.content || ''}
+                                            onChange={(e) => updateLessonLocal(module.id, lesson.id, 'content', e.target.value)}
+                                            onBlur={() => handleUpdateLesson(lesson.id, module.id, { content: lesson.content || '' })}
+                                            placeholder="Rédigez le contenu de la leçon ici..."
+                                            rows={8}
+                                            className="text-sm font-mono bg-gray-50"
+                                          />
+                                          <p className="text-xs text-gray-400 mt-1">
+                                            {(lesson.content || '').length} caractères
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -714,19 +914,23 @@ export function CourseEditor() {
                               )}
                             </div>
                             {moduleDetails.get(module.id)?.quiz ? (
-                              <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium text-purple-900 text-sm">
-                                    {moduleDetails.get(module.id)?.quiz?.title}
-                                  </span>
-                                  <span className="text-xs text-purple-600">
-                                    Score requis: {moduleDetails.get(module.id)?.quiz?.passingScore}%
-                                  </span>
-                                </div>
-                                <p className="text-xs text-purple-700">
-                                  {moduleDetails.get(module.id)?.quiz?.questions?.length || 0} question(s)
-                                </p>
-                              </div>
+                              <QuizEditor
+                                quiz={moduleDetails.get(module.id)!.quiz!}
+                                moduleId={module.id}
+                                onUpdateQuizLocal={updateQuizLocal}
+                                onUpdateQuiz={async (quizId, data) => {
+                                  try {
+                                    await coursesApi.updateQuiz(quizId, cleanNulls(data));
+                                  } catch (err) {
+                                    setError(err instanceof Error ? err.message : 'Erreur');
+                                  }
+                                }}
+                                onDeleteQuiz={handleDeleteQuiz}
+                                onAddQuestion={handleAddQuestion}
+                                onUpdateQuestionLocal={updateQuestionLocal}
+                                onUpdateQuestion={handleUpdateQuestion}
+                                onDeleteQuestion={handleDeleteQuestion}
+                              />
                             ) : (
                               <p className="text-sm text-gray-400 py-2">Pas de quiz pour ce module</p>
                             )}
@@ -741,6 +945,236 @@ export function CourseEditor() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// Extracted quiz editor component to keep the main component manageable
+function QuizEditor({
+  quiz,
+  moduleId,
+  onUpdateQuizLocal,
+  onUpdateQuiz,
+  onDeleteQuiz,
+  onAddQuestion,
+  onUpdateQuestionLocal,
+  onUpdateQuestion,
+  onDeleteQuestion,
+}: {
+  quiz: { id: string; title: string; description: string | null; passingScore: number; questions?: QuizQuestion[] };
+  moduleId: string;
+  onUpdateQuizLocal: (moduleId: string, field: string, value: string | number) => void;
+  onUpdateQuiz: (quizId: string, data: Record<string, unknown>) => Promise<void>;
+  onDeleteQuiz: (quizId: string, moduleId: string) => void;
+  onAddQuestion: (quizId: string, moduleId: string) => void;
+  onUpdateQuestionLocal: (moduleId: string, questionId: string, field: string, value: unknown) => void;
+  onUpdateQuestion: (questionId: string, moduleId: string, data: Partial<QuizQuestion>) => void;
+  onDeleteQuestion: (questionId: string, moduleId: string) => void;
+}) {
+  return (
+    <div className="border border-purple-200 rounded-lg overflow-hidden">
+      {/* Quiz header */}
+      <div className="p-3 bg-purple-50 space-y-3">
+        <div className="flex items-center justify-between">
+          <Input
+            value={quiz.title}
+            onChange={(e) => onUpdateQuizLocal(moduleId, 'title', e.target.value)}
+            onBlur={() => onUpdateQuiz(quiz.id, { title: quiz.title })}
+            className="font-medium text-purple-900 bg-transparent border-0 p-0 h-auto focus-visible:ring-0 text-sm"
+            placeholder="Titre du quiz"
+          />
+          <div className="flex items-center gap-2 shrink-0 ml-2">
+            <label className="text-xs text-purple-600">Score requis:</label>
+            <Input
+              type="number"
+              value={quiz.passingScore}
+              onChange={(e) => onUpdateQuizLocal(moduleId, 'passingScore', parseInt(e.target.value) || 0)}
+              onBlur={() => onUpdateQuiz(quiz.id, { passingScore: quiz.passingScore })}
+              className="w-16 h-7 text-xs text-center bg-white border-purple-200"
+              min={0}
+              max={100}
+            />
+            <span className="text-xs text-purple-600">%</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
+              onClick={() => onDeleteQuiz(quiz.id, moduleId)}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Questions */}
+      <div className="p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-gray-500">
+            {quiz.questions?.length || 0} question(s)
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-purple-600"
+            onClick={() => onAddQuestion(quiz.id, moduleId)}
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Ajouter une question
+          </Button>
+        </div>
+
+        {quiz.questions?.map((question, qIndex) => (
+          <QuestionEditor
+            key={question.id}
+            question={question}
+            index={qIndex}
+            moduleId={moduleId}
+            onUpdateLocal={onUpdateQuestionLocal}
+            onUpdate={onUpdateQuestion}
+            onDelete={onDeleteQuestion}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Single question editor
+function QuestionEditor({
+  question,
+  index,
+  moduleId,
+  onUpdateLocal,
+  onUpdate,
+  onDelete,
+}: {
+  question: QuizQuestion;
+  index: number;
+  moduleId: string;
+  onUpdateLocal: (moduleId: string, questionId: string, field: string, value: unknown) => void;
+  onUpdate: (questionId: string, moduleId: string, data: Partial<QuizQuestion>) => void;
+  onDelete: (questionId: string, moduleId: string) => void;
+}) {
+  const addOption = () => {
+    const newOptions: QuizOption[] = [
+      ...(question.options || []),
+      { id: crypto.randomUUID(), text: '', isCorrect: false },
+    ];
+    onUpdateLocal(moduleId, question.id, 'options', newOptions);
+    onUpdate(question.id, moduleId, { options: newOptions } as Partial<QuizQuestion>);
+  };
+
+  const updateOption = (optionId: string, field: 'text' | 'isCorrect', value: string | boolean) => {
+    const newOptions = question.options.map(o => {
+      if (o.id === optionId) {
+        return { ...o, [field]: value };
+      }
+      // If setting this option as correct, unset others for single-answer
+      if (field === 'isCorrect' && value === true) {
+        return { ...o, isCorrect: false };
+      }
+      return o;
+    });
+    onUpdateLocal(moduleId, question.id, 'options', newOptions);
+  };
+
+  const saveOptions = () => {
+    onUpdate(question.id, moduleId, { options: question.options } as Partial<QuizQuestion>);
+  };
+
+  const removeOption = (optionId: string) => {
+    const newOptions = question.options.filter(o => o.id !== optionId);
+    onUpdateLocal(moduleId, question.id, 'options', newOptions);
+    onUpdate(question.id, moduleId, { options: newOptions } as Partial<QuizQuestion>);
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+      {/* Question header */}
+      <div className="flex items-start gap-2">
+        <span className="text-xs text-gray-400 mt-2 shrink-0">Q{index + 1}.</span>
+        <Textarea
+          value={question.question}
+          onChange={(e) => onUpdateLocal(moduleId, question.id, 'question', e.target.value)}
+          onBlur={() => onUpdate(question.id, moduleId, { question: question.question })}
+          rows={2}
+          className="flex-1 text-sm bg-white"
+          placeholder="Texte de la question..."
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0 shrink-0"
+          onClick={() => onDelete(question.id, moduleId)}
+        >
+          <Trash2 className="h-3 w-3 text-red-500" />
+        </Button>
+      </div>
+
+      {/* Options */}
+      <div className="ml-8 space-y-1.5">
+        {question.options?.map((option) => (
+          <div key={option.id} className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                updateOption(option.id, 'isCorrect', !option.isCorrect);
+                // Save after toggling
+                const newOptions = question.options.map(o => {
+                  if (o.id === option.id) return { ...o, isCorrect: !option.isCorrect };
+                  if (!option.isCorrect) return { ...o, isCorrect: false };
+                  return o;
+                });
+                onUpdate(question.id, moduleId, { options: newOptions } as Partial<QuizQuestion>);
+              }}
+              className={cn(
+                'h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                option.isCorrect
+                  ? 'border-green-500 bg-green-500 text-white'
+                  : 'border-gray-300 hover:border-gray-400'
+              )}
+            >
+              {option.isCorrect && <Check className="h-3 w-3" />}
+            </button>
+            <Input
+              value={option.text}
+              onChange={(e) => updateOption(option.id, 'text', e.target.value)}
+              onBlur={saveOptions}
+              className="flex-1 h-7 text-sm bg-white"
+              placeholder="Texte de l'option..."
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => removeOption(option.id)}
+            >
+              <X className="h-3 w-3 text-gray-400" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-gray-500"
+          onClick={addOption}
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Ajouter une option
+        </Button>
+      </div>
+
+      {/* Explanation */}
+      <div className="ml-8">
+        <Input
+          value={question.explanation || ''}
+          onChange={(e) => onUpdateLocal(moduleId, question.id, 'explanation', e.target.value)}
+          onBlur={() => onUpdate(question.id, moduleId, { explanation: question.explanation || '' })}
+          className="h-7 text-xs bg-white"
+          placeholder="Explication (affichée après la réponse)..."
+        />
+      </div>
     </div>
   );
 }
