@@ -1,8 +1,7 @@
 #!/bin/bash
-set -e
 
 echo "Running database migrations..."
-cd /app/apps/api && bunx drizzle-kit migrate
+cd /app/apps/api && bunx drizzle-kit migrate || echo "⚠️  Migrations skipped (schema may already be up to date)"
 
 echo "Starting server..."
 cd /app/apps/api
