@@ -9,6 +9,7 @@ import {
   User,
   Sun,
   Moon,
+  Settings,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -97,6 +98,16 @@ export function CitizenLayout() {
                 )}
               </button>
 
+              {user?.isStaff && (
+                <a
+                  href="/app"
+                  className="text-muted-foreground hover:text-foreground transition-colors p-2"
+                  title="Espace staff"
+                >
+                  <Settings className="h-4 w-4" />
+                </a>
+              )}
+
               <div className="hidden sm:flex items-center gap-3 text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground">
                 <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
                   <User className="h-3 w-3" />
@@ -151,6 +162,15 @@ export function CitizenLayout() {
                   </NavLink>
                 );
               })}
+              {user?.isStaff && (
+                <a
+                  href="/app"
+                  className="flex items-center gap-4 px-5 py-4 text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground hover:bg-muted rounded-2xl transition-colors mt-4 border border-transparent"
+                >
+                  <Settings className="h-4 w-4 text-primary" />
+                  Espace Staff
+                </a>
+              )}
               <button
                 onClick={() => {
                   logout();

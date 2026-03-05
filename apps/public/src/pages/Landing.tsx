@@ -121,7 +121,7 @@ export function Landing() {
               <h1 className="text-5xl sm:text-7xl lg:text-[6.5rem] font-light tracking-[-0.03em] leading-[1.05] mb-10 text-white">
                 Souveraineté et <br />
                 <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-white via-white/90 to-[#21B2AA]/80">
-                  droits numériques.
+                  droits humains.
                 </span>
               </h1>
 
