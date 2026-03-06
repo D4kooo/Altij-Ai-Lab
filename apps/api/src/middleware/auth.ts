@@ -108,3 +108,26 @@ export const staffMiddleware = createMiddleware<Env>(async (c, next) => {
 
   await next();
 });
+
+// Middleware pour vérifier que le staff a la permission d'éditer l'espace citoyen
+export const citizenSpaceMiddleware = createMiddleware<Env>(async (c, next) => {
+  const user = c.get('user');
+
+  if (!user || !user.isStaff) {
+    return c.json({
+      success: false,
+      error: 'Forbidden: Staff access required',
+      code: 'STAFF_REQUIRED'
+    }, 403);
+  }
+
+  if (!user.canEditCitizenSpace) {
+    return c.json({
+      success: false,
+      error: 'Forbidden: Citizen space editing permission required',
+      code: 'CITIZEN_SPACE_PERMISSION_REQUIRED'
+    }, 403);
+  }
+
+  await next();
+});

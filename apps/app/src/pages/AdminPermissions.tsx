@@ -14,6 +14,7 @@ import {
   Pencil,
   UserPlus,
   Search,
+  GraduationCap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -170,6 +171,14 @@ export function AdminPermissions() {
     }) => permissionsApi.updateUserPermissions(userId, permissions),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-permissions', selectedUserId] });
+    },
+  });
+
+  const updateCitizenSpacePermission = useMutation({
+    mutationFn: ({ userId, canEditCitizenSpace }: { userId: string; canEditCitizenSpace: boolean }) =>
+      usersApi.update(userId, { canEditCitizenSpace }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
 
@@ -590,6 +599,37 @@ export function AdminPermissions() {
 
                   <ScrollArea className="flex-1 p-4">
                     <div className="space-y-6">
+                      {/* Citizen Space Permission */}
+                      {(() => {
+                        const selectedUser = users.find((u) => u.id === selectedUserId);
+                        if (!selectedUser) return null;
+                        return (
+                          <div>
+                            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                              <GraduationCap className="h-4 w-4" />
+                              Espace citoyen
+                            </h4>
+                            <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors">
+                              <Checkbox
+                                checked={selectedUser.canEditCitizenSpace}
+                                onCheckedChange={(checked) =>
+                                  updateCitizenSpacePermission.mutate({
+                                    userId: selectedUser.id,
+                                    canEditCitizenSpace: !!checked,
+                                  })
+                                }
+                              />
+                              <div>
+                                <p className="text-sm font-medium">Edition espace citoyen</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Permet de creer et modifier les cours, campagnes et templates
+                                </p>
+                              </div>
+                            </label>
+                          </div>
+                        );
+                      })()}
+
                       {/* User Roles */}
                       <div>
                         <h4 className="text-sm font-medium mb-3">Roles assignes</h4>

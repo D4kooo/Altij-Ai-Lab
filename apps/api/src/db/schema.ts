@@ -65,6 +65,7 @@ export const users = pgTable('users', {
   lastName: text('last_name').notNull(),
   role: userRoleEnum('role').default('user').notNull(),
   isStaff: boolean('is_staff').default(false).notNull(), // Data Ring staff members
+  canEditCitizenSpace: boolean('can_edit_citizen_space').default(true).notNull(), // Permission to edit citizen space (courses, campaigns, templates)
   department: departmentEnum('department'),
   organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
   isOnboarded: boolean('is_onboarded').default(false).notNull(),

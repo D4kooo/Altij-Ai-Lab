@@ -8,6 +8,7 @@ export interface AdminUser {
   firstName: string;
   lastName: string;
   role: 'admin' | 'user';
+  canEditCitizenSpace: boolean;
   createdAt: string;
   lastLoginAt: string | null;
 }
@@ -97,6 +98,7 @@ export const usersApi = {
       lastName?: string;
       role?: 'admin' | 'user';
       password?: string;
+      canEditCitizenSpace?: boolean;
     }
   ): Promise<AdminUser> => {
     return fetchApi<AdminUser>(`/users/${id}`, {

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { eq, desc, asc, and, sql } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
-import { authMiddleware, staffMiddleware } from '../middleware/auth';
+import { authMiddleware, citizenSpaceMiddleware } from '../middleware/auth';
 
 const templatesRoutes = new Hono<Env>();
 
@@ -134,7 +134,7 @@ templatesRoutes.get('/:id/download', async (c) => {
 });
 
 // POST /api/templates - Créer un template (staff only)
-templatesRoutes.post('/', staffMiddleware, zValidator('json', templateSchema), async (c) => {
+templatesRoutes.post('/', citizenSpaceMiddleware, zValidator('json', templateSchema), async (c) => {
   const data = c.req.valid('json');
   const user = c.get('user')!;
   const now = new Date();
@@ -157,7 +157,7 @@ templatesRoutes.post('/', staffMiddleware, zValidator('json', templateSchema), a
 });
 
 // PUT /api/templates/:id - Modifier un template (staff only)
-templatesRoutes.put('/:id', staffMiddleware, zValidator('json', templateSchema.partial()), async (c) => {
+templatesRoutes.put('/:id', citizenSpaceMiddleware, zValidator('json', templateSchema.partial()), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
 
@@ -181,7 +181,7 @@ templatesRoutes.put('/:id', staffMiddleware, zValidator('json', templateSchema.p
 });
 
 // DELETE /api/templates/:id - Supprimer un template (staff only, soft delete)
-templatesRoutes.delete('/:id', staffMiddleware, async (c) => {
+templatesRoutes.delete('/:id', citizenSpaceMiddleware, async (c) => {
   const id = c.req.param('id');
 
   const [existing] = await db

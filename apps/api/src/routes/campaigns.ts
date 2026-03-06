@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { eq, desc, asc, and, sql, ne } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
-import { authMiddleware, staffMiddleware } from '../middleware/auth';
+import { authMiddleware, citizenSpaceMiddleware } from '../middleware/auth';
 
 const campaignsRoutes = new Hono<Env>();
 
@@ -157,7 +157,7 @@ campaignsRoutes.get('/:id', async (c) => {
 });
 
 // POST /api/campaigns - Créer une campagne (staff only)
-campaignsRoutes.post('/', staffMiddleware, zValidator('json', campaignSchema), async (c) => {
+campaignsRoutes.post('/', citizenSpaceMiddleware, zValidator('json', campaignSchema), async (c) => {
   const data = c.req.valid('json');
   const user = c.get('user')!;
   const now = new Date();
@@ -182,7 +182,7 @@ campaignsRoutes.post('/', staffMiddleware, zValidator('json', campaignSchema), a
 });
 
 // PUT /api/campaigns/:id - Modifier une campagne (staff only)
-campaignsRoutes.put('/:id', staffMiddleware, zValidator('json', campaignSchema.partial()), async (c) => {
+campaignsRoutes.put('/:id', citizenSpaceMiddleware, zValidator('json', campaignSchema.partial()), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
 
@@ -215,7 +215,7 @@ campaignsRoutes.put('/:id', staffMiddleware, zValidator('json', campaignSchema.p
 });
 
 // DELETE /api/campaigns/:id - Supprimer une campagne (staff only, soft delete)
-campaignsRoutes.delete('/:id', staffMiddleware, async (c) => {
+campaignsRoutes.delete('/:id', citizenSpaceMiddleware, async (c) => {
   const id = c.req.param('id');
 
   const [existing] = await db

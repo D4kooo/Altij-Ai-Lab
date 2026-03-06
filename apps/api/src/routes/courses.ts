@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { eq, desc, asc, and, sql } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
-import { authMiddleware, staffMiddleware } from '../middleware/auth';
+import { authMiddleware, citizenSpaceMiddleware } from '../middleware/auth';
 
 const coursesRoutes = new Hono<Env>();
 
@@ -169,7 +169,7 @@ coursesRoutes.get('/:id', async (c) => {
 });
 
 // POST /api/courses - Créer un cours (staff only)
-coursesRoutes.post('/', staffMiddleware, zValidator('json', courseSchema), async (c) => {
+coursesRoutes.post('/', citizenSpaceMiddleware, zValidator('json', courseSchema), async (c) => {
   const data = c.req.valid('json');
   const user = c.get('user')!;
   const now = new Date();
@@ -194,7 +194,7 @@ coursesRoutes.post('/', staffMiddleware, zValidator('json', courseSchema), async
 });
 
 // PUT /api/courses/:id - Modifier un cours (staff only)
-coursesRoutes.put('/:id', staffMiddleware, zValidator('json', courseSchema.partial()), async (c) => {
+coursesRoutes.put('/:id', citizenSpaceMiddleware, zValidator('json', courseSchema.partial()), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
 
@@ -218,7 +218,7 @@ coursesRoutes.put('/:id', staffMiddleware, zValidator('json', courseSchema.parti
 });
 
 // DELETE /api/courses/:id - Supprimer un cours (staff only, soft delete)
-coursesRoutes.delete('/:id', staffMiddleware, async (c) => {
+coursesRoutes.delete('/:id', citizenSpaceMiddleware, async (c) => {
   const id = c.req.param('id');
 
   const [existing] = await db
@@ -305,7 +305,7 @@ coursesRoutes.get('/modules/:id', async (c) => {
 });
 
 // POST /api/courses/modules - Créer un module (staff only)
-coursesRoutes.post('/modules', staffMiddleware, zValidator('json', moduleSchema), async (c) => {
+coursesRoutes.post('/modules', citizenSpaceMiddleware, zValidator('json', moduleSchema), async (c) => {
   const data = c.req.valid('json');
   const now = new Date();
 
@@ -340,7 +340,7 @@ coursesRoutes.post('/modules', staffMiddleware, zValidator('json', moduleSchema)
 });
 
 // PUT /api/courses/modules/:id - Modifier un module (staff only)
-coursesRoutes.put('/modules/:id', staffMiddleware, zValidator('json', moduleSchema.partial()), async (c) => {
+coursesRoutes.put('/modules/:id', citizenSpaceMiddleware, zValidator('json', moduleSchema.partial()), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
 
@@ -364,7 +364,7 @@ coursesRoutes.put('/modules/:id', staffMiddleware, zValidator('json', moduleSche
 });
 
 // DELETE /api/courses/modules/:id - Supprimer un module (staff only)
-coursesRoutes.delete('/modules/:id', staffMiddleware, async (c) => {
+coursesRoutes.delete('/modules/:id', citizenSpaceMiddleware, async (c) => {
   const id = c.req.param('id');
 
   const [existing] = await db
@@ -383,7 +383,7 @@ coursesRoutes.delete('/modules/:id', staffMiddleware, async (c) => {
 });
 
 // POST /api/courses/modules/reorder - Réordonner les modules (staff only)
-coursesRoutes.post('/modules/reorder', staffMiddleware, zValidator('json', z.object({
+coursesRoutes.post('/modules/reorder', citizenSpaceMiddleware, zValidator('json', z.object({
   courseId: z.string().uuid(),
   moduleIds: z.array(z.string().uuid()),
 })), async (c) => {
@@ -410,7 +410,7 @@ coursesRoutes.post('/modules/reorder', staffMiddleware, zValidator('json', z.obj
 // =====================================================
 
 // POST /api/courses/lessons - Créer une leçon (staff only)
-coursesRoutes.post('/lessons', staffMiddleware, zValidator('json', lessonSchema), async (c) => {
+coursesRoutes.post('/lessons', citizenSpaceMiddleware, zValidator('json', lessonSchema), async (c) => {
   const data = c.req.valid('json');
   const now = new Date();
 
@@ -441,7 +441,7 @@ coursesRoutes.post('/lessons', staffMiddleware, zValidator('json', lessonSchema)
 });
 
 // PUT /api/courses/lessons/:id - Modifier une leçon (staff only)
-coursesRoutes.put('/lessons/:id', staffMiddleware, zValidator('json', lessonSchema.partial()), async (c) => {
+coursesRoutes.put('/lessons/:id', citizenSpaceMiddleware, zValidator('json', lessonSchema.partial()), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
 
@@ -465,7 +465,7 @@ coursesRoutes.put('/lessons/:id', staffMiddleware, zValidator('json', lessonSche
 });
 
 // DELETE /api/courses/lessons/:id - Supprimer une leçon (staff only)
-coursesRoutes.delete('/lessons/:id', staffMiddleware, async (c) => {
+coursesRoutes.delete('/lessons/:id', citizenSpaceMiddleware, async (c) => {
   const id = c.req.param('id');
 
   const [existing] = await db
@@ -488,7 +488,7 @@ coursesRoutes.delete('/lessons/:id', staffMiddleware, async (c) => {
 // =====================================================
 
 // POST /api/courses/quizzes - Créer un quiz (staff only)
-coursesRoutes.post('/quizzes', staffMiddleware, zValidator('json', quizSchema), async (c) => {
+coursesRoutes.post('/quizzes', citizenSpaceMiddleware, zValidator('json', quizSchema), async (c) => {
   const data = c.req.valid('json');
   const now = new Date();
 
@@ -526,7 +526,7 @@ coursesRoutes.post('/quizzes', staffMiddleware, zValidator('json', quizSchema), 
 });
 
 // PUT /api/courses/quizzes/:id - Modifier un quiz (staff only)
-coursesRoutes.put('/quizzes/:id', staffMiddleware, zValidator('json', quizSchema.partial()), async (c) => {
+coursesRoutes.put('/quizzes/:id', citizenSpaceMiddleware, zValidator('json', quizSchema.partial()), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
 
@@ -550,7 +550,7 @@ coursesRoutes.put('/quizzes/:id', staffMiddleware, zValidator('json', quizSchema
 });
 
 // DELETE /api/courses/quizzes/:id - Supprimer un quiz (staff only)
-coursesRoutes.delete('/quizzes/:id', staffMiddleware, async (c) => {
+coursesRoutes.delete('/quizzes/:id', citizenSpaceMiddleware, async (c) => {
   const id = c.req.param('id');
 
   const [existing] = await db
@@ -569,7 +569,7 @@ coursesRoutes.delete('/quizzes/:id', staffMiddleware, async (c) => {
 });
 
 // POST /api/courses/quizzes/:id/questions - Ajouter une question (staff only)
-coursesRoutes.post('/quizzes/:id/questions', staffMiddleware, zValidator('json', quizQuestionSchema.omit({ quizId: true })), async (c) => {
+coursesRoutes.post('/quizzes/:id/questions', citizenSpaceMiddleware, zValidator('json', quizQuestionSchema.omit({ quizId: true })), async (c) => {
   const quizId = c.req.param('id');
   const data = c.req.valid('json');
   const now = new Date();
@@ -598,7 +598,7 @@ coursesRoutes.post('/quizzes/:id/questions', staffMiddleware, zValidator('json',
 });
 
 // PUT /api/courses/questions/:id - Modifier une question (staff only)
-coursesRoutes.put('/questions/:id', staffMiddleware, zValidator('json', quizQuestionSchema.omit({ quizId: true }).partial()), async (c) => {
+coursesRoutes.put('/questions/:id', citizenSpaceMiddleware, zValidator('json', quizQuestionSchema.omit({ quizId: true }).partial()), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
 
@@ -622,7 +622,7 @@ coursesRoutes.put('/questions/:id', staffMiddleware, zValidator('json', quizQues
 });
 
 // DELETE /api/courses/questions/:id - Supprimer une question (staff only)
-coursesRoutes.delete('/questions/:id', staffMiddleware, async (c) => {
+coursesRoutes.delete('/questions/:id', citizenSpaceMiddleware, async (c) => {
   const id = c.req.param('id');
 
   const [existing] = await db

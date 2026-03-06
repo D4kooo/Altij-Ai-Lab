@@ -35,6 +35,7 @@ const updateUserSchema = z.object({
   lastName: z.string().min(1).max(100).optional(),
   role: z.enum(['admin', 'user']).optional(),
   password: passwordSchema.optional(),
+  canEditCitizenSpace: z.boolean().optional(),
 });
 
 // Apply auth and admin middleware to all routes
@@ -59,6 +60,7 @@ usersRoutes.get('/', zValidator('query', paginationSchema), async (c) => {
       firstName: schema.users.firstName,
       lastName: schema.users.lastName,
       role: schema.users.role,
+      canEditCitizenSpace: schema.users.canEditCitizenSpace,
       createdAt: schema.users.createdAt,
       lastLoginAt: schema.users.lastLoginAt,
     })
@@ -85,6 +87,7 @@ usersRoutes.get('/:id', async (c) => {
       firstName: schema.users.firstName,
       lastName: schema.users.lastName,
       role: schema.users.role,
+      canEditCitizenSpace: schema.users.canEditCitizenSpace,
       createdAt: schema.users.createdAt,
       lastLoginAt: schema.users.lastLoginAt,
     })
@@ -134,6 +137,7 @@ usersRoutes.post('/', zValidator('json', createUserSchema), async (c) => {
     firstName: schema.users.firstName,
     lastName: schema.users.lastName,
     role: schema.users.role,
+    canEditCitizenSpace: schema.users.canEditCitizenSpace,
     createdAt: schema.users.createdAt,
     lastLoginAt: schema.users.lastLoginAt,
   });
@@ -190,6 +194,7 @@ usersRoutes.put('/:id', zValidator('json', updateUserSchema), async (c) => {
   if (data.lastName) updateData.lastName = data.lastName;
   if (data.role) updateData.role = data.role;
   if (data.password) updateData.passwordHash = await hashPassword(data.password);
+  if (data.canEditCitizenSpace !== undefined) updateData.canEditCitizenSpace = data.canEditCitizenSpace;
 
   await db.update(schema.users).set(updateData).where(eq(schema.users.id, id));
 
@@ -205,6 +210,7 @@ usersRoutes.put('/:id', zValidator('json', updateUserSchema), async (c) => {
       firstName: schema.users.firstName,
       lastName: schema.users.lastName,
       role: schema.users.role,
+      canEditCitizenSpace: schema.users.canEditCitizenSpace,
       createdAt: schema.users.createdAt,
       lastLoginAt: schema.users.lastLoginAt,
     })

@@ -6,6 +6,7 @@ export interface User {
   lastName: string;
   role: 'admin' | 'user';
   isStaff: boolean; // Data Ring staff members have access to Lab tools
+  canEditCitizenSpace: boolean; // Permission to edit citizen space (courses, campaigns, templates)
   department?: string | null;
   organizationId?: string | null; // Multi-tenant: lien vers l'organisation
   isOnboarded?: boolean; // Multi-tenant: onboarding complété
