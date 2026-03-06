@@ -16,7 +16,7 @@ export async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('staff_token');
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -40,8 +40,8 @@ export async function fetchApi<T>(
       if (refreshed) {
         return fetchApi(endpoint, options);
       }
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('staff_token');
+      localStorage.removeItem('staff_refreshToken');
       window.location.href = `${import.meta.env.BASE_URL}login`;
     }
     throw new ApiError(data.error || 'An error occurred', response.status);
@@ -51,7 +51,7 @@ export async function fetchApi<T>(
 }
 
 async function tryRefreshToken(): Promise<boolean> {
-  const refreshToken = localStorage.getItem('refreshToken');
+  const refreshToken = localStorage.getItem('staff_refreshToken');
   if (!refreshToken) return false;
 
   try {
@@ -69,8 +69,8 @@ async function tryRefreshToken(): Promise<boolean> {
     }>;
 
     if (data.success && data.data) {
-      localStorage.setItem('token', data.data.token);
-      localStorage.setItem('refreshToken', data.data.refreshToken);
+      localStorage.setItem('staff_token', data.data.token);
+      localStorage.setItem('staff_refreshToken', data.data.refreshToken);
       return true;
     }
 

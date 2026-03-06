@@ -129,7 +129,7 @@ export interface PreviewPdfResult {
 // Anonymiseur API
 export const anonymiseurApi = {
   analyze: async (file: File, terms: RedactionTerm[]): Promise<AnalysisResult> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
@@ -148,7 +148,7 @@ export const anonymiseurApi = {
   },
 
   anonymize: async (file: File, terms: RedactionTerm[]): Promise<Blob> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
@@ -167,7 +167,7 @@ export const anonymiseurApi = {
   },
 
   anonymizeText: async (file: File, terms: RedactionTerm[]): Promise<AnonymizeTextResult> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
@@ -186,7 +186,7 @@ export const anonymiseurApi = {
   },
 
   getStatus: async (): Promise<AnonymiseurStatus> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const response = await fetch(`${API_BASE}/anonymiseur/status`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -199,7 +199,7 @@ export const anonymiseurApi = {
   },
 
   autoDetect: async (file: File): Promise<AutoDetectResult> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
 
@@ -221,7 +221,7 @@ export const anonymiseurApi = {
     terms: RedactionTerm[],
     autoDetected: DetectedEntity[]
   ): Promise<VerifyResult> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
@@ -247,7 +247,7 @@ export const anonymiseurApi = {
     aiSuggestions: MissedEntity[],
     skipAI: boolean = false
   ): Promise<Blob> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
@@ -269,7 +269,7 @@ export const anonymiseurApi = {
   },
 
   censorPreview: async (file: File, terms: string[]): Promise<CensorPreviewResult> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
@@ -288,7 +288,7 @@ export const anonymiseurApi = {
   },
 
   censor: async (file: File, terms: string[]): Promise<Blob> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
@@ -307,7 +307,7 @@ export const anonymiseurApi = {
   },
 
   previewPdf: async (file: File, terms: string[]): Promise<PreviewPdfResult> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
@@ -336,7 +336,7 @@ export const anonymiseurApi = {
       height: number;
     }>
   ): Promise<Blob> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('zones', JSON.stringify(zones));

@@ -21,7 +21,7 @@ async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('citizen_token');
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -45,8 +45,8 @@ async function fetchApi<T>(
       if (refreshed) {
         return fetchApi(endpoint, options);
       }
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('citizen_token');
+      localStorage.removeItem('citizen_refreshToken');
       window.location.href = '/citizen/login';
     }
     throw new ApiError(data.error || 'An error occurred', response.status);
@@ -56,7 +56,7 @@ async function fetchApi<T>(
 }
 
 async function tryRefreshToken(): Promise<boolean> {
-  const refreshToken = localStorage.getItem('refreshToken');
+  const refreshToken = localStorage.getItem('citizen_refreshToken');
   if (!refreshToken) return false;
 
   try {
@@ -74,8 +74,8 @@ async function tryRefreshToken(): Promise<boolean> {
     }>;
 
     if (data.success && data.data) {
-      localStorage.setItem('token', data.data.token);
-      localStorage.setItem('refreshToken', data.data.refreshToken);
+      localStorage.setItem('citizen_token', data.data.token);
+      localStorage.setItem('citizen_refreshToken', data.data.refreshToken);
       return true;
     }
 
@@ -92,21 +92,21 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ ...credentials, context: 'citizen' }),
     });
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('refreshToken', data.refreshToken);
+    localStorage.setItem('citizen_token', data.token);
+    localStorage.setItem('citizen_refreshToken', data.refreshToken);
     return data;
   },
 
   logout: async (): Promise<void> => {
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = localStorage.getItem('citizen_refreshToken');
     try {
       await fetchApi('/auth/logout', {
         method: 'POST',
         body: JSON.stringify({ refreshToken }),
       });
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('citizen_token');
+      localStorage.removeItem('citizen_refreshToken');
     }
   },
 
@@ -124,8 +124,8 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('refreshToken', response.refreshToken);
+    localStorage.setItem('citizen_token', response.token);
+    localStorage.setItem('citizen_refreshToken', response.refreshToken);
     return response;
   },
 };

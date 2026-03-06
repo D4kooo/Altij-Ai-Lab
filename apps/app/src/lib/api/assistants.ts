@@ -47,7 +47,7 @@ export const assistantsApi = {
   },
 
   uploadDocument: async (assistantId: string, file: File, name?: string): Promise<AssistantDocument> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     if (name) {

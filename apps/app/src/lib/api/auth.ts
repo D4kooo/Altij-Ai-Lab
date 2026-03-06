@@ -19,21 +19,21 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ ...credentials, context: 'staff' }),
     });
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('refreshToken', data.refreshToken);
+    localStorage.setItem('staff_token', data.token);
+    localStorage.setItem('staff_refreshToken', data.refreshToken);
     return data;
   },
 
   logout: async (): Promise<void> => {
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = localStorage.getItem('staff_refreshToken');
     try {
       await fetchApi('/auth/logout', {
         method: 'POST',
         body: JSON.stringify({ refreshToken }),
       });
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('staff_token');
+      localStorage.removeItem('staff_refreshToken');
     }
   },
 
@@ -60,8 +60,8 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('refreshToken', response.refreshToken);
+    localStorage.setItem('staff_token', response.token);
+    localStorage.setItem('staff_refreshToken', response.refreshToken);
     return response;
   },
 };

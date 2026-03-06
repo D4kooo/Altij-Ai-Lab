@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       checkAuth: async () => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('staff_token');
         if (!token) {
           set({ isAuthenticated: false, isLoading: false, user: null });
           return;
@@ -79,7 +79,7 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null }),
     }),
     {
-      name: 'auth-storage',
+      name: 'staff-auth-storage',
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,

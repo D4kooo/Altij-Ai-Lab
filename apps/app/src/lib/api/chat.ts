@@ -27,7 +27,7 @@ export const chatApi = {
     content: string,
     onChunk: (chunk: string) => void
   ): Promise<void> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
 
     const response = await fetch(`${API_BASE}/chat/conversations/${conversationId}/messages`, {
       method: 'POST',
@@ -78,7 +78,7 @@ export const chatApi = {
     conversationId: string,
     file: File
   ): Promise<{ fileId: string; fileName: string }> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
 

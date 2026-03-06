@@ -45,7 +45,7 @@ export const useOrganizationStore = create<OrganizationState>()(
       error: null,
 
       fetchOrganization: async () => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('staff_token');
         if (!token) {
           set({ organization: null, isLoading: false });
           return;
