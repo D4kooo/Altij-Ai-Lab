@@ -16,7 +16,7 @@ import {
   updateLastLogin,
 } from '../services/auth';
 import { authMiddleware } from '../middleware/auth';
-import { authRateLimit } from '../middleware/rateLimit';
+import { loginFailRateLimit } from '../middleware/rateLimit';
 import { logAuthEvent } from '../services/audit';
 
 const authRoutes = new Hono<Env>();
@@ -59,7 +59,7 @@ const registerCitizenSchema = z.object({
 });
 
 // POST /api/auth/register - Public registration with organization creation
-authRoutes.post('/register', authRateLimit, zValidator('json', registerSchema, (result, c) => {
+authRoutes.post('/register', zValidator('json', registerSchema, (result, c) => {
   if (!result.success) {
     // Extract first error message for user-friendly display
     const firstError = result.error.issues[0];
@@ -144,14 +144,21 @@ authRoutes.post('/register', authRateLimit, zValidator('json', registerSchema, (
   }
 });
 
-// POST /api/auth/login (rate limited: 5 attempts per 15 min)
-authRoutes.post('/login', authRateLimit, zValidator('json', loginSchema), async (c) => {
+// POST /api/auth/login (rate limited: 5 failed attempts per 15 min)
+authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
   const { email, password, context } = c.req.valid('json');
+  const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
+
+  // Check failed login rate limit before processing
+  const blocked = loginFailRateLimit.check(ip);
+  if (blocked) {
+    return c.json({ success: false, error: 'Trop de tentatives échouées, réessayez dans 15 minutes' }, 429);
+  }
 
   const user = await getUserByEmail(email);
 
   if (!user) {
-    // Log failed login attempt (user not found)
+    loginFailRateLimit.record(ip);
     await logAuthEvent(c, 'login_failed', null, { email, reason: 'user_not_found' });
     return c.json({ success: false, error: 'Invalid email or password' }, 401);
   }
@@ -159,7 +166,7 @@ authRoutes.post('/login', authRateLimit, zValidator('json', loginSchema), async 
   const isValidPassword = await verifyPassword(password, user.passwordHash);
 
   if (!isValidPassword) {
-    // Log failed login attempt (wrong password)
+    loginFailRateLimit.record(ip);
     await logAuthEvent(c, 'login_failed', user.id, { email, reason: 'invalid_password' });
     return c.json({ success: false, error: 'Invalid email or password' }, 401);
   }
@@ -198,7 +205,7 @@ authRoutes.post('/login', authRateLimit, zValidator('json', loginSchema), async 
 });
 
 // POST /api/auth/register-citizen - Public citizen registration (no organization)
-authRoutes.post('/register-citizen', authRateLimit, zValidator('json', registerCitizenSchema, (result, c) => {
+authRoutes.post('/register-citizen', zValidator('json', registerCitizenSchema, (result, c) => {
   if (!result.success) {
     const firstError = result.error.issues[0];
     return c.json({ success: false, error: firstError.message }, 400);
@@ -328,7 +335,7 @@ authRoutes.put('/password', authMiddleware, zValidator('json', changePasswordSch
 });
 
 // POST /api/auth/refresh (rate limited)
-authRoutes.post('/refresh', authRateLimit, zValidator('json', refreshSchema), async (c) => {
+authRoutes.post('/refresh', zValidator('json', refreshSchema), async (c) => {
   const { refreshToken } = c.req.valid('json');
 
   const user = await verifyRefreshToken(refreshToken);

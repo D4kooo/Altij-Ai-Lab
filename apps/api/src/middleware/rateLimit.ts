@@ -76,14 +76,34 @@ export function rateLimit(options: RateLimitOptions) {
 // Pre-configured rate limiters for common use cases
 
 /**
- * Strict rate limiter for authentication endpoints
- * 5 attempts per 15 minutes
+ * Failed login limiter — only counts failed attempts, not successful ones.
+ * 5 failed attempts per 15 minutes per IP.
  */
-export const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
-  message: 'Too many authentication attempts, please try again in 15 minutes',
-});
+const failedLoginStore = new Map<string, { count: number; resetAt: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of failedLoginStore.entries()) {
+    if (entry.resetAt < now) failedLoginStore.delete(key);
+  }
+}, 5 * 60 * 1000);
+
+export const loginFailRateLimit = {
+  check(ip: string): boolean {
+    const entry = failedLoginStore.get(ip);
+    if (!entry || entry.resetAt < Date.now()) return false;
+    return entry.count >= 5;
+  },
+  record(ip: string): void {
+    const now = Date.now();
+    const entry = failedLoginStore.get(ip);
+    if (!entry || entry.resetAt < now) {
+      failedLoginStore.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 });
+    } else {
+      entry.count++;
+    }
+  },
+};
 
 /**
  * Standard rate limiter for API endpoints
