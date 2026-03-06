@@ -71,31 +71,62 @@ export interface OpenRouterModel {
   supportedModalities: string[];
 }
 
-// Fonction principale de streaming
-export async function* streamChatCompletion(
+// Token usage data returned after streaming
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+// Wrapper that yields strings and exposes usage after iteration
+export interface StreamResult {
+  stream: AsyncGenerator<string>;
+  getUsage: () => TokenUsage | null;
+}
+
+// Fonction principale de streaming avec capture d'usage
+export function streamChatCompletion(
   model: string,
   messages: ChatMessage[],
   options: {
     temperature?: number;
     maxTokens?: number;
   } = {}
-): AsyncGenerator<string> {
-  const client = getOpenRouter();
+): StreamResult {
+  let usage: TokenUsage | null = null;
 
-  const stream = await client.chat.completions.create({
-    model,
-    messages: messages as OpenAI.Chat.ChatCompletionMessageParam[],
-    temperature: options.temperature ?? 0.7,
-    max_tokens: options.maxTokens ?? 4096,
-    stream: true,
-  });
+  async function* generate(): AsyncGenerator<string> {
+    const client = getOpenRouter();
 
-  for await (const chunk of stream) {
-    const content = chunk.choices[0]?.delta?.content;
-    if (content) {
-      yield content;
+    const stream = await client.chat.completions.create({
+      model,
+      messages: messages as OpenAI.Chat.ChatCompletionMessageParam[],
+      temperature: options.temperature ?? 0.7,
+      max_tokens: options.maxTokens ?? 4096,
+      stream: true,
+      stream_options: { include_usage: true },
+    });
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content;
+      if (content) {
+        yield content;
+      }
+      // Capture usage from the last chunk (OpenAI SDK standard)
+      if (chunk.usage) {
+        usage = {
+          promptTokens: chunk.usage.prompt_tokens ?? 0,
+          completionTokens: chunk.usage.completion_tokens ?? 0,
+          totalTokens: chunk.usage.total_tokens ?? 0,
+        };
+      }
     }
   }
+
+  return {
+    stream: generate(),
+    getUsage: () => usage,
+  };
 }
 
 // Récupérer la liste des modèles OpenRouter

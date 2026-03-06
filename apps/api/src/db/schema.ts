@@ -67,6 +67,7 @@ export const users = pgTable('users', {
   isStaff: boolean('is_staff').default(false).notNull(), // Data Ring staff members
   canEditCitizenSpace: boolean('can_edit_citizen_space').default(true).notNull(), // Permission to edit citizen space (courses, campaigns, templates)
   department: departmentEnum('department'),
+  creditLimit: real('credit_limit'), // NULL = unlimited, in dollars
   organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
   isOnboarded: boolean('is_onboarded').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -538,6 +539,47 @@ export const documentTemplates = pgTable('document_templates', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// =====================================================
+// API USAGE TRACKING (Supervision)
+// =====================================================
+
+// Suivi de la consommation API par utilisateur
+export const apiUsage = pgTable('api_usage', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  model: text('model').notNull(),
+  promptTokens: integer('prompt_tokens').default(0).notNull(),
+  completionTokens: integer('completion_tokens').default(0).notNull(),
+  totalTokens: integer('total_tokens').default(0).notNull(),
+  costEstimate: real('cost_estimate').default(0).notNull(),
+  source: text('source').notNull().$type<'assistant' | 'sega'>(),
+  conversationId: uuid('conversation_id'), // No FK: references either conversations or sega_conversations
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// =====================================================
+// SEGA: CHAT IA BASIQUE (sans assistant)
+// =====================================================
+
+// Conversations Sega
+export const segaConversations = pgTable('sega_conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  model: text('model').notNull(),
+  title: text('title'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Messages Sega
+export const segaMessages = pgTable('sega_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  conversationId: uuid('conversation_id').notNull().references(() => segaConversations.id, { onDelete: 'cascade' }),
+  role: messageRoleEnum('role').notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Type exports for use in application
 export type OrganizationSelect = typeof organizations.$inferSelect;
 export type OrganizationInsert = typeof organizations.$inferInsert;
@@ -583,3 +625,9 @@ export type DocumentChunkSelect = typeof documentChunks.$inferSelect;
 export type DocumentChunkInsert = typeof documentChunks.$inferInsert;
 export type ArticleUserStatusSelect = typeof articleUserStatus.$inferSelect;
 export type ArticleUserStatusInsert = typeof articleUserStatus.$inferInsert;
+export type SegaConversationSelect = typeof segaConversations.$inferSelect;
+export type SegaConversationInsert = typeof segaConversations.$inferInsert;
+export type SegaMessageSelect = typeof segaMessages.$inferSelect;
+export type SegaMessageInsert = typeof segaMessages.$inferInsert;
+export type ApiUsageSelect = typeof apiUsage.$inferSelect;
+export type ApiUsageInsert = typeof apiUsage.$inferInsert;

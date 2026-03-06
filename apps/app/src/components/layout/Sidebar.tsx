@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Bot,
+  MessageCircle,
   Zap,
   History,
   Rss,
@@ -14,6 +15,7 @@ import {
   Megaphone,
   FileText,
   ExternalLink,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
@@ -31,6 +33,7 @@ interface NavItem {
 
 const allNavigation: NavItem[] = [
   { name: 'Tableau de bord', href: '/', icon: LayoutDashboard },
+  { name: 'Chat', href: '/chat', icon: MessageCircle },
   { name: 'Assistants', href: '/assistants', icon: Bot },
   { name: 'Automatisations', href: '/automations', icon: Zap, workOnly: true },
   { name: 'Veille', href: '/veille', icon: Rss, workOnly: true },
@@ -38,8 +41,9 @@ const allNavigation: NavItem[] = [
   { name: 'Historique', href: '/history', icon: History },
 ];
 
-// Admin CMS navigation (staff only)
+// Admin navigation (admin only)
 const adminNavigation: NavItem[] = [
+  { name: 'Supervision', href: '/admin/supervision', icon: BarChart3 },
   { name: 'Cours', href: '/admin/courses', icon: GraduationCap },
   { name: 'Campagnes', href: '/admin/campaigns', icon: Megaphone },
   { name: 'Templates', href: '/admin/templates', icon: FileText },

@@ -19,6 +19,7 @@ interface ConversationSidebarProps {
   onNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
   isCreating?: boolean;
+  linkBuilder?: (conversationId: string) => string;
 }
 
 type DateGroup = 'today' | 'yesterday' | 'week' | 'month' | 'older';
@@ -53,6 +54,7 @@ export function ConversationSidebar({
   onNewConversation,
   onDeleteConversation,
   isCreating = false,
+  linkBuilder,
 }: ConversationSidebarProps) {
   const groupedConversations = useMemo(() => {
     const groups: Record<DateGroup, Conversation[]> = {
@@ -131,6 +133,7 @@ export function ConversationSidebar({
                           isActive={conv.id === activeConversationId}
                           assistantId={assistantId}
                           onDelete={() => onDeleteConversation(conv.id)}
+                          linkBuilder={linkBuilder}
                         />
                       ))}
                     </div>
@@ -150,9 +153,11 @@ interface ConversationItemProps {
   isActive: boolean;
   assistantId: string;
   onDelete: () => void;
+  linkBuilder?: (conversationId: string) => string;
 }
 
-function ConversationItem({ conversation, isActive, assistantId, onDelete }: ConversationItemProps) {
+function ConversationItem({ conversation, isActive, assistantId, onDelete, linkBuilder }: ConversationItemProps) {
+  const href = linkBuilder ? linkBuilder(conversation.id) : `/assistants/${assistantId}/chat/${conversation.id}`;
   return (
     <div
       className={cn(
@@ -161,7 +166,7 @@ function ConversationItem({ conversation, isActive, assistantId, onDelete }: Con
       )}
     >
       <Link
-        to={`/assistants/${assistantId}/chat/${conversation.id}`}
+        to={href}
         className="flex-1 truncate text-[13px]"
       >
         {conversation.title || 'Nouvelle conversation'}

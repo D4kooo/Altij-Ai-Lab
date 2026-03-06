@@ -9,6 +9,7 @@ import { authMiddleware } from '../middleware/auth';
 import { streamChatCompletion, buildMessagesWithHistory } from '../services/openrouter';
 import { retrieveContext, formatContextForPrompt, hasDocuments, getRetrievalSummary } from '../services/retrieval';
 import { searchDataSources, formatDataSourceResults } from '../connectors';
+import { estimateCost, checkCreditLimit, saveApiUsage } from '../services/usage';
 
 const chatRoutes = new Hono<Env>();
 
@@ -377,6 +378,12 @@ chatRoutes.post(
         return c.json({ success: false, error: 'Assistant model not configured' }, 400);
       }
 
+      // Check credit limit before streaming
+      const creditCheck = await checkCreditLimit(user.id);
+      if (!creditCheck.allowed) {
+        return c.json({ success: false, error: 'Limite de crédits atteinte' }, 429);
+      }
+
       // Get previous messages for context (excluding the one we just added)
       const previousMessages = await db
         .select({ role: schema.messages.role, content: schema.messages.content })
@@ -433,14 +440,16 @@ chatRoutes.post(
         let fullResponse = '';
 
         try {
-          for await (const chunk of streamChatCompletion(
+          const { stream: chatStream, getUsage } = streamChatCompletion(
             assistant.model!,
             messages,
             {
               temperature: assistant.temperature ?? 0.7,
               maxTokens: assistant.maxTokens ?? 4096,
             }
-          )) {
+          );
+
+          for await (const chunk of chatStream) {
             fullResponse += chunk;
             await stream.writeSSE({
               data: JSON.stringify({ chunk }),
@@ -454,6 +463,18 @@ chatRoutes.post(
             content: fullResponse,
             createdAt: new Date(),
           }).returning();
+
+          // Track API usage
+          const usage = getUsage();
+          if (usage) {
+            await saveApiUsage({
+              userId: user.id,
+              model: assistant.model!,
+              usage,
+              source: 'assistant',
+              conversationId,
+            });
+          }
 
           // Update conversation timestamp
           await db

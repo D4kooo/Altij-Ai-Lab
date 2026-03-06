@@ -28,6 +28,8 @@ import { CourseManager } from '@/pages/admin/CourseManager';
 import { CourseEditor } from '@/pages/admin/CourseEditor';
 import { CampaignManager } from '@/pages/admin/CampaignManager';
 import { TemplateManager } from '@/pages/admin/TemplateManager';
+import { Chat } from '@/pages/Chat';
+import { Supervision } from '@/pages/admin/Supervision';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -130,6 +132,8 @@ function AppContent() {
         }
       >
         <Route path="/" element={<Dashboard />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/chat/:conversationId" element={<Chat />} />
         <Route path="/assistants" element={<Assistants />} />
         <Route path="/assistants/:id" element={<AssistantDetail />} />
         <Route path="/assistants/:id/chat/:conversationId" element={<AssistantDetail />} />
@@ -147,6 +151,7 @@ function AppContent() {
         <Route path="/admin/courses/:id" element={<AdminRoute><CourseEditor /></AdminRoute>} />
         <Route path="/admin/campaigns" element={<AdminRoute><CampaignManager /></AdminRoute>} />
         <Route path="/admin/templates" element={<AdminRoute><TemplateManager /></AdminRoute>} />
+        <Route path="/admin/supervision" element={<AdminRoute><Supervision /></AdminRoute>} />
       </Route>
 
       {/* Fallback */}

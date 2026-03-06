@@ -24,6 +24,8 @@ import { organizationsRouter } from './routes/organizations';
 import { coursesRoutes } from './routes/courses';
 import { campaignsRoutes } from './routes/campaigns';
 import { templatesRoutes } from './routes/templates';
+import { segaRoutes } from './routes/sega';
+import { supervisionRoutes } from './routes/supervision';
 import { initScheduler } from './services/scheduler';
 
 const app = new Hono();
@@ -63,6 +65,8 @@ app.route('/api/assistants', documentsRoutes); // Documents routes nested under 
 app.route('/api/courses', coursesRoutes);
 app.route('/api/campaigns', campaignsRoutes);
 app.route('/api/templates', templatesRoutes);
+app.route('/api/sega', segaRoutes);
+app.route('/api/admin/supervision', supervisionRoutes);
 
 // Production: serve SPAs as static files
 if (process.env.NODE_ENV === 'production') {

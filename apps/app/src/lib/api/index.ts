@@ -43,6 +43,10 @@ export type {
 } from './admin';
 export { documentsApi, organizationsApi } from './organizations';
 export { coursesApi, campaignsApi, templatesApi } from './cms';
+export { segaApi } from './sega';
+export type { SegaConversation, SegaConversationWithMessages, SegaMessage, OpenRouterModel } from './sega';
+export { supervisionApi } from './supervision';
+export type { SupervisionStats, SupervisionUser, SupervisionConversation, SupervisionMessage } from './supervision';
 export type {
   Course,
   Module,
