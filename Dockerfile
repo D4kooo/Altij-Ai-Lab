@@ -75,6 +75,11 @@ RUN chmod +x docker-entrypoint.sh
 ENV NODE_ENV=production
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
+# SECURITY: Run as non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 3000
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

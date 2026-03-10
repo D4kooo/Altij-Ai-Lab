@@ -1,9 +1,10 @@
 import { cors } from 'hono/cors';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:3000',
+  // SECURITY: Only allow localhost origins in development
+  ...(isProduction ? [] : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']),
   ...(process.env.ALLOWED_ORIGINS?.split(',').map(u => u.trim()) || []),
 ].filter(Boolean) as string[];
 

@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 interface N8nWebhookPayload {
   automationRunId: string;
   userId: string;
@@ -12,6 +14,19 @@ interface N8nCallbackResult {
   error?: string;
 }
 
+// SECURITY: Shared secret for HMAC callback verification
+const CALLBACK_SECRET = process.env.N8N_CALLBACK_SECRET || process.env.JWT_SECRET || '';
+
+export function generateCallbackSignature(body: string): string {
+  return crypto.createHmac('sha256', CALLBACK_SECRET).update(body).digest('hex');
+}
+
+export function verifyCallbackSignature(body: string, signature: string): boolean {
+  if (!CALLBACK_SECRET) return false;
+  const expected = generateCallbackSignature(body);
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+}
+
 export async function triggerWorkflow(
   webhookUrl: string,
   payload: N8nWebhookPayload
@@ -23,6 +38,8 @@ export async function triggerWorkflow(
       ...(process.env.N8N_API_KEY && {
         Authorization: `Bearer ${process.env.N8N_API_KEY}`,
       }),
+      // Include the callback secret so n8n can sign its response
+      'X-Callback-Secret': CALLBACK_SECRET,
     },
     body: JSON.stringify(payload),
   });

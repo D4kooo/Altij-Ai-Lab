@@ -143,16 +143,19 @@ assistantsRoutes.get('/', async (c) => {
     ? assistants
     : assistants.filter((a) => accessibleIds.includes(a.id));
 
+  // Only expose sensitive fields to admins
+  const isAdmin = user.role === 'admin';
+
   return c.json({
     success: true,
     data: filteredAssistants.map((a) => ({
       id: a.id,
       type: a.type,
       model: a.model,
-      systemPrompt: a.systemPrompt,
+      systemPrompt: isAdmin ? a.systemPrompt : undefined,
       temperature: a.temperature,
       maxTokens: a.maxTokens,
-      webhookUrl: a.webhookUrl,
+      webhookUrl: isAdmin ? a.webhookUrl : undefined,
       name: a.name,
       description: a.description,
       specialty: a.specialty,
@@ -170,18 +173,28 @@ assistantsRoutes.get('/', async (c) => {
 });
 
 // GET /api/assistants/:id - Get assistant details
+// SECURITY: Scoped to user's organization to prevent cross-tenant data access
 assistantsRoutes.get('/:id', async (c) => {
   const id = c.req.param('id');
+  const user = c.get('user')!;
+
+  // Build query with organization scoping
+  const conditions = user.organizationId
+    ? and(eq(schema.assistants.id, id), eq(schema.assistants.organizationId, user.organizationId))
+    : eq(schema.assistants.id, id);
 
   const [assistant] = await db
     .select()
     .from(schema.assistants)
-    .where(eq(schema.assistants.id, id))
+    .where(conditions)
     .limit(1);
 
   if (!assistant) {
     return c.json({ success: false, error: 'Assistant not found' }, 404);
   }
+
+  // Only expose sensitive fields (systemPrompt, webhookUrl) to admins
+  const isAdmin = user.role === 'admin';
 
   return c.json({
     success: true,
@@ -189,10 +202,10 @@ assistantsRoutes.get('/:id', async (c) => {
       id: assistant.id,
       type: assistant.type,
       model: assistant.model,
-      systemPrompt: assistant.systemPrompt,
+      systemPrompt: isAdmin ? assistant.systemPrompt : undefined,
       temperature: assistant.temperature,
       maxTokens: assistant.maxTokens,
-      webhookUrl: assistant.webhookUrl,
+      webhookUrl: isAdmin ? assistant.webhookUrl : undefined,
       name: assistant.name,
       description: assistant.description,
       specialty: assistant.specialty,

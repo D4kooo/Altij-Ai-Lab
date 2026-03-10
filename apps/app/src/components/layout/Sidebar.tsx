@@ -41,9 +41,8 @@ const allNavigation: NavItem[] = [
   { name: 'Historique', href: '/history', icon: History },
 ];
 
-// Admin navigation (admin only)
+// Admin CMS navigation (staff only)
 const adminNavigation: NavItem[] = [
-  { name: 'Supervision', href: '/admin/supervision', icon: BarChart3 },
   { name: 'Cours', href: '/admin/courses', icon: GraduationCap },
   { name: 'Campagnes', href: '/admin/campaigns', icon: Megaphone },
   { name: 'Templates', href: '/admin/templates', icon: FileText },
@@ -176,6 +175,21 @@ export function Sidebar() {
           <Settings className="h-4 w-4" strokeWidth={1.5} />
           Paramètres
         </NavLink>
+
+        {user?.role === 'admin' && (
+          <NavLink
+            to="/admin/supervision"
+            className={cn(
+              'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+              location.pathname === '/admin/supervision'
+                ? cn(accentColor, 'text-white')
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            )}
+          >
+            <BarChart3 className="h-4 w-4" strokeWidth={1.5} />
+            Supervision
+          </NavLink>
+        )}
 
         {/* Site public links */}
         <div className="my-4 mx-3 border-t border-slate-700" />

@@ -6,7 +6,7 @@ import { eq, and, desc, inArray } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
-import { triggerWorkflow, buildCallbackUrl, validateCallbackPayload } from '../services/n8n';
+import { triggerWorkflow, buildCallbackUrl, validateCallbackPayload, verifyCallbackSignature } from '../services/n8n';
 import { getAccessibleResourceIds } from '../services/permissions';
 import { validateWebhookUrl } from '../utils/urlValidation';
 import type { InputField } from '@altij/shared';
@@ -61,8 +61,16 @@ const runAutomationSchema = z.object({
 });
 
 // Callback endpoint for n8n interne (automation.devtotem.com)
+// SECURITY: Verified via HMAC signature to prevent unauthorized status tampering
 automationsRoutes.post('/callback', async (c) => {
-  const body = await c.req.json();
+  const rawBody = await c.req.text();
+  const signature = c.req.header('x-callback-signature');
+
+  if (!signature || !verifyCallbackSignature(rawBody, signature)) {
+    return c.json({ success: false, error: 'Invalid callback signature' }, 403);
+  }
+
+  const body = JSON.parse(rawBody);
   const payload = validateCallbackPayload(body);
 
   if (!payload) {
@@ -264,25 +272,34 @@ automationsRoutes.get('/runs/:id/download', async (c) => {
 });
 
 // GET /api/automations/:id - Get automation details
+// SECURITY: Scoped to user's organization to prevent cross-tenant data access
 automationsRoutes.get('/:id', async (c) => {
   const id = c.req.param('id');
+  const user = c.get('user')!;
+
+  const conditions = user.organizationId
+    ? and(eq(schema.automations.id, id), eq(schema.automations.organizationId, user.organizationId))
+    : eq(schema.automations.id, id);
 
   const [automation] = await db
     .select()
     .from(schema.automations)
-    .where(eq(schema.automations.id, id))
+    .where(conditions)
     .limit(1);
 
   if (!automation) {
     return c.json({ success: false, error: 'Automation not found' }, 404);
   }
 
+  // Only expose sensitive fields (webhook URLs) to admins
+  const isAdmin = user.role === 'admin';
+
   return c.json({
     success: true,
     data: {
       id: automation.id,
-      n8nWorkflowId: automation.n8nWorkflowId,
-      n8nWebhookUrl: automation.n8nWebhookUrl,
+      n8nWorkflowId: isAdmin ? automation.n8nWorkflowId : undefined,
+      n8nWebhookUrl: isAdmin ? automation.n8nWebhookUrl : undefined,
       name: automation.name,
       description: automation.description,
       category: automation.category,

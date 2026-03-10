@@ -17,9 +17,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import ReactMarkdown from 'react-markdown';
 import { formatRelativeTime, cn } from '@/lib/utils';
 import { veilleIaApi, type VeilleIa } from '@/lib/api';
-import { FREQUENCY_LABELS, markdownToHtml } from './utils';
+import { FREQUENCY_LABELS } from './utils';
 
 export function VeilleIaDetail({
   veille,
@@ -170,8 +171,17 @@ export function VeilleIaDetail({
               <CardContent>
                 <ScrollArea className="h-[500px]">
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {/* eslint-disable-next-line react/no-danger -- existing markdown-to-html rendering from internal content */}
-                    <div dangerouslySetInnerHTML={{ __html: markdownToHtml(latestEdition.content) }} />
+                    <ReactMarkdown
+                      components={{
+                        a: ({ href, children }) => (
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            {children}
+                          </a>
+                        ),
+                      }}
+                    >
+                      {latestEdition.content}
+                    </ReactMarkdown>
                   </div>
                 </ScrollArea>
                 {latestEdition.sources.length > 0 && (

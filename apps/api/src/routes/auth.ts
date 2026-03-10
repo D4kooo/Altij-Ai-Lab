@@ -13,6 +13,7 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
   revokeRefreshToken,
+  revokeAllUserRefreshTokens,
   updateLastLogin,
 } from '../services/auth';
 import { authMiddleware } from '../middleware/auth';
@@ -53,7 +54,7 @@ const registerSchema = z.object({
 // Citizen registration schema (simpler - no organization)
 const registerCitizenSchema = z.object({
   email: z.string().email('Email invalide'),
-  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+  password: passwordSchema,
   firstName: z.string().min(1, 'Prénom requis').max(100),
   lastName: z.string().min(1, 'Nom requis').max(100),
 });
@@ -302,7 +303,7 @@ authRoutes.get('/me', authMiddleware, async (c) => {
 // PUT /api/auth/password - Change password (authenticated)
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Mot de passe actuel requis'),
-  newPassword: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+  newPassword: passwordSchema,
 });
 
 authRoutes.put('/password', authMiddleware, zValidator('json', changePasswordSchema, (result, c) => {
@@ -329,9 +330,16 @@ authRoutes.put('/password', authMiddleware, zValidator('json', changePasswordSch
   const newHash = await hashPassword(newPassword);
   await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
 
+  // SECURITY: Revoke all existing sessions after password change
+  await revokeAllUserRefreshTokens(user.id);
+
   await logAuthEvent(c, 'password_changed', user.id, { email: user.email });
 
-  return c.json({ success: true, data: { message: 'Mot de passe modifié avec succès' } });
+  // Issue fresh tokens so the user stays logged in
+  const newToken = await generateAccessToken(fullUser);
+  const newRefreshToken = await generateRefreshToken(user.id);
+
+  return c.json({ success: true, data: { message: 'Mot de passe modifié avec succès', token: newToken, refreshToken: newRefreshToken } });
 });
 
 // POST /api/auth/refresh (rate limited)

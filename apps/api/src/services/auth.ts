@@ -22,7 +22,7 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'dev-only-secret-do-not-use-in-production'
 );
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const REFRESH_TOKEN_EXPIRES_DAYS = 30;
 
 // Use Bun's native password hashing

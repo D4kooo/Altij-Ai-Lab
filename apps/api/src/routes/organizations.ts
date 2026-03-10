@@ -1,9 +1,27 @@
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db } from '../db';
 import { organizations, users, type OrganizationSettings } from '../db/schema';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
+
+const createOrganizationSchema = z.object({
+  name: z.string().min(1).max(200),
+  type: z.enum(['work', 'family']),
+  settings: z.record(z.unknown()).optional(),
+});
+
+const updateOrganizationSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  settings: z.record(z.unknown()).optional(),
+});
+
+const inviteSchema = z.object({
+  email: z.string().email('Email invalide'),
+  role: z.enum(['admin', 'user']).optional(),
+});
 
 const organizationsRouter = new Hono<Env>();
 
@@ -50,28 +68,9 @@ organizationsRouter.get('/current', async (c) => {
 });
 
 // POST /organizations - Créer une nouvelle organisation (onboarding)
-organizationsRouter.post('/', async (c) => {
+organizationsRouter.post('/', zValidator('json', createOrganizationSchema), async (c) => {
   const user = c.get('user');
-  const body = await c.req.json<{
-    name: string;
-    type: 'work' | 'family';
-    settings?: OrganizationSettings;
-  }>();
-
-  // Validation
-  if (!body.name || !body.type) {
-    return c.json({
-      success: false,
-      error: 'Name and type are required'
-    }, 400);
-  }
-
-  if (!['work', 'family'].includes(body.type)) {
-    return c.json({
-      success: false,
-      error: 'Type must be "work" or "family"'
-    }, 400);
-  }
+  const body = c.req.valid('json');
 
   // Vérifier si l'utilisateur a déjà une organisation
   if (user.organizationId) {
@@ -116,7 +115,7 @@ organizationsRouter.post('/', async (c) => {
 });
 
 // PATCH /organizations/current - Mettre à jour l'organisation courante
-organizationsRouter.patch('/current', async (c) => {
+organizationsRouter.patch('/current', zValidator('json', updateOrganizationSchema), async (c) => {
   const user = c.get('user');
   const organization = c.get('organization');
 
@@ -136,10 +135,7 @@ organizationsRouter.patch('/current', async (c) => {
     }, 403);
   }
 
-  const body = await c.req.json<{
-    name?: string;
-    settings?: Partial<OrganizationSettings>;
-  }>();
+  const body = c.req.valid('json');
 
   const updateData: Partial<typeof organizations.$inferInsert> = {};
 
@@ -217,7 +213,7 @@ organizationsRouter.get('/current/members', async (c) => {
 });
 
 // POST /organizations/current/invite - Inviter un membre (admin only)
-organizationsRouter.post('/current/invite', adminMiddleware, async (c) => {
+organizationsRouter.post('/current/invite', adminMiddleware, zValidator('json', inviteSchema), async (c) => {
   const organization = c.get('organization');
 
   if (!organization) {
@@ -228,17 +224,7 @@ organizationsRouter.post('/current/invite', adminMiddleware, async (c) => {
     }, 404);
   }
 
-  const body = await c.req.json<{
-    email: string;
-    role?: 'admin' | 'user';
-  }>();
-
-  if (!body.email) {
-    return c.json({
-      success: false,
-      error: 'Email is required'
-    }, 400);
-  }
+  const body = c.req.valid('json');
 
   // Vérifier si l'utilisateur existe déjà
   const [existingUser] = await db
