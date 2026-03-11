@@ -74,10 +74,11 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        display: ['Space Grotesk', 'Inter', '-apple-system', 'sans-serif'],
+        display: ['Playfair Display', 'Georgia', 'serif'],
+        body: ['Source Serif 4', 'Georgia', 'serif'],
         geist: ['Geist', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         mono: ['JetBrains Mono', 'SF Mono', 'Monaco', 'Consolas', 'monospace'],
-        serif: ['Georgia', 'Cambria', 'Times New Roman', 'Times', 'serif'],
+        serif: ['Playfair Display', 'Georgia', 'Cambria', 'Times New Roman', 'Times', 'serif'],
       },
       boxShadow: {
         'premium': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05), 0 12px 24px rgba(0,0,0,0.05)',
