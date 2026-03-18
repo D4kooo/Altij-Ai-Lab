@@ -37,7 +37,7 @@ export function Login() {
         {/* Logo */}
         <div className="flex justify-center">
           <img
-            src="/assets/logo-dataring-icon.png"
+            src={`${import.meta.env.BASE_URL}assets/logo-dataring-icon.png`}
             alt="Data Ring"
             className="h-12 w-auto dark:invert"
           />

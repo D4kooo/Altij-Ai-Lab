@@ -86,7 +86,7 @@ export function Sidebar() {
       <div className="px-5 pt-5 pb-4">
         <NavLink to="/" className="flex justify-center">
           <img
-            src="/assets/logo-dataring-icon.png"
+            src={`${import.meta.env.BASE_URL}assets/logo-dataring-icon.png`}
             alt="Data Ring"
             className="h-10 w-auto dark:invert"
           />
