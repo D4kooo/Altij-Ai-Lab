@@ -53,7 +53,7 @@ function StaffRoute({ children }: { children: React.ReactNode }) {
 
   if (authLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950">
+      <div className="flex h-screen items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-turquoise"></div>
       </div>
     );
@@ -65,7 +65,7 @@ function StaffRoute({ children }: { children: React.ReactNode }) {
 
   if (orgLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950">
+      <div className="flex h-screen items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-turquoise"></div>
       </div>
     );
@@ -91,7 +91,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950">
+      <div className="flex h-screen items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-turquoise"></div>
       </div>
     );
@@ -136,7 +136,6 @@ function AppContent() {
         <Route path="/chat/:conversationId" element={<Chat />} />
         <Route path="/assistants" element={<Assistants />} />
         <Route path="/assistants/:id" element={<AssistantDetail />} />
-        <Route path="/assistants/:id/chat/:conversationId" element={<AssistantDetail />} />
         <Route path="/automations" element={<Automations />} />
         <Route path="/automations/:id" element={<AutomationDetail />} />
         <Route path="/automations/runs/:id" element={<AutomationRun />} />

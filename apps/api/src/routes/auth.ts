@@ -57,6 +57,9 @@ const registerCitizenSchema = z.object({
   password: passwordSchema,
   firstName: z.string().min(1, 'Prénom requis').max(100),
   lastName: z.string().min(1, 'Nom requis').max(100),
+  accountType: z.enum(['particulier', 'organisation']).default('particulier'),
+  organizationName: z.string().optional(),
+  organizationRole: z.string().optional(),
 });
 
 // POST /api/auth/register - Public registration with organization creation
@@ -233,6 +236,9 @@ authRoutes.post('/register-citizen', zValidator('json', registerCitizenSchema, (
       lastName: data.lastName,
       role: 'user', // Citizens are regular users
       isStaff: false, // Not a staff member
+      accountType: data.accountType,
+      organizationName: data.organizationName,
+      organizationRole: data.organizationRole,
       isOnboarded: true,
       createdAt: now,
     }).returning();
@@ -294,6 +300,9 @@ authRoutes.get('/me', authMiddleware, async (c) => {
       lastName: user.lastName,
       role: user.role,
       isStaff: user.isStaff ?? false,
+      accountType: user.accountType ?? 'particulier',
+      organizationName: user.organizationName,
+      organizationRole: user.organizationRole,
       createdAt: user.createdAt,
       lastLoginAt: user.lastLoginAt,
     },

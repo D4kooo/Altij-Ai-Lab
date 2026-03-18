@@ -1,285 +1,99 @@
-import { NavLink } from 'react-router-dom';
-import {
-  Sparkles,
-  Shield,
-  GraduationCap,
-  Gamepad2,
-  Briefcase,
-  BookOpen,
-  ArrowRight,
-  Brain,
-  Smartphone,
-  Heart
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 
-interface AudienceCard {
-  id: 'kids' | 'adults' | 'seniors';
-  title: string;
-  subtitle: string;
-  description: string;
-  icon: typeof Sparkles;
-  color: string;
-  iconBg: string;
-  features: string[];
-  href: string;
-}
-
-const audiences: AudienceCard[] = [
+const parcours = [
   {
-    id: 'adults',
+    id: 'adultes',
     title: 'Adultes',
-    subtitle: '16-60 ans',
-    description:
-      'Maîtrisez les outils numériques et protégez votre vie privée au quotidien et au travail.',
-    icon: Briefcase,
-    color: 'text-primary',
-    iconBg: 'bg-primary/10 border-primary/20',
-    features: [
-      'RGPD expliqué',
-      "Sécurité de l'IA",
-      'Droits numériques',
-      'Outils pratiques',
-    ],
+    subtitle: '16–60 ans',
+    description: 'Maîtrisez vos droits numériques, protégez vos données personnelles et développez votre culture digitale.',
     href: '/school/adultes',
   },
   {
-    id: 'kids',
+    id: 'juniors',
     title: 'Juniors',
-    subtitle: '7-15 ans',
-    description:
-      "Apprends à naviguer sur Internet en toute sécurité et à protéger tes informations personnelles.",
-    icon: Gamepad2,
-    color: 'text-amber-400',
-    iconBg: 'bg-amber-400/10 border-amber-400/20',
-    features: [
-      'Jeux interactifs',
-      'Quiz amusants',
-      'Histoires numériques',
-      'Badges à collectionner',
-    ],
+    subtitle: '7–15 ans',
+    description: 'Apprends à naviguer en sécurité sur Internet et à protéger tes informations personnelles.',
     href: '/school/juniors',
   },
   {
     id: 'seniors',
     title: 'Seniors',
     subtitle: '60+ ans',
-    description:
-      'Découvrez le numérique à votre rythme avec des explications claires et un accompagnement bienveillant.',
-    icon: Heart,
-    color: 'text-purple-400',
-    iconBg: 'bg-purple-400/10 border-purple-400/20',
-    features: [
-      'Pas à pas illustrés',
-      'Glossaire simplifié',
-      'Arnaques à éviter',
-      'Aide personnalisée',
-    ],
+    description: 'À votre rythme, sans jargon, apprenez l\'essentiel pour vous protéger en ligne.',
     href: '/school/seniors',
   },
 ];
 
-const popularTopics = [
-  {
-    title: "Qu'est-ce que l'IA ?",
-    icon: Brain,
-    audience: 'Tous',
-    duration: '10 min',
-  },
-  {
-    title: 'Protéger ses mots de passe',
-    icon: Shield,
-    audience: 'Tous',
-    duration: '15 min',
-  },
-  {
-    title: 'Les réseaux sociaux en sécurité',
-    icon: Smartphone,
-    audience: 'Juniors',
-    duration: '20 min',
-  },
-  {
-    title: 'Comprendre le RGPD',
-    icon: BookOpen,
-    audience: 'Adultes',
-    duration: '25 min',
-  },
-];
-
 export function School() {
+  const navigate = useNavigate();
+
   return (
-    <div className="space-y-24 animate-[float-up_1s_cubic-bezier(0.16,1,0.3,1)_forwards] opacity-0">
-      {/* Hero */}
-      <section className="text-center space-y-6 pt-10">
-        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-[10px] sm:text-xs font-medium tracking-[0.2em] uppercase">
-          <GraduationCap className="h-4 w-4" />
-          Data Ring Academy
-        </div>
-        <h1 className="text-4xl md:text-6xl font-light text-foreground tracking-tight leading-[1.1] text-balance">
-          Apprenez le numérique <br />
-          <span className="font-medium">
-            en toute confiance
-          </span>
+    <div className="px-6 lg:px-10 pt-36 pb-8 lg:pb-12">
+      {/* Header */}
+      <div className="mb-10">
+        <h1
+          className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
+          style={{ fontFamily: "'Inter Tight', sans-serif" }}
+        >
+          Académie
         </h1>
-        <p className="text-lg text-muted-foreground font-light max-w-2xl mx-auto leading-relaxed text-pretty">
-          Des parcours adaptés à chaque génération pour comprendre, maîtriser et
-          se protéger dans le monde numérique.
+        <p className="mt-2 text-black/40 text-sm">
+          Parcours adaptés à chaque niveau
         </p>
-      </section>
+      </div>
 
-      {/* Audience Selection */}
-      <section className="grid md:grid-cols-3 gap-6">
-        {audiences.map((audience) => (
-          <NavLink
-            key={audience.id}
-            to={audience.href}
-            className={cn(
-              'group relative overflow-hidden rounded-3xl border border-border bg-card p-8 transition-all duration-500',
-              'hover:border-foreground/20 hover:bg-muted'
-            )}
+      {/* 3 parcours cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+        {parcours.map((p, i) => (
+          <button
+            key={p.id}
+            onClick={() => navigate(p.href)}
+            className={`group text-left p-8 lg:p-10 border-2 border-black flex flex-col justify-between min-h-[280px] hover:bg-black hover:text-white transition-colors duration-200 ${
+              i > 0 ? 'md:border-l-0' : ''
+            } ${i > 0 ? 'border-t-0 md:border-t-2' : ''}`}
           >
-            <div className="relative z-10 flex flex-col h-full">
-              {/* Icon & Title */}
-              <div className="flex items-start justify-between mb-8">
-                <div
-                  className={cn(
-                    'p-4 rounded-2xl border transition-colors duration-500',
-                    audience.iconBg,
-                    audience.color,
-                    'group-hover:bg-opacity-20'
-                  )}
-                >
-                  <audience.icon className="h-6 w-6" strokeWidth={1.5} />
-                </div>
-                <span className="text-[9px] font-medium tracking-[0.2em] uppercase text-muted-foreground bg-muted border border-border px-3 py-1.5 rounded-full">
-                  {audience.subtitle}
-                </span>
-              </div>
-
-              <div className="mb-8 flex-grow">
-                <h2 className="text-2xl font-light text-foreground mb-3 text-balance">
-                  {audience.title}
-                </h2>
-                <p className="text-sm font-light text-muted-foreground leading-relaxed text-pretty">
-                  {audience.description}
-                </p>
-              </div>
-
-              {/* Features */}
-              <ul className="space-y-3 mb-10">
-                {audience.features.map((feature, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-center gap-3 text-sm text-muted-foreground font-light"
-                  >
-                    <Sparkles className={cn('h-3 w-3', audience.color)} />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <div
-                className={cn(
-                  'flex items-center gap-2 text-[11px] font-bold tracking-[0.15em] uppercase pt-4 border-t border-border mt-auto transition-colors',
-                  audience.color
-                )}
+            <div>
+              <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA] uppercase block mb-4 group-hover:text-[#21B2AA]">
+                {p.subtitle}
+              </span>
+              <h2
+                className="font-bold text-2xl sm:text-3xl tracking-tighter mb-4"
+                style={{ fontFamily: "'Inter Tight', sans-serif" }}
               >
-                Commencer <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
+                {p.title}
+              </h2>
+              <p className="text-black/50 text-sm leading-relaxed group-hover:text-white/60">
+                {p.description}
+              </p>
             </div>
-          </NavLink>
+
+            <div className="flex items-center gap-2 mt-8 font-mono text-[10px] tracking-[0.15em] uppercase text-black/30 group-hover:text-white/60">
+              Voir les cours <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-200" />
+            </div>
+          </button>
         ))}
-      </section>
+      </div>
 
-      {/* Popular Topics */}
-      <section className="space-y-8 relative">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-light text-foreground mb-2 text-balance">Sujets populaires</h2>
-            <p className="text-sm font-light text-muted-foreground">
-              Commencez par ces essentiels
-            </p>
-          </div>
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {popularTopics.map((topic, idx) => (
-            <div
-              key={idx}
-              className="group p-5 rounded-2xl border border-border bg-card hover:bg-muted hover:border-foreground/10 transition-all duration-300 cursor-pointer"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-                  <topic.icon className="h-5 w-5" strokeWidth={1.5} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-foreground/80 group-hover:text-foreground truncate transition-colors">
-                    {topic.title}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-2 text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground truncate">
-                    <span>{topic.audience}</span>
-                    <span>•</span>
-                    <span>{topic.duration}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Stats bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border-[2px] border-black border-t-0 md:border-t-2 mt-0 md:mt-10">
         {[
-          { value: '50+', label: 'Modules interactifs' },
-          { value: '3', label: 'Parcours adaptés' },
+          { value: '50+', label: 'Parcours' },
+          { value: '3', label: 'Niveaux' },
           { value: '100%', label: 'Gratuit' },
-          { value: '0', label: "Publicité ou traçage" },
-        ].map((stat, idx) => (
+          { value: '0', label: 'Publicité' },
+        ].map((stat, i) => (
           <div
-            key={idx}
-            className="text-center p-8 rounded-2xl bg-card border border-border"
+            key={i}
+            className={`p-5 text-center ${i < 3 ? 'border-r border-black/10 md:border-black' : ''} ${i < 2 ? 'border-b md:border-b-0 border-black/10' : i === 2 ? 'border-b md:border-b-0 border-black/10' : ''}`}
           >
-            <p className="text-4xl font-light text-primary mb-2">
+            <p className="text-2xl font-bold tracking-tighter" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
               {stat.value}
             </p>
-            <p className="text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground">{stat.label}</p>
+            <p className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase mt-1">{stat.label}</p>
           </div>
         ))}
-      </section>
-
-      {/* Why Data Ring */}
-      <section className="relative rounded-3xl border border-border bg-card p-10 md:p-16 overflow-hidden">
-        <div className="relative z-10 max-w-3xl mx-auto text-center space-y-8">
-          <div className="inline-flex justify-center mb-4">
-            <div className="p-4 rounded-full bg-primary/10 border border-primary/20">
-              <Shield className="h-8 w-8 text-primary" strokeWidth={1.5} />
-            </div>
-          </div>
-          <h2 className="text-3xl md:text-4xl font-light text-foreground tracking-tight text-balance">
-            Association reconnue d'intérêt général
-          </h2>
-          <p className="text-lg font-light leading-relaxed text-muted-foreground text-pretty">
-            Data Ring agit sans compromis. Nous ne vendons pas vos données, nous vous apprenons à les protéger.
-            Notre mission est de rendre le numérique accessible pour tous, sans jargon ni publicité, pour restaurer l'autonomie citoyenne face à l'empreinte numérique.
-          </p>
-          <div className="flex flex-wrap justify-center gap-6 pt-4">
-            <div className="flex items-center gap-3 text-[11px] font-medium tracking-[0.1em] text-muted-foreground uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              Transparence totale
-            </div>
-            <div className="flex items-center gap-3 text-[11px] font-medium tracking-[0.1em] text-muted-foreground uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              Indépendance
-            </div>
-            <div className="flex items-center gap-3 text-[11px] font-medium tracking-[0.1em] text-muted-foreground uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              Engagement sociétal
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }

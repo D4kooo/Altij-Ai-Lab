@@ -1,270 +1,99 @@
-import { NavLink } from 'react-router-dom';
-import {
-  Shield,
-  FileText,
-  AlertTriangle,
-  Scale,
-  ArrowRight,
-  CheckCircle,
-  Lock,
-  Eye,
-  Trash2,
-  Download,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
 
-interface Tool {
-  id: string;
-  title: string;
-  description: string;
-  icon: typeof Shield;
-  color: string;
-  iconBg: string;
-  features: string[];
-  href: string;
-  badge?: string;
-}
+const ShieldIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2L3 7v6c0 5.25 3.75 10.13 9 11 5.25-.87 9-5.75 9-11V7l-9-5z" />
+    <path d="M9 12h6M12 9v6" />
+  </svg>
+);
 
-const tools: Tool[] = [
+const SearchDocIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
+    <path d="M14 2v6h6" />
+    <circle cx="11" cy="15" r="2.5" />
+    <path d="M13 17l2 2" />
+  </svg>
+);
+
+const AlertIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2L3 7v6c0 5.25 3.75 10.13 9 11 5.25-.87 9-5.75 9-11V7l-9-5z" />
+    <path d="M12 8v4M12 16h.01" />
+  </svg>
+);
+
+const tools = [
   {
-    id: 'gdpr',
     title: 'Générateur RGPD',
-    description:
-      'Créez des demandes personnalisées pour exercer vos droits sur vos données personnelles.',
-    icon: Scale,
-    color: 'text-blue-400',
-    iconBg: 'bg-blue-400/10 border-blue-400/20',
-    features: [
-      "Droit d'accès",
-      'Droit de rectification',
-      "Droit à l'effacement",
-      'Droit à la portabilité',
-    ],
+    description: 'Générez vos courriers RGPD.',
     href: '/outils/gdpr',
+    icon: ShieldIcon,
   },
   {
-    id: 'cgu',
     title: 'Analyseur de CGU',
-    description:
-      "Comprenez ce que cachent les conditions d'utilisation des services que vous utilisez.",
-    icon: FileText,
-    color: 'text-purple-400',
-    iconBg: 'bg-purple-400/10 border-purple-400/20',
-    features: [
-      'Analyse IA des CGU',
-      'Points de vigilance',
-      'Résumé simplifié',
-      'Score de confiance',
-    ],
+    description: 'Analysez les conditions d\'utilisation.',
     href: '/outils/cgu',
     badge: 'IA',
+    icon: SearchDocIcon,
   },
   {
-    id: 'alerts',
     title: 'Alertes Violations',
-    description:
-      'Vérifiez si vos données ont été compromises dans une fuite de données.',
-    icon: AlertTriangle,
-    color: 'text-amber-400',
-    iconBg: 'bg-amber-400/10 border-amber-400/20',
-    features: [
-      'Recherche par email',
-      'Historique des fuites',
-      'Conseils de sécurité',
-      'Notifications',
-    ],
+    description: 'Surveillez les violations de données.',
     href: '/outils/alertes',
-  },
-];
-
-const gdprRights = [
-  {
-    icon: Eye,
-    title: "Droit d'accès",
-    description: 'Savoir quelles données une entreprise détient sur vous.',
-  },
-  {
-    icon: FileText,
-    title: 'Droit de rectification',
-    description: 'Corriger des informations inexactes vous concernant.',
-  },
-  {
-    icon: Trash2,
-    title: "Droit à l'effacement",
-    description: 'Demander la suppression de vos données personnelles.',
-  },
-  {
-    icon: Download,
-    title: 'Droit à la portabilité',
-    description: 'Récupérer vos données dans un format réutilisable.',
+    icon: AlertIcon,
   },
 ];
 
 export function CitizenTools() {
+  const location = useLocation();
+
+  // Redirect /outils to /outils/gdpr
+  if (location.pathname === '/outils') {
+    return <Navigate to="/outils/gdpr" replace />;
+  }
+
   return (
-    <div className="space-y-24 animate-[float-up_1s_cubic-bezier(0.16,1,0.3,1)_forwards] opacity-0">
-      {/* Hero */}
-      <section className="text-center space-y-6 pt-10">
-        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-[10px] sm:text-xs font-medium tracking-[0.2em] uppercase">
-          <Shield className="h-4 w-4" />
-          Outils Citoyens
-        </div>
-        <h1 className="text-4xl md:text-6xl font-light text-foreground tracking-tight leading-[1.1] text-balance">
-          Protégez vos <br />
-          <span className="font-medium">
-            données personnelles
-          </span>
-        </h1>
-        <p className="text-lg text-muted-foreground font-light max-w-2xl mx-auto leading-relaxed text-pretty">
-          Des outils gratuits pour exercer vos droits numériques, comprendre les
-          services que vous utilisez, et vérifier si vos données ont été compromises.
-        </p>
-      </section>
+    <div className="flex min-h-[calc(100svh-3.5rem)]">
+      {/* Sidebar */}
+      <aside className="hidden lg:block w-64 shrink-0 border-r-[2px] border-black bg-white">
+        <div className="sticky top-14 p-6 pt-24 space-y-6">
+          <div>
+            <span className="font-bold text-lg tracking-tight block mb-1" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              Outils
+            </span>
+            <p className="text-black/40 text-xs">Protégez vos données personnelles</p>
+          </div>
 
-      {/* Tools Grid */}
-      <section className="grid md:grid-cols-3 gap-6">
-        {tools.map((tool) => (
-          <NavLink
-            key={tool.id}
-            to={tool.href}
-            className={cn(
-              'group relative overflow-hidden rounded-3xl border border-border bg-card p-8 transition-all duration-500',
-              'hover:border-foreground/20 hover:bg-muted'
-            )}
-          >
-            <div className="relative z-10 flex flex-col h-full">
-              {/* Icon & Badge */}
-              <div className="flex items-start justify-between mb-8">
-                <div
-                  className={cn(
-                    'p-4 rounded-2xl border transition-colors duration-500',
-                    tool.iconBg,
-                    tool.color,
-                    'group-hover:bg-opacity-20'
-                  )}
+          <nav className="space-y-0">
+            {tools.map((tool) => {
+              const isActive = location.pathname === tool.href;
+              return (
+                <NavLink
+                  key={tool.href}
+                  to={tool.href}
+                  className={`flex items-start gap-3 py-3 border-b border-black/10 transition-colors duration-100 ${
+                    isActive ? 'text-black' : 'text-black/40 hover:text-black'
+                  }`}
                 >
-                  <tool.icon className="h-6 w-6" strokeWidth={1.5} />
-                </div>
-                {tool.badge && (
-                  <span className="text-[9px] font-medium text-primary tracking-[0.2em] uppercase bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-full">
-                    {tool.badge}
-                  </span>
-                )}
-              </div>
-
-              <div className="mb-8 flex-grow">
-                <h2 className="text-2xl font-light text-foreground mb-3 text-balance">
-                  {tool.title}
-                </h2>
-                <p className="text-sm font-light text-muted-foreground leading-relaxed text-pretty">
-                  {tool.description}
-                </p>
-              </div>
-
-              {/* Features */}
-              <ul className="space-y-3 mb-10">
-                {tool.features.map((feature, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-center gap-3 text-sm text-muted-foreground font-light"
-                  >
-                    <CheckCircle className={cn('h-3 w-3', tool.color)} />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <div
-                className={cn(
-                  'flex items-center gap-2 text-[11px] font-bold tracking-[0.15em] uppercase pt-4 border-t border-border mt-auto transition-colors',
-                  tool.color
-                )}
-              >
-                Accéder à l'outil
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
-            </div>
-          </NavLink>
-        ))}
-      </section>
-
-      {/* GDPR Rights Explainer */}
-      <section className="space-y-8 relative">
-        <div className="text-center">
-          <h2 className="text-3xl font-light text-foreground mb-2 text-balance">
-            Vos droits RGPD en un coup d'œil
-          </h2>
-          <p className="text-sm font-light text-muted-foreground text-pretty">
-            Le Règlement Général sur la Protection des Données vous donne des
-            droits sur vos informations.
-          </p>
+                  <span className="mt-0.5 shrink-0"><tool.icon /></span>
+                  <div>
+                    <span className={`text-sm tracking-tight block ${isActive ? 'font-bold' : ''}`} style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                      {tool.title}
+                    </span>
+                    <span className="text-xs text-black/30 block mt-0.5">{tool.description}</span>
+                  </div>
+                </NavLink>
+              );
+            })}
+          </nav>
         </div>
+      </aside>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {gdprRights.map((right, idx) => (
-            <div
-              key={idx}
-              className="p-6 rounded-2xl border border-border bg-card hover:bg-muted hover:border-foreground/10 transition-all duration-300"
-            >
-              <div className="p-3 rounded-xl bg-blue-400/10 border border-blue-400/20 text-blue-400 w-fit mb-5">
-                <right.icon className="h-5 w-5" strokeWidth={1.5} />
-              </div>
-              <h3 className="font-medium text-foreground/80 mb-2">{right.title}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed text-pretty">{right.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Security Tips */}
-      <section className="relative rounded-3xl border border-border bg-card p-10 md:p-12 overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-10">
-          <div className="p-6 rounded-2xl bg-primary/10 border border-primary/20 text-primary hidden sm:block">
-            <Lock className="h-10 w-10" strokeWidth={1.5} />
-          </div>
-          <div className="space-y-6">
-            <h2 className="text-3xl font-light text-foreground text-center md:text-left text-balance">
-              Conseils de souveraineté
-            </h2>
-            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4">
-              {[
-                'Utilisez un mot de passe unique pour chaque service',
-                "Activez l'authentification à deux facteurs (2FA)",
-                'Vérifiez régulièrement vos paramètres de confidentialité',
-                'Méfiez-vous des emails demandant des informations personnelles',
-                'Mettez à jour vos applications et systèmes régulièrement',
-                'Limitez les permissions accordées aux applications',
-              ].map((tip, idx) => (
-                <div key={idx} className="flex items-start gap-4">
-                  <CheckCircle className="h-4 w-4 text-primary mt-0.5 shrink-0 opacity-80" />
-                  <span className="text-sm font-light text-muted-foreground leading-relaxed">{tip}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-10">
-        {[
-          { value: '100%', label: 'Gratuit' },
-          { value: '0', label: 'Données collectées' },
-          { value: 'RGPD', label: 'Conforme' },
-          { value: 'Open', label: 'Transparence' },
-        ].map((stat, idx) => (
-          <div
-            key={idx}
-            className="text-center p-8 rounded-2xl bg-card border border-border"
-          >
-            <p className="text-4xl font-light text-primary mb-2">
-              {stat.value}
-            </p>
-            <p className="text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground">{stat.label}</p>
-          </div>
-        ))}
-      </section>
+      {/* Main content */}
+      <div className="flex-1 px-6 lg:px-10 py-8 lg:py-10">
+        <Outlet />
+      </div>
     </div>
   );
 }

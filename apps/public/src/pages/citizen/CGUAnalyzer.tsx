@@ -1,24 +1,7 @@
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import {
-  ArrowLeft,
-  FileText,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Info,
-  Search,
-  Loader2,
-  Brain,
-  Shield,
-  Eye,
-  Share2,
-  Clock,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Loader2, Link as LinkIcon } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 interface AnalysisPoint {
   type: 'good' | 'warning' | 'danger' | 'info';
@@ -32,146 +15,191 @@ interface AnalysisResult {
   score: number;
   summary: string;
   points: AnalysisPoint[];
-  lastUpdated: string;
 }
 
-// Example pre-analyzed services
-const preAnalyzedServices: Record<string, AnalysisResult> = {
-  google: {
-    serviceName: 'Google',
-    score: 45,
-    summary:
-      "Google collecte une grande quantité de données pour la personnalisation publicitaire. Les CGU sont complexes mais offrent certains contrôles à l'utilisateur.",
-    points: [
-      {
-        type: 'danger',
-        title: 'Collecte extensive de données',
-        description:
-          "Google collecte vos recherches, localisation, historique YouTube, données vocales et bien plus pour créer un profil publicitaire détaillé.",
-        article: 'Section "Données que nous collectons"',
-      },
-      {
-        type: 'warning',
-        title: 'Partage avec des tiers',
-        description:
-          "Vos données peuvent être partagées avec des partenaires publicitaires et des tiers pour la personnalisation des annonces.",
-        article: 'Section "Partage de vos informations"',
-      },
-      {
-        type: 'good',
-        title: 'Contrôle utilisateur disponible',
-        description:
-          "Vous pouvez accéder à vos données, les télécharger et supprimer certaines informations via Google Dashboard.",
-        article: 'Section "Vos choix"',
-      },
-      {
-        type: 'info',
-        title: 'Conservation longue durée',
-        description:
-          "Certaines données peuvent être conservées pendant plusieurs années, même après suppression du compte.",
-        article: 'Section "Conservation des données"',
-      },
-    ],
-    lastUpdated: '2024-01-15',
-  },
-  facebook: {
-    serviceName: 'Facebook/Meta',
-    score: 35,
-    summary:
-      "Les CGU de Meta sont particulièrement permissives concernant l'utilisation de vos données. La plateforme collecte massivement pour la publicité ciblée.",
-    points: [
-      {
-        type: 'danger',
-        title: 'Licence très large sur votre contenu',
-        description:
-          "En publiant du contenu, vous accordez à Meta une licence mondiale, non exclusive et libre de redevances pour utiliser votre contenu.",
-        article: 'Section 3.3 "Autorisations"',
-      },
-      {
-        type: 'danger',
-        title: 'Suivi cross-platform',
-        description:
-          "Meta peut suivre votre activité sur les sites tiers via le pixel Facebook et les boutons de partage.",
-        article: 'Section "Cookies et technologies similaires"',
-      },
-      {
-        type: 'warning',
-        title: 'Transfert international de données',
-        description:
-          "Vos données peuvent être transférées vers les États-Unis et d'autres pays avec des protections différentes.",
-        article: 'Section "Transfert de données"',
-      },
-      {
-        type: 'good',
-        title: "Outils de téléchargement de données",
-        description:
-          "Vous pouvez télécharger une copie de vos données via les paramètres de confidentialité.",
-      },
-    ],
-    lastUpdated: '2024-01-10',
-  },
-};
+function CGUAnimation() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    let t = 0;
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * 2;
+      canvas.height = rect.height * 2;
+      ctx.scale(2, 2);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const draw = () => {
+      const w = canvas.width / 2;
+      const h = canvas.height / 2;
+      ctx.clearRect(0, 0, w, h);
+      t += 0.012;
+
+      const docX = w * 0.35;
+      const docY = h * 0.1;
+      const docW = w * 0.35;
+      const docH = h * 0.8;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.02)';
+      ctx.fillRect(docX + 6, docY + 6, docW, docH);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillRect(docX, docY, docW, docH);
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(docX, docY, docW, docH);
+
+      const lineCount = 14;
+      for (let i = 0; i < lineCount; i++) {
+        const ly = docY + 18 + i * ((docH - 36) / lineCount);
+        const lw = docW - 24 - (Math.sin(i * 1.7 + 0.5) * 15 + 15);
+
+        const scanPos = ((Math.sin(t * 1.5) + 1) / 2) * lineCount;
+        const distToScan = Math.abs(i - scanPos);
+        const highlight = Math.max(0, 1 - distToScan / 2);
+
+        if (highlight > 0.1) {
+          ctx.fillStyle = `rgba(33,178,170,${highlight * 0.08})`;
+          ctx.fillRect(docX + 10, ly - 5, lw + 4, 10);
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(docX + 12, ly);
+        ctx.lineTo(docX + 12 + lw, ly);
+        ctx.strokeStyle = `rgba(0,0,0,${0.08 + highlight * 0.08})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      const scanY = docY + 10 + ((Math.sin(t * 1.5) + 1) / 2) * (docH - 20);
+      ctx.beginPath();
+      ctx.moveTo(docX - 8, scanY);
+      ctx.lineTo(docX + docW + 8, scanY);
+      ctx.strokeStyle = 'rgba(33,178,170,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      const grad = ctx.createLinearGradient(docX, scanY - 20, docX, scanY + 20);
+      grad.addColorStop(0, 'rgba(33,178,170,0)');
+      grad.addColorStop(0.5, 'rgba(33,178,170,0.06)');
+      grad.addColorStop(1, 'rgba(33,178,170,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(docX, scanY - 20, docW, 40);
+
+      const magAngle = t * 0.8;
+      const magX = docX + docW * 0.5 + Math.cos(magAngle) * (docW * 0.55);
+      const magY = docY + docH * 0.4 + Math.sin(magAngle) * (docH * 0.35);
+      const magR = 22;
+
+      ctx.beginPath();
+      ctx.arc(magX, magY, magR, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(33,178,170,0.02)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const handleAngle = magAngle + Math.PI * 0.25;
+      ctx.beginPath();
+      ctx.moveTo(magX + Math.cos(handleAngle) * magR, magY + Math.sin(handleAngle) * magR);
+      ctx.lineTo(magX + Math.cos(handleAngle) * (magR + 18), magY + Math.sin(handleAngle) * (magR + 18));
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(magX - 5, magY - 5, 6, Math.PI * 1.2, Math.PI * 1.7);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      for (let i = 0; i < 5; i++) {
+        const angle = t * 0.5 + i * Math.PI * 0.4;
+        const dist = 35 + Math.sin(t * 2 + i) * 8;
+        const px = magX + Math.cos(angle) * dist;
+        const py = magY + Math.sin(angle) * dist;
+        const alpha = (Math.sin(t * 3 + i * 1.5) + 1) / 2 * 0.12;
+
+        ctx.beginPath();
+        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(33,178,170,${alpha})`;
+        ctx.fill();
+      }
+
+      animId = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ left: '35%', width: '65%' }}
+    />
+  );
+}
 
 export function CGUAnalyzer() {
-  const [mode, setMode] = useState<'search' | 'paste'>('search');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [mode, setMode] = useState<'url' | 'paste'>('paste');
+  const [urlInput, setUrlInput] = useState('');
   const [pastedText, setPastedText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = () => {
-    const query = searchQuery.toLowerCase().trim();
+  const analyze = async (body: { text?: string; url?: string }) => {
+    setIsAnalyzing(true);
+    setError(null);
+    setResult(null);
 
-    if (preAnalyzedServices[query]) {
-      setResult(preAnalyzedServices[query]);
-    } else if (query.includes('google')) {
-      setResult(preAnalyzedServices['google']);
-    } else if (query.includes('facebook') || query.includes('meta')) {
-      setResult(preAnalyzedServices['facebook']);
-    } else {
-      setIsAnalyzing(true);
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        setResult({
-          serviceName: searchQuery,
-          score: 50,
-          summary:
-            "Nous n'avons pas encore analysé ce service. Vous pouvez coller les CGU pour une analyse personnalisée.",
-          points: [],
-          lastUpdated: new Date().toISOString().split('T')[0],
-        });
-      }, 1500);
+    try {
+      const token = localStorage.getItem('citizen_token');
+      const response = await fetch(`${API_BASE}/cgu-analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Erreur lors de l\'analyse');
+      }
+
+      setResult(data.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setIsAnalyzing(false);
     }
+  };
+
+  const handleUrlAnalysis = () => {
+    if (!urlInput.trim()) return;
+    analyze({ url: urlInput.trim() });
   };
 
   const handlePasteAnalysis = () => {
     if (!pastedText.trim()) return;
-
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      setResult({
-        serviceName: 'Document analysé',
-        score: 55,
-        summary:
-          "Cette analyse est une démonstration. Pour une analyse complète par IA, cette fonctionnalité nécessiterait une connexion à un service d'analyse de texte.",
-        points: [
-          {
-            type: 'info',
-            title: 'Analyse en cours de développement',
-            description:
-              "L'analyse automatique par IA des CGU sera disponible prochainement. En attendant, consultez nos ressources éducatives.",
-          },
-        ],
-        lastUpdated: new Date().toISOString().split('T')[0],
-      });
-    }, 2000);
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 70) return 'text-green-600 dark:text-green-400';
-    if (score >= 50) return 'text-amber-600 dark:text-amber-400';
-    return 'text-red-600 dark:text-red-400';
+    analyze({ text: pastedText.trim() });
   };
 
   const getScoreLabel = (score: number) => {
@@ -180,214 +208,190 @@ export function CGUAnalyzer() {
     return 'Préoccupant';
   };
 
-  const getPointIcon = (type: AnalysisPoint['type']) => {
+  const getPointLabel = (type: AnalysisPoint['type']) => {
     switch (type) {
-      case 'good':
-        return <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />;
-      case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />;
-      case 'danger':
-        return <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />;
-      case 'info':
-        return <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />;
+      case 'good': return 'OK';
+      case 'warning': return 'Attention';
+      case 'danger': return 'Alerte';
+      case 'info': return 'Info';
     }
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      {/* Back link */}
-      <NavLink
-        to="/outils"
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour aux outils
-      </NavLink>
+    <div className="space-y-10">
+      {/* Header with animation */}
+      <div className="relative min-h-[180px] sm:min-h-[200px]">
+        <CGUAnimation />
 
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-50 dark:bg-purple-500/5 text-purple-600 dark:text-purple-400 text-sm font-medium">
-          <FileText className="h-4 w-4" />
-          Analyseur de CGU
-          <span className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-500/10 text-xs">IA</span>
+        <div className="relative z-10 max-w-md">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase">Analyseur</span>
+            <span className="font-mono text-[9px] tracking-[0.2em] text-[#21B2AA] uppercase border border-[#21B2AA]/30 px-2 py-0.5">IA</span>
+          </div>
+          <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            Comprenez les CGU<br />
+            <span className="italic font-normal">en un coup d'oeil.</span>
+          </h1>
+          <p className="mt-4 text-black/50 text-sm leading-relaxed">
+            Découvrez ce que cachent les conditions d'utilisation des services que vous utilisez.
+          </p>
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
-          Comprenez les CGU
-        </h1>
-        <p className="text-muted-foreground max-w-xl mx-auto text-pretty">
-          Découvrez ce que cachent les conditions d'utilisation des services que
-          vous utilisez. Résumé clair, points de vigilance, score de confiance.
-        </p>
       </div>
 
       {/* Mode Toggle */}
-      <div className="flex justify-center">
-        <div className="inline-flex rounded-lg border border-border p-1 bg-muted">
-          <button
-            onClick={() => setMode('search')}
-            className={cn(
-              'px-4 py-2 rounded-md text-sm font-medium transition-all',
-              mode === 'search'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Search className="h-4 w-4 inline mr-2" />
-            Rechercher un service
-          </button>
-          <button
-            onClick={() => setMode('paste')}
-            className={cn(
-              'px-4 py-2 rounded-md text-sm font-medium transition-all',
-              mode === 'paste'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <FileText className="h-4 w-4 inline mr-2" />
-            Coller des CGU
-          </button>
-        </div>
-      </div>
-
-      {/* Search Mode */}
-      {mode === 'search' && !result && (
-        <div className="space-y-6">
-          <div className="flex gap-3">
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Ex: Google, Facebook, Amazon..."
-              className="bg-card border-border flex-1"
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <Button
-              onClick={handleSearch}
-              disabled={!searchQuery.trim() || isAnalyzing}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+      {!result && !isAnalyzing && (
+        <>
+          <div className="flex gap-0">
+            <button
+              onClick={() => { setMode('paste'); setError(null); }}
+              className={`px-5 py-3 text-[11px] font-medium tracking-[0.15em] uppercase border-2 border-r-0 transition-colors duration-100 ${
+                mode === 'paste' ? 'bg-black text-white border-black' : 'border-black/15 text-black/40 hover:text-black hover:border-black'
+              }`}
             >
-              {isAnalyzing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Analyser'
-              )}
-            </Button>
+              Coller des CGU
+            </button>
+            <button
+              onClick={() => { setMode('url'); setError(null); }}
+              className={`px-5 py-3 text-[11px] font-medium tracking-[0.15em] uppercase border-2 transition-colors duration-100 ${
+                mode === 'url' ? 'bg-black text-white border-black' : 'border-black/15 text-black/40 hover:text-black hover:border-black'
+              }`}
+            >
+              Depuis une URL
+            </button>
           </div>
 
-          {/* Pre-analyzed services */}
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Services déjà analysés :</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(preAnalyzedServices).map(([key, service]) => (
+          {/* URL Mode */}
+          {mode === 'url' && (
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="flex-1 flex items-center border-2 border-black/15 focus-within:border-black transition-colors">
+                  <LinkIcon size={14} className="ml-4 text-black/25 shrink-0" strokeWidth={1.5} />
+                  <input
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    placeholder="https://example.com/cgu"
+                    onKeyDown={(e) => e.key === 'Enter' && handleUrlAnalysis()}
+                    className="flex-1 px-3 py-3 text-sm placeholder:text-black/25 focus:outline-none bg-transparent"
+                  />
+                </div>
                 <button
-                  key={key}
-                  onClick={() => {
-                    setSearchQuery(service.serviceName);
-                    setResult(service);
-                  }}
-                  className="px-4 py-2 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+                  onClick={handleUrlAnalysis}
+                  disabled={!urlInput.trim()}
+                  className="px-6 py-3 bg-black text-white text-[11px] font-medium tracking-[0.15em] uppercase border-2 border-black hover:bg-white hover:text-black transition-colors duration-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {service.serviceName}
+                  <Search size={14} strokeWidth={1.5} /> Analyser
                 </button>
-              ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Paste Mode */}
+          {mode === 'paste' && (
+            <div className="space-y-4">
+              <textarea
+                value={pastedText}
+                onChange={(e) => setPastedText(e.target.value)}
+                placeholder="Collez ici le texte des CGU/CGV que vous souhaitez analyser..."
+                rows={8}
+                className="w-full px-4 py-3 border-2 border-black/15 text-sm placeholder:text-black/25 focus:border-black focus:outline-none transition-colors resize-none"
+              />
+              <button
+                onClick={handlePasteAnalysis}
+                disabled={!pastedText.trim()}
+                className="px-6 py-3 bg-black text-white text-[11px] font-medium tracking-[0.15em] uppercase border-2 border-black hover:bg-white hover:text-black transition-colors duration-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                Analyser
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="border-2 border-black p-5">
+          <p className="text-sm text-black/70">{error}</p>
+          <button
+            onClick={() => { setError(null); }}
+            className="mt-3 px-4 py-2 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100"
+          >
+            Réessayer
+          </button>
         </div>
       )}
 
-      {/* Paste Mode */}
-      {mode === 'paste' && !result && (
-        <div className="space-y-4">
-          <Textarea
-            value={pastedText}
-            onChange={(e) => setPastedText(e.target.value)}
-            placeholder="Collez ici le texte des CGU/CGV que vous souhaitez analyser..."
-            className="bg-card border-border min-h-[200px]"
-          />
-          <Button
-            onClick={handlePasteAnalysis}
-            disabled={!pastedText.trim() || isAnalyzing}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Analyse en cours...
-              </>
-            ) : (
-              <>
-                <Brain className="h-4 w-4 mr-2" />
-                Analyser avec l'IA
-              </>
-            )}
-          </Button>
+      {/* Loading */}
+      {isAnalyzing && (
+        <div className="border-2 border-black/15 p-8 sm:p-12 flex flex-col items-center gap-4">
+          <Loader2 size={28} className="animate-spin text-black/30" strokeWidth={1.5} />
+          <div className="text-center">
+            <p className="font-bold text-sm tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              Analyse en cours...
+            </p>
+            <p className="text-black/40 text-xs mt-1">L'IA examine les conditions d'utilisation</p>
+          </div>
+          {/* Skeleton lines */}
+          <div className="w-full max-w-md space-y-3 mt-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex gap-3 items-start">
+                <div className="w-12 h-5 bg-black/5 animate-pulse shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-4 bg-black/5 animate-pulse" style={{ width: `${70 + Math.random() * 30}%` }} />
+                  <div className="h-3 bg-black/[0.03] animate-pulse" style={{ width: `${50 + Math.random() * 40}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Results */}
       {result && (
-        <div className="space-y-6">
-          {/* Score Card */}
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <div className="flex flex-col md:flex-row md:items-center gap-6">
-              {/* Score */}
-              <div className="text-center md:text-left">
-                <div
-                  className={cn(
-                    'text-5xl font-bold',
-                    getScoreColor(result.score)
-                  )}
-                >
+        <div className="space-y-8">
+          {/* Score */}
+          <div className="border-2 border-black p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-6">
+              <div className="shrink-0">
+                <span className="text-5xl font-bold tracking-tighter block" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
                   {result.score}
-                  <span className="text-2xl text-muted-foreground">/100</span>
-                </div>
-                <p className={cn('text-sm font-medium', getScoreColor(result.score))}>
-                  {getScoreLabel(result.score)}
-                </p>
+                </span>
+                <span className="font-mono text-[10px] tracking-[0.15em] text-black/40 uppercase">/100 · {getScoreLabel(result.score)}</span>
               </div>
-
-              {/* Summary */}
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-foreground mb-2">
+                <h2 className="font-bold text-xl tracking-tight mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
                   {result.serviceName}
                 </h2>
-                <p className="text-muted-foreground text-pretty">{result.summary}</p>
-                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Dernière mise à jour : {result.lastUpdated}
-                </p>
+                <p className="text-black/50 text-sm leading-relaxed">{result.summary}</p>
               </div>
             </div>
           </div>
 
-          {/* Analysis Points */}
+          {/* Points */}
           {result.points.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground">
+            <div>
+              <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase block mb-6">
                 Points d'attention
-              </h3>
-              <div className="space-y-3">
+              </span>
+              <div className="border-t-[2px] border-black">
                 {result.points.map((point, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      'rounded-xl border p-4',
-                      point.type === 'danger' && 'border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5',
-                      point.type === 'warning' && 'border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5',
-                      point.type === 'good' && 'border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5',
-                      point.type === 'info' && 'border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/5'
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      {getPointIcon(point.type)}
+                  <div key={idx} className="py-5 border-b border-black/10">
+                    <div className="flex items-start gap-4">
+                      <span className={`font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 border shrink-0 mt-0.5 ${
+                        point.type === 'danger' ? 'border-black text-black' :
+                        point.type === 'warning' ? 'border-black/40 text-black/60' :
+                        point.type === 'good' ? 'border-[#21B2AA]/40 text-[#21B2AA]' :
+                        'border-black/20 text-black/30'
+                      }`}>
+                        {getPointLabel(point.type)}
+                      </span>
                       <div>
-                        <h4 className="font-medium text-foreground">{point.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1 text-pretty">
-                          {point.description}
-                        </p>
+                        <h4 className="font-bold text-sm tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                          {point.title}
+                        </h4>
+                        <p className="text-black/50 text-sm leading-relaxed mt-1">{point.description}</p>
                         {point.article && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Source : {point.article}
+                          <p className="font-mono text-[9px] tracking-[0.1em] text-black/25 uppercase mt-2">
+                            {point.article}
                           </p>
                         )}
                       </div>
@@ -399,69 +403,34 @@ export function CGUAnalyzer() {
           )}
 
           {/* Legend */}
-          <div className="rounded-xl border border-border bg-muted p-4">
-            <h4 className="text-sm font-medium text-muted-foreground mb-3">Légende</h4>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                <span className="text-muted-foreground">Bon pour vous</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <span className="text-muted-foreground">À surveiller</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                <span className="text-muted-foreground">Préoccupant</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-muted-foreground">Information</span>
-              </div>
-            </div>
+          <div className="flex flex-wrap gap-6 font-mono text-[9px] tracking-[0.1em] text-black/30 uppercase">
+            <span><span className="inline-block w-2 h-2 bg-black mr-2" />Alerte</span>
+            <span><span className="inline-block w-2 h-2 bg-black/40 mr-2" />Attention</span>
+            <span><span className="inline-block w-2 h-2 bg-[#21B2AA] mr-2" />OK</span>
+            <span><span className="inline-block w-2 h-2 bg-black/15 mr-2" />Info</span>
           </div>
 
-          {/* New Analysis Button */}
-          <Button
-            variant="outline"
-            onClick={() => {
-              setResult(null);
-              setSearchQuery('');
-              setPastedText('');
-            }}
-            className="border-border"
+          <button
+            onClick={() => { setResult(null); setUrlInput(''); setPastedText(''); setError(null); }}
+            className="px-6 py-3 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100"
           >
             Nouvelle analyse
-          </Button>
+          </button>
         </div>
       )}
 
-      {/* Info Section */}
-      <div className="grid sm:grid-cols-3 gap-4">
+      {/* Info footer */}
+      <div className="grid grid-cols-3 gap-0 border-[2px] border-black">
         {[
-          {
-            icon: Shield,
-            title: 'Vie privée',
-            description: 'Comment vos données sont collectées et utilisées.',
-          },
-          {
-            icon: Share2,
-            title: 'Partage',
-            description: 'Avec qui vos informations sont partagées.',
-          },
-          {
-            icon: Eye,
-            title: 'Tracking',
-            description: 'Comment votre activité est suivie.',
-          },
-        ].map((item, idx) => (
-          <div
-            key={idx}
-            className="p-4 rounded-xl border border-border bg-card"
-          >
-            <item.icon className="h-5 w-5 text-purple-600 dark:text-purple-400 mb-2" />
-            <h4 className="font-medium text-foreground text-sm">{item.title}</h4>
-            <p className="text-xs text-muted-foreground mt-1 text-pretty">{item.description}</p>
+          { title: 'Vie privée', text: 'Comment vos données sont collectées et utilisées.' },
+          { title: 'Partage', text: 'Avec qui vos informations sont partagées.' },
+          { title: 'Tracking', text: 'Comment votre activité est suivie.' },
+        ].map((item, i) => (
+          <div key={i} className={`p-5 ${i < 2 ? 'border-r border-black' : ''}`}>
+            <p className="font-bold text-sm tracking-tight mb-1" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              {item.title}
+            </p>
+            <p className="text-black/40 text-xs leading-relaxed">{item.text}</p>
           </div>
         ))}
       </div>

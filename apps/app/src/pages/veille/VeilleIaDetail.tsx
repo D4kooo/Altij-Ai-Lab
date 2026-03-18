@@ -1,26 +1,38 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'motion/react';
 import {
   ExternalLink,
   Loader2,
   Trash2,
   Clock,
-  Newspaper,
   Sparkles,
   Building2,
-  ChevronRight,
+  ArrowLeft,
   FileText,
   Calendar,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
 import ReactMarkdown from 'react-markdown';
 import { formatRelativeTime, cn } from '@/lib/utils';
 import { veilleIaApi, type VeilleIa } from '@/lib/api';
 import { FREQUENCY_LABELS } from './utils';
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, damping: 28, stiffness: 300 } },
+};
 
 export function VeilleIaDetail({
   veille,
@@ -67,213 +79,202 @@ export function VeilleIaDetail({
 
   const latestEdition = fullVeille?.latestEdition || editions?.[0];
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
-            Retour
-          </Button>
-          <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              {veille.name}
-            </h2>
-            <p className="text-sm text-muted-foreground">{veille.description}</p>
-          </div>
-        </div>
-        {isAdmin && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => generateMutation.mutate()}
-              disabled={generateMutation.isPending}
-            >
-              {generateMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
-              )}
-              Générer maintenant
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={() => {
-                if (confirm('Supprimer cette veille IA ?')) {
-                  deleteMutation.mutate();
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
+  const tabs = [
+    { id: 'content' as const, label: 'Newsletter' },
+    { id: 'history' as const, label: `Historique (${editions?.length || 0})` },
+  ];
 
-      {/* Info */}
-      <div className="flex flex-wrap gap-2">
-        <Badge variant="outline" className="gap-1">
+  return (
+    <motion.div
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.04 } } }}
+    >
+      {/* Back + header */}
+      <motion.div variants={fadeUp} className="space-y-4">
+        <button onClick={onBack} className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Veilles IA
+        </button>
+
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">{veille.name}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{veille.description}</p>
+          </div>
+          {isAdmin && (
+            <div className="flex gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => generateMutation.mutate()}
+                disabled={generateMutation.isPending}
+                className="h-8 text-[13px] gap-1.5"
+              >
+                {generateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                Generer
+              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Supprimer cette veille ?</DialogTitle>
+                    <DialogDescription>
+                      Cette action est irreversible. Toutes les editions seront supprimees.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Annuler</Button>
+                    </DialogClose>
+                    <Button variant="destructive" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}>
+                      {deleteMutation.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                      Supprimer
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Meta badges */}
+      <motion.div variants={fadeUp} className="flex flex-wrap gap-2">
+        <Badge variant="secondary" className="gap-1 text-[11px] font-normal">
           <Calendar className="h-3 w-3" />
           {FREQUENCY_LABELS[veille.frequency]}
         </Badge>
         {editions && editions.length > 0 && (
-          <Badge variant="outline" className="gap-1">
+          <Badge variant="secondary" className="gap-1 text-[11px] font-normal">
             <FileText className="h-3 w-3" />
-            {editions.length} édition{editions.length > 1 ? 's' : ''}
+            {editions.length} edition{editions.length > 1 ? 's' : ''}
           </Badge>
         )}
         {veille.departments.map((dept) => (
-          <Badge key={dept} variant="secondary" className="gap-1">
+          <Badge key={dept} variant="secondary" className="gap-1 text-[11px] font-normal">
             <Building2 className="h-3 w-3" />
             {departments?.find((d) => d.id === dept)?.label || dept}
           </Badge>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'content' | 'history')}>
-        <TabsList>
-          <TabsTrigger value="content" className="gap-2">
-            <Newspaper className="h-4 w-4" />
-            Newsletter
-          </TabsTrigger>
-          <TabsTrigger value="history" className="gap-2">
-            <Clock className="h-4 w-4" />
-            Historique ({editions?.length || 0})
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs — flat */}
+      <motion.div variants={fadeUp} className="flex gap-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              'px-3 py-1.5 text-[13px] font-medium rounded-md transition-colors duration-100',
+              activeTab === tab.id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </motion.div>
 
-        {/* Content Tab */}
-        <TabsContent value="content" className="mt-4">
-          {isLoading ? (
-            <div className="flex h-64 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      {/* Content */}
+      <motion.div variants={fadeUp}>
+        {activeTab === 'content' ? (
+          isLoading ? (
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" />
             </div>
           ) : latestEdition ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Dernière édition
-                </CardTitle>
-                <CardDescription>
-                  Générée {formatRelativeTime(latestEdition.generatedAt)}
-                  {latestEdition.newItemsCount !== undefined && (
-                    <span className="ml-2 text-primary">
-                      ({latestEdition.newItemsCount} nouveaux sujets)
-                    </span>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[500px]">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown
-                      components={{
-                        a: ({ href, children }) => (
-                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                            {children}
-                          </a>
-                        ),
-                      }}
-                    >
-                      {latestEdition.content}
-                    </ReactMarkdown>
-                  </div>
-                </ScrollArea>
-                {latestEdition.sources.length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-sm font-medium mb-2">Sources :</p>
-                    <div className="flex flex-wrap gap-2">
-                      {latestEdition.sources.map((source, idx) => (
-                        <a
-                          key={idx}
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          {source.title}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
+            <div className="space-y-4">
+              <p className="text-[12px] text-muted-foreground/50">
+                Generee {formatRelativeTime(latestEdition.generatedAt)}
+                {latestEdition.newItemsCount !== undefined && latestEdition.newItemsCount > 0 && (
+                  <span className="ml-1.5 text-primary">({latestEdition.newItemsCount} nouveaux sujets)</span>
                 )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-lg font-medium">Aucune édition</p>
-              <p className="text-sm text-muted-foreground">
-                {isAdmin
-                  ? 'Cliquez sur "Générer maintenant" pour créer la première édition'
-                  : 'Cette veille n\'a pas encore d\'édition'}
               </p>
-            </div>
-          )}
-        </TabsContent>
 
-        {/* History Tab */}
-        <TabsContent value="history" className="mt-4">
-          {editions && editions.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Historique des éditions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {editions.map((edition, idx) => (
-                    <div
-                      key={edition.id}
-                      className={cn(
-                        "flex items-center justify-between rounded-md border p-3",
-                        idx === 0 && "border-primary bg-primary/5"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <span className="text-sm font-medium">
-                            {new Date(edition.generatedAt).toLocaleDateString('fr-FR', {
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric',
-                            })}
-                          </span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {new Date(edition.generatedAt).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        </div>
-                        {idx === 0 && (
-                          <Badge variant="default" className="text-xs">Dernière</Badge>
-                        )}
-                      </div>
-                      <Badge variant="secondary">
-                        {edition.sources.length} sources
-                      </Badge>
-                    </div>
-                  ))}
+              {/* Markdown content — using existing .markdown class */}
+              <div className="markdown text-[14px] max-w-none">
+                <ReactMarkdown
+                  components={{
+                    a: ({ href, children }) => (
+                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        {children}
+                      </a>
+                    ),
+                  }}
+                >
+                  {latestEdition.content}
+                </ReactMarkdown>
+              </div>
+
+              {/* Sources */}
+              {latestEdition.sources.length > 0 && (
+                <div className="pt-4 border-t border-border">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/40 mb-2">Sources</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {latestEdition.sources.map((source, idx) => (
+                      <a
+                        key={idx}
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
+                        {source.title}
+                      </a>
+                    ))}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Clock className="mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-lg font-medium">Aucun historique</p>
-              <p className="text-sm text-muted-foreground">
-                L'historique des éditions apparaîtra ici.
-              </p>
+              )}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+          ) : (
+            <div className="py-16 text-center rounded-lg border border-dashed border-border">
+              <FileText className="h-5 w-5 text-muted-foreground/20 mx-auto mb-2" strokeWidth={1.5} />
+              <p className="text-sm text-muted-foreground">Aucune edition</p>
+              {isAdmin && <p className="text-[12px] text-muted-foreground/50 mt-1">Cliquez "Generer" pour creer la premiere edition.</p>}
+            </div>
+          )
+        ) : (
+          /* History tab */
+          editions && editions.length > 0 ? (
+            <div className="space-y-px">
+              {editions.map((edition, idx) => (
+                <div
+                  key={edition.id}
+                  className={cn(
+                    'flex items-center justify-between rounded-lg px-3 py-2.5 -mx-3',
+                    idx === 0 ? 'bg-muted/50' : 'hover:bg-muted/30 transition-colors'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-4 w-4 text-muted-foreground/30 shrink-0" strokeWidth={1.5} />
+                    <div>
+                      <span className="text-[13px] font-medium">
+                        {new Date(edition.generatedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                      <span className="text-[12px] text-muted-foreground/50 ml-2">
+                        {new Date(edition.generatedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    {idx === 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Derniere</Badge>}
+                  </div>
+                  <span className="text-[11px] text-muted-foreground/40">{edition.sources.length} sources</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-16 text-center">
+              <Clock className="h-5 w-5 text-muted-foreground/20 mx-auto mb-2" strokeWidth={1.5} />
+              <p className="text-sm text-muted-foreground">Aucun historique</p>
+            </div>
+          )
+        )}
+      </motion.div>
+    </motion.div>
   );
 }

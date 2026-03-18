@@ -1,419 +1,289 @@
-import { NavLink } from 'react-router-dom';
-import {
-  Users,
-  Scale,
-  FileText,
-  Megaphone,
-  ArrowRight,
-  CheckCircle,
-  Clock,
-  Heart,
-  Download,
-  Calendar,
-  Target,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { Users, Heart, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { campaignsApi, type Campaign } from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 
-interface Campaign {
-  id: string;
-  title: string;
-  description: string;
-  target: string;
-  status: 'active' | 'upcoming' | 'completed';
-  participants: number;
-  goal: number;
-  startDate: string;
-  category: string;
-}
-
-interface Template {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  downloadCount: number;
-}
-
-const campaigns: Campaign[] = [
-  {
-    id: '1',
-    title: 'Transparence des algorithmes de recommandation',
-    description:
-      "Demandons aux grandes plateformes (YouTube, TikTok, Instagram) de révéler le fonctionnement de leurs algorithmes de recommandation et leur impact sur les utilisateurs.",
-    target: 'Plateformes de médias sociaux',
-    status: 'active',
-    participants: 1247,
-    goal: 5000,
-    startDate: '2024-01-15',
-    category: 'IA & Algorithmes',
-  },
-  {
-    id: '2',
-    title: 'Droit à la portabilité réel',
-    description:
-      "Les géants du numérique rendent difficile la récupération de nos données. Exigeons des formats standardisés et facilement exploitables.",
-    target: 'GAFAM',
-    status: 'active',
-    participants: 892,
-    goal: 3000,
-    startDate: '2024-02-01',
-    category: 'RGPD',
-  },
-  {
-    id: '3',
-    title: 'Protection des données des mineurs',
-    description:
-      "Renforcer la protection des données personnelles des enfants sur les plateformes de jeux et réseaux sociaux.",
-    target: 'Plateformes de gaming',
-    status: 'upcoming',
-    participants: 0,
-    goal: 2000,
-    startDate: '2024-03-01',
-    category: 'Protection des mineurs',
-  },
-];
-
-const templates: Template[] = [
-  {
-    id: '1',
-    title: "Demande d'accès aux données (Article 15 RGPD)",
-    description: 'Modèle de lettre pour demander une copie de vos données personnelles.',
-    category: 'RGPD',
-    downloadCount: 2341,
-  },
-  {
-    id: '2',
-    title: "Demande de suppression (Article 17 RGPD)",
-    description: 'Modèle pour exercer votre droit à l\'oubli.',
-    category: 'RGPD',
-    downloadCount: 1876,
-  },
-  {
-    id: '3',
-    title: 'Opposition au profilage publicitaire',
-    description: 'Lettre type pour refuser le ciblage publicitaire basé sur vos données.',
-    category: 'Publicité',
-    downloadCount: 1543,
-  },
-  {
-    id: '4',
-    title: 'Réclamation auprès de la CNIL',
-    description: 'Guide et modèle pour déposer une plainte auprès de la CNIL.',
-    category: 'Réclamation',
-    downloadCount: 987,
-  },
-];
-
-const getStatusBadge = (status: Campaign['status']) => {
-  switch (status) {
-    case 'active':
-      return (
-        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-medium tracking-[0.2em] uppercase">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          En cours
-        </span>
-      );
-    case 'upcoming':
-      return (
-        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-medium tracking-[0.2em] uppercase">
-          <Clock className="h-2.5 w-2.5" />
-          À venir
-        </span>
-      );
-    case 'completed':
-      return (
-        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-medium tracking-[0.2em] uppercase">
-          <CheckCircle className="h-2.5 w-2.5" />
-          Terminée
-        </span>
-      );
-  }
-};
+const categories = ['Toutes les campagnes', 'Numérique', 'Santé', 'Éducation', 'Environnement'];
 
 export function CollectiveActions() {
+  const [activeCategory, setActiveCategory] = useState('Toutes les campagnes');
+  const queryClient = useQueryClient();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  const { data: campaigns = [], isLoading: campaignsLoading, error: campaignsError } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: () => campaignsApi.list(),
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ['campaigns', 'stats'],
+    queryFn: () => campaignsApi.getStats(),
+  });
+
+  const { data: participations = [] } = useQuery({
+    queryKey: ['campaigns', 'my-participations'],
+    queryFn: () => campaignsApi.getMyParticipations(),
+    enabled: isAuthenticated,
+  });
+
+  const participatingIds = new Set(participations.map((p) => p.campaign.id));
+
+  const joinMutation = useMutation({
+    mutationFn: (id: string) => campaignsApi.join(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+  });
+
+  const leaveMutation = useMutation({
+    mutationFn: (id: string) => campaignsApi.leave(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+  });
+
+  const activeCampaigns = campaigns.filter((c) => c.status === 'active');
+  const filteredCampaigns = activeCategory === 'Toutes les campagnes'
+    ? campaigns
+    : campaigns.filter((c) => c.category === activeCategory);
+
+  const totalParticipants = stats?.totalParticipants ?? activeCampaigns.reduce((sum, c) => sum + c.participants, 0);
+  const completedCampaigns = stats?.completedCampaigns ?? 0;
+
+  const handleJoinLeave = (campaign: Campaign) => {
+    if (!isAuthenticated) {
+      window.location.href = '/citizen/login';
+      return;
+    }
+    const isMutating = joinMutation.isPending || leaveMutation.isPending;
+    if (isMutating) return;
+
+    if (participatingIds.has(campaign.id)) {
+      leaveMutation.mutate(campaign.id);
+    } else {
+      joinMutation.mutate(campaign.id);
+    }
+  };
+
+  if (campaignsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100svh-3.5rem)]">
+        <Loader2 className="h-6 w-6 animate-spin text-black/30" />
+      </div>
+    );
+  }
+
+  if (campaignsError) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100svh-3.5rem)]">
+        <p className="text-black/50 text-sm">Impossible de charger les campagnes. Réessayez plus tard.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-24 animate-[float-up_1s_cubic-bezier(0.16,1,0.3,1)_forwards] opacity-0">
-      {/* Hero */}
-      <section className="text-center space-y-6 pt-10">
-        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-[10px] sm:text-xs font-medium tracking-[0.2em] uppercase">
-          <Users className="h-4 w-4" />
-          Actions Collectives
-        </div>
-        <h1 className="text-4xl md:text-6xl font-light text-foreground tracking-tight leading-[1.1] text-balance">
-          Ensemble, faisons <br />
-          <span className="font-medium">
-            bouger les lignes
-          </span>
-        </h1>
-        <p className="text-lg text-muted-foreground font-light max-w-2xl mx-auto leading-relaxed text-pretty">
-          Rejoignez des campagnes citoyennes pour défendre vos droits numériques.
-          La force du collectif face à l'empreinte technologique.
-        </p>
-      </section>
-
-      {/* Stats */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { value: '3 200+', label: 'Citoyens mobilisés' },
-          { value: '5', label: 'Campagnes actives' },
-          { value: '12', label: 'Victoires obtenues' },
-          { value: '50K+', label: 'Modèles téléchargés' },
-        ].map((stat, idx) => (
-          <div
-            key={idx}
-            className="text-center p-8 rounded-2xl bg-card border border-border"
-          >
-            <p className="text-4xl font-light text-primary mb-2">
-              {stat.value}
-            </p>
-            <p className="text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground">{stat.label}</p>
+    <div className="flex min-h-[calc(100svh-3.5rem)]">
+      {/* Sidebar */}
+      <aside className="hidden lg:block w-64 shrink-0 border-r-[2px] border-black bg-white">
+        <div className="sticky top-14 p-6 pt-24 space-y-8">
+          {/* Stats */}
+          <div>
+            <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase block mb-4">
+              En un coup d'oeil
+            </span>
+            <div className="space-y-3">
+              {[
+                { label: 'Campagnes actives', value: String(stats?.activeCampaigns ?? activeCampaigns.length) },
+                { label: 'Participants', value: totalParticipants.toLocaleString() + '+' },
+                { label: 'Terminées', value: String(completedCampaigns) },
+              ].map((stat) => (
+                <div key={stat.label} className="flex items-center justify-between">
+                  <span className="text-xs text-black/50">{stat.label}</span>
+                  <span className="font-bold text-sm tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                    {stat.value}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </section>
 
-      {/* Active Campaigns */}
-      <section className="space-y-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-light text-foreground text-balance">Campagnes en cours</h2>
-          <span className="text-sm font-light text-muted-foreground">
-            {campaigns.filter((c) => c.status === 'active').length} campagnes
-            actives
+          {/* Category filter */}
+          <div>
+            <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase block mb-4">
+              Filtrer par
+            </span>
+            <nav className="space-y-0">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`w-full text-left py-2.5 text-sm transition-colors duration-100 ${
+                    activeCategory === cat
+                      ? 'text-white bg-black px-3 -mx-3 font-medium'
+                      : 'text-black/50 hover:text-black'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 px-6 lg:px-10 py-8 lg:py-10">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div>
+            <h1
+              className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
+              style={{ fontFamily: "'Inter Tight', sans-serif" }}
+            >
+              Actions collectives
+            </h1>
+            <p className="mt-2 text-black/40 text-sm">
+              Rejoignez des campagnes citoyennes pour défendre vos droits numériques.
+            </p>
+          </div>
+        </div>
+
+        {/* Campaign count */}
+        <div className="flex items-center justify-between mb-6">
+          <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase">
+            {filteredCampaigns.length} campagne{filteredCampaigns.length > 1 ? 's' : ''}
           </span>
         </div>
 
-        <div className="space-y-6">
-          {campaigns.map((campaign) => (
-            <div
-              key={campaign.id}
-              className="rounded-3xl border border-border bg-card p-8 hover:bg-muted hover:border-foreground/10 transition-all duration-300"
-            >
-              <div className="flex flex-col lg:flex-row lg:items-start gap-10">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4 mb-4">
-                    {getStatusBadge(campaign.status)}
-                    <span className="text-[9px] font-medium tracking-[0.15em] text-muted-foreground uppercase px-3 py-1 rounded-full border border-border bg-muted">
-                      {campaign.category}
-                    </span>
+        {/* Campaign list */}
+        {filteredCampaigns.length === 0 ? (
+          <div className="border-2 border-black/10 p-12 text-center">
+            <p className="text-black/40 text-sm">Aucune campagne pour le moment.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredCampaigns.map((campaign) => {
+              const progressPct = campaign.participantGoal > 0 ? Math.min((campaign.participants / campaign.participantGoal) * 100, 100) : 0;
+              const isActive = campaign.status === 'active';
+              const isParticipating = participatingIds.has(campaign.id);
+              const isMutatingThis = (joinMutation.isPending && joinMutation.variables === campaign.id) ||
+                (leaveMutation.isPending && leaveMutation.variables === campaign.id);
+
+              return (
+                <div key={campaign.id} className="border-2 border-black/10 hover:border-black transition-colors duration-100 p-6">
+                  {/* Tags + date */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 ${
+                        isActive ? 'bg-black text-white' : 'border border-black/20 text-black/30'
+                      }`}>
+                        {campaign.status === 'active' ? 'Active' : campaign.status === 'upcoming' ? 'À venir' : 'Terminée'}
+                      </span>
+                      {campaign.category && (
+                        <span className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase">
+                          {campaign.category}
+                        </span>
+                      )}
+                    </div>
+                    {campaign.startDate && (
+                      <span className="font-mono text-[9px] tracking-[0.1em] text-black/25">
+                        Lancée le {new Date(campaign.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
                   </div>
-                  <h3 className="text-2xl font-light text-foreground mb-3 text-balance">
+
+                  {/* Title + description */}
+                  <h3
+                    className="font-bold text-lg tracking-tight mb-2"
+                    style={{ fontFamily: "'Inter Tight', sans-serif" }}
+                  >
                     {campaign.title}
                   </h3>
-                  <p className="text-sm font-light text-muted-foreground leading-relaxed mb-6 text-pretty">
+                  <p className="text-black/50 text-sm leading-relaxed mb-4">
                     {campaign.description}
                   </p>
 
-                  <div className="flex flex-wrap gap-6 text-[10px] font-medium tracking-[0.1em] uppercase text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Target className="h-3.5 w-3.5" />
-                      <span>Cible : {campaign.target}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>
-                        Début :{' '}
-                        {new Date(campaign.startDate).toLocaleDateString('fr-FR')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lg:w-72 space-y-6">
-                  {/* Progress */}
-                  {campaign.status !== 'upcoming' && (
-                    <div className="p-5 rounded-2xl bg-muted border border-border">
-                      <div className="flex justify-between text-[10px] font-medium tracking-[0.1em] uppercase mb-3">
-                        <span className="text-muted-foreground">
-                          {campaign.participants.toLocaleString()} mobilisés
+                  {/* Progress + actions */}
+                  {isActive && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-[3px] bg-black/10">
+                            <div className="h-full bg-black transition-all duration-300" style={{ width: `${progressPct}%` }} />
+                          </div>
+                          <span className="font-mono text-[10px] tracking-[0.1em] text-black/30 shrink-0">
+                            {Math.round(progressPct)}%
+                          </span>
+                        </div>
+                        <span className="font-mono text-[9px] tracking-[0.1em] text-black/25 mt-1 block">
+                          {campaign.participants.toLocaleString()} participants
                         </span>
-                        <span className="text-primary">
-                          {Math.round(
-                            (campaign.participants / campaign.goal) * 100
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleJoinLeave(campaign)}
+                          disabled={isMutatingThis}
+                          className={`px-5 py-2.5 text-[11px] font-medium tracking-[0.15em] uppercase border-2 transition-colors duration-100 flex items-center gap-2 disabled:opacity-50 ${
+                            isParticipating
+                              ? 'border-black/15 text-black/40 hover:border-black hover:text-black'
+                              : 'bg-black text-white border-black hover:bg-white hover:text-black'
+                          }`}
+                        >
+                          {isMutatingThis ? (
+                            <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                          ) : (
+                            <Users size={14} strokeWidth={1.5} />
                           )}
-                          %
-                        </span>
+                          {isParticipating ? 'Quitter' : 'Rejoindre'}
+                        </button>
+                        <button className="px-5 py-2.5 border-2 border-black/15 text-black/40 text-[11px] font-medium tracking-[0.15em] uppercase hover:border-black hover:text-black transition-colors duration-100">
+                          Partager
+                        </button>
                       </div>
-                      <div className="h-1.5 bg-border rounded-full overflow-hidden mb-3">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all duration-1000"
-                          style={{
-                            width: `${Math.min(
-                              (campaign.participants / campaign.goal) * 100,
-                              100
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                      <p className="text-[9px] tracking-[0.1em] uppercase text-muted-foreground text-right">
-                        Objectif : {campaign.goal.toLocaleString()}
-                      </p>
                     </div>
                   )}
-
-                  <button
-                    className={cn(
-                      'w-full py-4 px-6 rounded-2xl text-[10px] font-bold tracking-[0.2em] uppercase flex items-center justify-center transition-all duration-300',
-                      campaign.status === 'active'
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'bg-muted text-muted-foreground border border-border cursor-not-allowed'
-                    )}
-                    disabled={campaign.status === 'upcoming'}
-                  >
-                    {campaign.status === 'active' && (
-                      <>
-                        <Users className="h-3.5 w-3.5 mr-3" />
-                        Rejoindre
-                      </>
-                    )}
-                    {campaign.status === 'upcoming' && (
-                      <>
-                        <Clock className="h-3.5 w-3.5 mr-3" />
-                        Bientôt disponible
-                      </>
-                    )}
-                    {campaign.status === 'completed' && (
-                      <>
-                        <CheckCircle className="h-3.5 w-3.5 mr-3" />
-                        Voir les résultats
-                      </>
-                    )}
-                  </button>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Templates */}
-      <section className="space-y-8 relative">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-3xl font-light text-foreground mb-2 text-balance">Modèles juridiques</h2>
-            <p className="text-sm font-light text-muted-foreground">Gagnez du temps dans vos démarches</p>
+              );
+            })}
           </div>
-          <NavLink
-            to="/outils/gdpr"
-            className="text-[10px] font-medium tracking-[0.1em] uppercase text-primary hover:text-foreground transition-colors duration-300 flex items-center gap-2"
+        )}
+
+        {/* CTA */}
+        <div className="border-2 border-black p-8 text-center mt-10">
+          <Heart size={20} strokeWidth={1.5} className="mx-auto mb-4 text-[#21B2AA]" />
+          <h2
+            className="font-bold text-xl tracking-tighter mb-2"
+            style={{ fontFamily: "'Inter Tight', sans-serif" }}
           >
-            Générateur RGPD
-            <ArrowRight className="h-3.5 w-3.5" />
-          </NavLink>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          {templates.map((template) => (
-            <div
-              key={template.id}
-              className="group rounded-2xl border border-border bg-card p-6 hover:border-foreground/10 hover:bg-muted transition-all duration-300 cursor-pointer"
-            >
-              <div className="flex items-start gap-5">
-                <div className="p-3 rounded-xl bg-blue-400/10 border border-blue-400/20 text-blue-400">
-                  <FileText className="h-5 w-5" strokeWidth={1.5} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-[9px] font-medium tracking-[0.1em] uppercase text-muted-foreground border border-border px-2 py-1 rounded-md">
-                      {template.category}
-                    </span>
-                    <div className="flex items-center gap-1.5 text-[9px] font-medium tracking-[0.1em] uppercase text-primary">
-                      <Download className="h-3 w-3" />
-                      {template.downloadCount.toLocaleString()}
-                    </div>
-                  </div>
-                  <h3 className="font-medium text-foreground/90 group-hover:text-foreground transition-colors mb-2">
-                    {template.title}
-                  </h3>
-                  <p className="text-xs font-light text-muted-foreground leading-relaxed text-pretty">
-                    {template.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="rounded-3xl border border-border bg-card p-10 md:p-14 relative overflow-hidden">
-        <div className="relative z-10">
-          <h2 className="text-3xl font-light text-foreground mb-10 text-center text-balance">
-            Comment ça marche ?
-          </h2>
-          <div className="grid md:grid-cols-3 gap-10">
-            {[
-              {
-                step: '1',
-                icon: Users,
-                title: 'Rejoignez une campagne',
-                description:
-                  'Choisissez une cause qui vous tient à cœur et ajoutez votre voix au collectif citoyen.',
-              },
-              {
-                step: '2',
-                icon: Megaphone,
-                title: 'Action coordonnée',
-                description:
-                  'Quand l\'objectif est atteint, nous envoyons une action collective formelle (lettre, plainte, signalement).',
-              },
-              {
-                step: '3',
-                icon: Scale,
-                title: 'Suivi juridique',
-                description:
-                  'Nos experts assurent le suivi de la contestation et vous informent en toute transparence.',
-              },
-            ].map((item, idx) => (
-              <div key={idx} className="text-center group">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 text-primary mb-6 transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-sm">
-                  <item.icon className="h-7 w-7" strokeWidth={1.5} />
-                </div>
-                <h3 className="font-medium text-foreground mb-3 text-lg">{item.title}</h3>
-                <p className="text-sm font-light text-muted-foreground leading-relaxed text-pretty">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="rounded-3xl border border-primary/20 bg-primary/10 p-10 md:p-16 text-center relative overflow-hidden">
-        <div className="relative z-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/30 mb-6">
-            <Heart className="h-7 w-7 text-primary animate-pulse" strokeWidth={1.5} />
-          </div>
-          <h2 className="text-3xl font-light text-foreground mb-4 text-balance">
             Soutenez nos actions
           </h2>
-          <p className="text-muted-foreground font-light max-w-lg mx-auto mb-10 leading-relaxed text-pretty">
-            Data Ring est une association d'intérêt général. Vos dons nous
-            permettent de mener des actions juridiques pour défendre librement les
-            droits numériques de tous.
+          <p className="text-black/40 text-sm max-w-md mx-auto mb-6 leading-relaxed">
+            Dataring est une association d'intérêt général. Vos dons nous permettent de mener des actions juridiques.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
             <a
               href="https://www.data-ring.net/soutenir"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-4 bg-primary text-primary-foreground text-[10px] font-bold tracking-[0.2em] uppercase rounded-full hover:bg-primary/90 transition-colors flex items-center justify-center"
+              className="px-6 py-3 bg-black text-white text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-white hover:text-black border-2 border-black transition-colors duration-100"
             >
-              <Heart className="h-3.5 w-3.5 mr-2" />
               Faire un don
             </a>
             <a
               href="https://www.data-ring.net/adhesion"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-4 bg-muted border border-border text-foreground text-[10px] font-bold tracking-[0.2em] uppercase rounded-full hover:bg-muted/80 hover:border-foreground/20 transition-colors flex items-center justify-center"
+              className="px-6 py-3 border-2 border-black text-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100"
             >
-              <Users className="h-3.5 w-3.5 mr-2" />
               Devenir membre
             </a>
           </div>
-          <p className="text-[9px] font-medium tracking-[0.1em] text-primary uppercase mt-6 opacity-80">
+          <p className="font-mono text-[9px] tracking-[0.1em] text-[#21B2AA]/60 uppercase mt-4">
             66% de votre don est déductible de vos impôts
           </p>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

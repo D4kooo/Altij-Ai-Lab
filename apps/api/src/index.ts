@@ -26,6 +26,8 @@ import { campaignsRoutes } from './routes/campaigns';
 import { templatesRoutes } from './routes/templates';
 import { segaRoutes } from './routes/sega';
 import { supervisionRoutes } from './routes/supervision';
+import { cguAnalyzerRoutes } from './routes/cgu-analyzer';
+import { breachCheckRoutes } from './routes/breach-check';
 import { initScheduler } from './services/scheduler';
 
 const app = new Hono();
@@ -36,8 +38,16 @@ initScheduler();
 // Global middleware
 app.use('*', logger());
 app.use('*', prettyJSON());
-app.use('*', secureHeaders());
-app.use('*', corsMiddleware);
+// Skip security/cors middleware for static assets (Safari video compatibility)
+const isStaticAsset = (path: string) => /\.(mp4|webm|png|jpg|svg|js|css|ico|woff2?)$/i.test(path);
+app.use('*', async (c, next) => {
+  if (isStaticAsset(c.req.path)) return next();
+  return secureHeaders()(c, next);
+});
+app.use('*', async (c, next) => {
+  if (isStaticAsset(c.req.path)) return next();
+  return corsMiddleware(c, next);
+});
 app.use('*', defaultBodyLimit); // 10MB max body size
 app.use('/api/*', apiRateLimit); // 100 req/min for API endpoints
 
@@ -67,6 +77,8 @@ app.route('/api/campaigns', campaignsRoutes);
 app.route('/api/templates', templatesRoutes);
 app.route('/api/sega', segaRoutes);
 app.route('/api/admin/supervision', supervisionRoutes);
+app.route('/api/cgu-analyze', cguAnalyzerRoutes);
+app.route('/api/breach-check', breachCheckRoutes);
 
 // Production: serve SPAs as static files
 if (process.env.NODE_ENV === 'production') {
@@ -80,6 +92,48 @@ if (process.env.NODE_ENV === 'production') {
   app.get('/app/*', (c) => {
     return new Response(Bun.file(staticBase + '/app/index.html'), {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  });
+
+  // Video/media files: serve with Range request support (Safari requires this)
+  app.get('/assets/:filename{.+\\.mp4$}', async (c) => {
+    const filename = c.req.param('filename');
+    const filePath = staticBase + '/public/assets/' + filename;
+    const file = Bun.file(filePath);
+    if (!(await file.exists())) return c.notFound();
+
+    const size = file.size;
+    const range = c.req.header('range');
+
+    // Common headers — strip restrictive security headers for media
+    const common = {
+      'Content-Type': 'video/mp4',
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'public, max-age=86400',
+      'Cross-Origin-Resource-Policy': 'same-site',
+    };
+
+    if (range) {
+      const match = range.match(/bytes=(\d+)-(\d*)/);
+      if (match) {
+        const start = parseInt(match[1]);
+        const end = match[2] ? parseInt(match[2]) : size - 1;
+        return new Response(file.slice(start, end + 1), {
+          status: 206,
+          headers: {
+            ...common,
+            'Content-Range': `bytes ${start}-${end}/${size}`,
+            'Content-Length': String(end - start + 1),
+          },
+        });
+      }
+    }
+
+    return new Response(file, {
+      headers: {
+        ...common,
+        'Content-Length': String(size),
+      },
     });
   });
 

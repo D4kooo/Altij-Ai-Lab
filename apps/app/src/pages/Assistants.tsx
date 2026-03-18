@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Star, Pin, ArrowRight } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Bot, Star, ArrowRight } from 'lucide-react';
 import { assistantsApi, favoritesApi } from '@/lib/api';
-import { Card, CardContent, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { DynamicIcon } from '@/components/DynamicIcon';
+
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.03, delayChildren: 0.02 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, damping: 28, stiffness: 300 } },
+};
 
 export function Assistants() {
   const queryClient = useQueryClient();
@@ -37,7 +44,9 @@ export function Assistants() {
 
   const isFavorite = (id: string) => favorites?.some((f) => f.itemType === 'assistant' && f.itemId === id);
 
-  const toggleFavorite = (id: string) => {
+  const toggleFavorite = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (isFavorite(id)) {
       removeFavorite.mutate({ itemType: 'assistant', itemId: id });
     } else {
@@ -54,31 +63,33 @@ export function Assistants() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground/10 border-t-foreground/50" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <motion.div
+      className="space-y-6"
+      variants={stagger}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Header */}
-      <div className="space-y-1">
+      <motion.div variants={fadeUp}>
         <h1 className="text-2xl font-semibold tracking-tight">Assistants</h1>
-        <p className="text-muted-foreground">
-          Sélectionnez un assistant pour démarrer une conversation
-        </p>
-      </div>
+      </motion.div>
 
-      {/* Filters - Premium pill style */}
+      {/* Filters — flat text tabs */}
       {specialties.length > 1 && (
-        <div className="flex flex-wrap gap-2">
+        <motion.div variants={fadeUp} className="flex flex-wrap gap-1">
           <button
             onClick={() => setSelectedSpecialty(null)}
             className={cn(
-              'px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-200',
+              'px-3 py-1 text-[13px] font-medium rounded-md transition-colors duration-100',
               selectedSpecialty === null
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/[0.03]'
+                ? 'bg-muted text-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
             )}
           >
             Tous
@@ -88,115 +99,81 @@ export function Assistants() {
               key={specialty}
               onClick={() => setSelectedSpecialty(specialty)}
               className={cn(
-                'px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-200',
+                'px-3 py-1 text-[13px] font-medium rounded-md transition-colors duration-100',
                 selectedSpecialty === specialty
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-primary/[0.03]'
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
             >
               {specialty}
             </button>
           ))}
-        </div>
+        </motion.div>
       )}
 
-      {/* Grid - Premium cards */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {/* List — flat rows, no cards */}
+      <motion.div variants={fadeUp} className="space-y-px">
         {filteredAssistants?.map((assistant) => (
-          <Card
+          <Link
             key={assistant.id}
-            className={cn(
-              "group relative overflow-hidden hover:shadow-premium hover:-translate-y-0.5",
-              assistant.isPinned && "ring-2 ring-primary/20"
-            )}
+            to={`/assistants/${assistant.id}`}
+            className="group flex items-center gap-4 rounded-lg px-3 py-3 -mx-3 hover:bg-muted/50 transition-colors"
           >
-            {/* Pinned indicator */}
-            {assistant.isPinned && (
-              <div className="absolute left-4 top-4 z-10">
-                <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">
-                  <Pin className="h-3 w-3 mr-1" strokeWidth={2} />
-                  Recommande
-                </Badge>
-              </div>
-            )}
-
-            {/* Favorite button - refined */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                toggleFavorite(assistant.id);
+            {/* Icon */}
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+              style={{
+                backgroundColor: `${assistant.color}10`,
+                color: assistant.color,
               }}
+            >
+              <DynamicIcon name={assistant.icon} className="h-5 w-5" strokeWidth={1.5} />
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium truncate">{assistant.name}</p>
+                {assistant.isPinned && (
+                  <span className="text-[10px] text-primary font-medium uppercase tracking-wider">Recommandé</span>
+                )}
+              </div>
+              <p className="text-[13px] text-muted-foreground truncate mt-0.5">
+                {assistant.description}
+              </p>
+            </div>
+
+            {/* Specialty */}
+            <span className="hidden sm:block text-[12px] text-muted-foreground/50 shrink-0">
+              {assistant.specialty}
+            </span>
+
+            {/* Favorite */}
+            <button
+              onClick={(e) => toggleFavorite(e, assistant.id)}
               className={cn(
-                'absolute right-4 top-4 z-10 p-1.5 rounded-full transition-all duration-200',
+                'p-1.5 rounded-md transition-all duration-100 shrink-0',
                 isFavorite(assistant.id)
-                  ? 'bg-amber-50'
-                  : 'opacity-0 group-hover:opacity-100 hover:bg-primary/[0.03]'
+                  ? 'text-amber-400'
+                  : 'text-muted-foreground/0 group-hover:text-muted-foreground/30 hover:!text-amber-400'
               )}
             >
-              <Star
-                className={cn(
-                  'h-4 w-4 transition-colors',
-                  isFavorite(assistant.id) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'
-                )}
-                strokeWidth={1.5}
-              />
+              <Star className={cn('h-4 w-4', isFavorite(assistant.id) && 'fill-current')} strokeWidth={1.5} />
             </button>
 
-            <CardContent className={cn("p-6", assistant.isPinned && "pt-12")}>
-              {/* Icon with refined container */}
-              <div className="flex items-start gap-4 mb-4">
-                <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105"
-                  style={{
-                    backgroundColor: `${assistant.color}12`,
-                    color: assistant.color,
-                  }}
-                >
-                  <DynamicIcon name={assistant.icon} className="h-5 w-5" strokeWidth={1.5} />
-                </div>
-                <div className="min-w-0 flex-1 pr-8">
-                  <h3 className="font-semibold text-foreground truncate tracking-tight">
-                    {assistant.name}
-                  </h3>
-                  <Badge
-                    variant="secondary"
-                    className="mt-1.5 text-xs font-medium bg-primary/[0.03] text-muted-foreground border-0"
-                  >
-                    {assistant.specialty}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Description - refined typography */}
-              <CardDescription className="line-clamp-2 mb-5 text-sm leading-relaxed">
-                {assistant.description}
-              </CardDescription>
-
-              {/* CTA Button - Premium minimalist style */}
-              <Button
-                asChild
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all duration-200 group/btn"
-                size="sm"
-              >
-                <Link to={`/assistants/${assistant.id}`}>
-                  <span>Démarrer</span>
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover/btn:translate-x-0.5" strokeWidth={1.5} />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Arrow */}
+            <ArrowRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground/40 transition-colors shrink-0" strokeWidth={1.5} />
+          </Link>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Empty state - refined */}
+      {/* Empty state */}
       {filteredAssistants?.length === 0 && (
         <div className="py-16 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Bot className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
-          </div>
-          <p className="text-muted-foreground">Aucun assistant trouvé</p>
+          <Bot className="h-5 w-5 text-muted-foreground/20 mx-auto mb-2" strokeWidth={1.5} />
+          <p className="text-sm text-muted-foreground">Aucun assistant trouvé</p>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

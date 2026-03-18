@@ -17,14 +17,21 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { campaignsApi, type Campaign } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const statusOptions = [
-  { value: 'draft', label: 'Brouillon', color: 'bg-gray-100 text-gray-700', icon: Clock },
-  { value: 'upcoming', label: 'À venir', color: 'bg-amber-100 text-amber-700', icon: Calendar },
-  { value: 'active', label: 'Active', color: 'bg-green-100 text-green-700', icon: Users },
-  { value: 'completed', label: 'Terminée', color: 'bg-blue-100 text-blue-700', icon: CheckCircle },
+  { value: 'draft', label: 'Brouillon', color: 'bg-muted text-foreground', icon: Clock },
+  { value: 'upcoming', label: 'À venir', color: 'bg-amber-500/15 text-amber-600 dark:text-amber-400', icon: Calendar },
+  { value: 'active', label: 'Active', color: 'bg-green-500/15 text-green-600 dark:text-green-400', icon: Users },
+  { value: 'completed', label: 'Terminée', color: 'bg-blue-500/15 text-blue-600 dark:text-blue-400', icon: CheckCircle },
 ];
 
 export function CampaignManager() {
@@ -34,6 +41,7 @@ export function CampaignManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -57,17 +65,22 @@ export function CampaignManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Voulez-vous vraiment supprimer cette campagne ?')) return;
+  const handleDelete = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
 
     try {
-      setDeletingId(id);
-      await campaignsApi.delete(id);
-      setCampaigns(campaigns.filter(c => c.id !== id));
+      setDeletingId(confirmDeleteId);
+      await campaignsApi.delete(confirmDeleteId);
+      setCampaigns(campaigns.filter(c => c.id !== confirmDeleteId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
     } finally {
       setDeletingId(null);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -159,8 +172,8 @@ export function CampaignManager() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des Campagnes</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Gestion des Campagnes</h1>
+          <p className="text-muted-foreground mt-1">
             Créez et gérez les actions collectives
           </p>
         </div>
@@ -176,12 +189,12 @@ export function CampaignManager() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher une campagne..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-white"
+            className="pl-10 bg-card"
           />
         </div>
         <div className="flex gap-2">
@@ -210,20 +223,20 @@ export function CampaignManager() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-700">{error}</p>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-destructive" />
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
       {/* Campaigns List */}
       {filteredCampaigns.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-          <Megaphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="text-center py-12 bg-muted rounded-xl border border-border">
+          <Megaphone className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-lg font-medium text-foreground mb-2">
             {searchQuery || filterStatus ? 'Aucune campagne trouvée' : 'Aucune campagne'}
-          </h3>
-          <p className="text-gray-500 mb-4">
+          </h2>
+          <p className="text-muted-foreground mb-4">
             {searchQuery || filterStatus
               ? 'Modifiez vos filtres ou créez une nouvelle campagne'
               : 'Commencez par créer votre première campagne'}
@@ -248,7 +261,7 @@ export function CampaignManager() {
             return (
               <div
                 key={campaign.id}
-                className="rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 hover:shadow-sm transition-all"
+                className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all"
               >
                 <div className="flex items-start gap-4">
                   {/* Icon */}
@@ -259,7 +272,7 @@ export function CampaignManager() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                      <h3 className="font-semibold text-gray-900 truncate">
+                      <h3 className="font-semibold text-foreground truncate">
                         {campaign.title}
                       </h3>
                       <span className={cn(
@@ -270,10 +283,10 @@ export function CampaignManager() {
                         {statusInfo?.label}
                       </span>
                     </div>
-                    <p className="text-gray-500 text-sm line-clamp-2">
+                    <p className="text-muted-foreground text-sm line-clamp-2">
                       {campaign.description || 'Aucune description'}
                     </p>
-                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-400">
+                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
                       {campaign.target && (
                         <span className="flex items-center gap-1">
                           <Target className="h-4 w-4" />
@@ -292,20 +305,20 @@ export function CampaignManager() {
                     {campaign.status !== 'draft' && (
                       <div className="mt-3">
                         <div className="flex justify-between text-xs mb-1">
-                          <span className="text-gray-500">
+                          <span className="text-muted-foreground">
                             {campaign.participants.toLocaleString()} participants
                           </span>
                           <span className="text-[#57C5B6] font-medium">
                             {Math.round(progress)}%
                           </span>
                         </div>
-                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-[#57C5B6] rounded-full transition-all"
                             style={{ width: `${progress}%` }}
                           />
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Objectif: {campaign.participantGoal.toLocaleString()}
                         </p>
                       </div>
@@ -314,25 +327,50 @@ export function CampaignManager() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditModal(campaign)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(campaign.id)}
-                      disabled={deletingId === campaign.id}
-                    >
-                      {deletingId === campaign.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      )}
-                    </Button>
+                    {confirmDeleteId === campaign.id ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="min-w-[44px] min-h-[44px] text-destructive hover:text-destructive"
+                          onClick={confirmDelete}
+                          disabled={deletingId === campaign.id}
+                        >
+                          {deletingId === campaign.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Supprimer'
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="min-w-[44px] min-h-[44px]"
+                          onClick={() => setConfirmDeleteId(null)}
+                        >
+                          Annuler
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="min-w-[44px] min-h-[44px]"
+                          onClick={() => openEditModal(campaign)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="min-w-[44px] min-h-[44px]"
+                          onClick={() => handleDelete(campaign.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -342,137 +380,142 @@ export function CampaignManager() {
       )}
 
       {/* Modal */}
-      {showModal && editingCampaign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setShowModal(false)}
-          />
-          <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {editingCampaign.id ? 'Modifier la campagne' : 'Nouvelle campagne'}
-              </h2>
+      <Dialog open={showModal && !!editingCampaign} onOpenChange={(open) => {
+        if (!open) {
+          setShowModal(false);
+          setEditingCampaign(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingCampaign?.id ? 'Modifier la campagne' : 'Nouvelle campagne'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCampaign?.id ? 'Modifiez les informations de la campagne.' : 'Remplissez les informations pour créer une nouvelle campagne.'}
+            </DialogDescription>
+          </DialogHeader>
 
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Titre *
+              </label>
+              <Input
+                value={editingCampaign?.title || ''}
+                onChange={(e) => setEditingCampaign({ ...editingCampaign, title: e.target.value })}
+                placeholder="Ex: Transparence des algorithmes"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Description
+              </label>
+              <Textarea
+                value={editingCampaign?.description || ''}
+                onChange={(e) => setEditingCampaign({ ...editingCampaign, description: e.target.value })}
+                placeholder="Description de la campagne..."
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Titre *
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Cible
                 </label>
                 <Input
-                  value={editingCampaign.title || ''}
-                  onChange={(e) => setEditingCampaign({ ...editingCampaign, title: e.target.value })}
-                  placeholder="Ex: Transparence des algorithmes"
+                  value={editingCampaign?.target || ''}
+                  onChange={(e) => setEditingCampaign({ ...editingCampaign, target: e.target.value })}
+                  placeholder="Ex: GAFAM"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Catégorie
                 </label>
-                <Textarea
-                  value={editingCampaign.description || ''}
-                  onChange={(e) => setEditingCampaign({ ...editingCampaign, description: e.target.value })}
-                  placeholder="Description de la campagne..."
-                  rows={3}
+                <Input
+                  value={editingCampaign?.category || ''}
+                  onChange={(e) => setEditingCampaign({ ...editingCampaign, category: e.target.value })}
+                  placeholder="Ex: RGPD"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cible
-                  </label>
-                  <Input
-                    value={editingCampaign.target || ''}
-                    onChange={(e) => setEditingCampaign({ ...editingCampaign, target: e.target.value })}
-                    placeholder="Ex: GAFAM"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Catégorie
-                  </label>
-                  <Input
-                    value={editingCampaign.category || ''}
-                    onChange={(e) => setEditingCampaign({ ...editingCampaign, category: e.target.value })}
-                    placeholder="Ex: RGPD"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Statut
-                  </label>
-                  <select
-                    value={editingCampaign.status || 'draft'}
-                    onChange={(e) => setEditingCampaign({ ...editingCampaign, status: e.target.value as Campaign['status'] })}
-                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
-                  >
-                    {statusOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Objectif participants
-                  </label>
-                  <Input
-                    type="number"
-                    value={editingCampaign.participantGoal || 1000}
-                    onChange={(e) => setEditingCampaign({ ...editingCampaign, participantGoal: parseInt(e.target.value) || 1000 })}
-                    min={1}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date de début
-                  </label>
-                  <Input
-                    type="date"
-                    value={editingCampaign.startDate || ''}
-                    onChange={(e) => setEditingCampaign({ ...editingCampaign, startDate: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date de fin
-                  </label>
-                  <Input
-                    type="date"
-                    value={editingCampaign.endDate || ''}
-                    onChange={(e) => setEditingCampaign({ ...editingCampaign, endDate: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowModal(false)}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-[#57C5B6] hover:bg-[#4AB0A2] text-white"
-                >
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
-                  {editingCampaign.id ? 'Mettre à jour' : 'Créer'}
-                </Button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Statut
+                </label>
+                <select
+                  value={editingCampaign?.status || 'draft'}
+                  onChange={(e) => setEditingCampaign({ ...editingCampaign, status: e.target.value as Campaign['status'] })}
+                  className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground"
+                >
+                  {statusOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Objectif participants
+                </label>
+                <Input
+                  type="number"
+                  value={editingCampaign?.participantGoal || 1000}
+                  onChange={(e) => setEditingCampaign({ ...editingCampaign, participantGoal: parseInt(e.target.value) || 1000 })}
+                  min={1}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Date de début
+                </label>
+                <Input
+                  type="date"
+                  value={editingCampaign?.startDate || ''}
+                  onChange={(e) => setEditingCampaign({ ...editingCampaign, startDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Date de fin
+                </label>
+                <Input
+                  type="date"
+                  value={editingCampaign?.endDate || ''}
+                  onChange={(e) => setEditingCampaign({ ...editingCampaign, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowModal(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving}
+                className="bg-[#57C5B6] hover:bg-[#4AB0A2] text-white"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                {editingCampaign?.id ? 'Mettre à jour' : 'Créer'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

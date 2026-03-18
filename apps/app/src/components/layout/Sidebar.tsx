@@ -9,18 +9,20 @@ import {
   Shield,
   Settings,
   LogOut,
-  Heart,
   Briefcase,
   GraduationCap,
   Megaphone,
   FileText,
   ExternalLink,
   BarChart3,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { useOrganizationStore } from '@/stores/organizationStore';
-import { Button } from '@/components/ui/button';
+import { useThemeStore } from '@/stores/themeStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface NavItem {
@@ -41,7 +43,6 @@ const allNavigation: NavItem[] = [
   { name: 'Historique', href: '/history', icon: History },
 ];
 
-// Admin CMS navigation (staff only)
 const adminNavigation: NavItem[] = [
   { name: 'Cours', href: '/admin/courses', icon: GraduationCap },
   { name: 'Campagnes', href: '/admin/campaigns', icon: Megaphone },
@@ -51,61 +52,66 @@ const adminNavigation: NavItem[] = [
 export function Sidebar() {
   const { user, logout } = useAuthStore();
   const { organization } = useOrganizationStore();
+  const { theme, setTheme } = useThemeStore();
   const location = useLocation();
 
   const isFamily = organization?.type === 'family';
-  const isLegacyMode = !organization; // Pas d'organisation = mode legacy (tout afficher)
-  const accentColor = isFamily ? 'bg-emerald-500' : 'bg-primary';
+  const isLegacyMode = !organization;
 
-  // Filtrer la navigation selon le type d'organisation
-  // En mode legacy (pas d'organisation), on affiche tout
   const navigation = allNavigation.filter((item) => {
-    if (isLegacyMode) return true; // Mode legacy: tout afficher
+    if (isLegacyMode) return true;
     if (item.workOnly && isFamily) return false;
     if (item.familyOnly && !isFamily) return false;
     return true;
   });
 
+  const navItemClass = (isActive: boolean) =>
+    cn(
+      'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-100',
+      isActive
+        ? 'bg-sidebar-border/60 text-sidebar-foreground dark:bg-sidebar-border'
+        : 'text-sidebar-muted hover:bg-sidebar-border/40 hover:text-sidebar-foreground'
+    );
+
+  const themeOptions = [
+    { value: 'light' as const, icon: Sun },
+    { value: 'dark' as const, icon: Moon },
+    { value: 'system' as const, icon: Monitor },
+  ];
+
   return (
-    <div className="flex h-full w-60 flex-col bg-slate-900">
-      {/* Logo & Organization */}
-      <div className="py-6 px-4">
-        <NavLink to="/welcome" className="flex items-center justify-center mb-4 hover:opacity-80 transition-opacity">
+    <div className="flex h-full w-[240px] flex-col bg-sidebar">
+      {/* Logo */}
+      <div className="px-5 pt-5 pb-4">
+        <NavLink to="/" className="flex justify-center">
           <img
-            src="/assets/logo-dataring.png"
+            src="/assets/logo-dataring-icon.png"
             alt="Data Ring"
-            className="h-12 w-auto"
+            className="h-10 w-auto dark:invert"
           />
         </NavLink>
+      </div>
 
-        {/* Organization badge */}
-        {organization && (
-          <div
-            className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-lg',
-              isFamily ? 'bg-emerald-500/10' : 'bg-primary/10'
-            )}
-          >
-            {isFamily ? (
-              <Heart className="h-4 w-4 text-emerald-400" />
-            ) : (
-              <Briefcase className="h-4 w-4 text-primary" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-slate-400">
-                {isFamily ? 'Family' : 'Work'}
+      {/* Organization badge */}
+      {organization && (
+        <div className="px-4 pb-4">
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/50 dark:bg-muted/30">
+            <Briefcase className="h-4 w-4 text-sidebar-muted shrink-0" strokeWidth={1.5} />
+            <div className="min-w-0">
+              <p className="text-[11px] text-sidebar-muted uppercase tracking-wider font-medium">
+                {isFamily ? 'Family' : 'Workspace'}
               </p>
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-semibold text-sidebar-foreground truncate">
                 {organization.name}
               </p>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Navigation - Dark theme */}
-      <ScrollArea className="flex-1 px-3 py-2">
-        <nav className="space-y-1">
+      {/* Navigation */}
+      <ScrollArea className="flex-1 px-3">
+        <nav className="space-y-0.5">
           {navigation.map((item) => {
             const isActive =
               item.href === '/'
@@ -113,46 +119,27 @@ export function Sidebar() {
                 : location.pathname.startsWith(item.href);
 
             return (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                  isActive
-                    ? cn(accentColor, 'text-white')
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                )}
-              >
-                <item.icon className="h-4 w-4" strokeWidth={1.5} />
+              <NavLink key={item.name} to={item.href} className={navItemClass(isActive)}>
+                <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
                 {item.name}
               </NavLink>
             );
           })}
         </nav>
 
-        {/* Admin CMS Section - admin only */}
+        {/* Admin CMS Section */}
         {user?.role === 'admin' && (
           <>
-            <div className="my-4 mx-3 border-t border-slate-700" />
-            <p className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <div className="my-4 mx-2 border-t border-sidebar-border" />
+            <p className="px-3 py-1.5 text-[11px] font-semibold text-sidebar-muted/60 uppercase tracking-wider">
               Espace Citoyen
             </p>
-            <nav className="space-y-1">
+            <nav className="space-y-0.5 mt-1">
               {adminNavigation.map((item) => {
                 const isActive = location.pathname.startsWith(item.href);
-
                 return (
-                  <NavLink
-                    key={item.name}
-                    to={item.href}
-                    className={cn(
-                      'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                      isActive
-                        ? 'bg-emerald-600 text-white'
-                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" strokeWidth={1.5} />
+                  <NavLink key={item.name} to={item.href} className={navItemClass(isActive)}>
+                    <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
                     {item.name}
                   </NavLink>
                 );
@@ -161,88 +148,75 @@ export function Sidebar() {
           </>
         )}
 
-        <div className="my-4 mx-3 border-t border-slate-700" />
+        <div className="my-4 mx-2 border-t border-sidebar-border" />
 
-        <NavLink
-          to="/settings"
-          className={cn(
-            'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-            location.pathname === '/settings'
-              ? cn(accentColor, 'text-white')
-              : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-          )}
-        >
-          <Settings className="h-4 w-4" strokeWidth={1.5} />
-          Paramètres
-        </NavLink>
-
-        {user?.role === 'admin' && (
-          <NavLink
-            to="/admin/supervision"
-            className={cn(
-              'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-              location.pathname === '/admin/supervision'
-                ? cn(accentColor, 'text-white')
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-            )}
-          >
-            <BarChart3 className="h-4 w-4" strokeWidth={1.5} />
-            Supervision
+        <nav className="space-y-0.5">
+          <NavLink to="/settings" className={navItemClass(location.pathname === '/settings')}>
+            <Settings className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
+            Paramètres
           </NavLink>
-        )}
 
-        {/* Site public links */}
-        <div className="my-4 mx-3 border-t border-slate-700" />
-        <p className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          Site public
-        </p>
-        <a
-          href={import.meta.env.VITE_PUBLIC_URL || '/'}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-200"
-        >
-          <ExternalLink className="h-4 w-4" strokeWidth={1.5} />
-          Landing page
-        </a>
-        <a
-          href={`${import.meta.env.VITE_PUBLIC_URL || ''}/school`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-200"
-        >
-          <GraduationCap className="h-4 w-4" strokeWidth={1.5} />
-          Espace Citoyen
-        </a>
+          {user?.role === 'admin' && (
+            <NavLink to="/admin/supervision" className={navItemClass(location.pathname === '/admin/supervision')}>
+              <BarChart3 className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
+              Supervision
+            </NavLink>
+          )}
+
+          <a
+            href={import.meta.env.VITE_PUBLIC_URL || '/'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-muted hover:bg-sidebar-border/40 hover:text-sidebar-foreground transition-colors duration-100"
+          >
+            <ExternalLink className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
+            Site public
+          </a>
+        </nav>
       </ScrollArea>
 
-      {/* User - Dark theme */}
-      <div className="p-3 border-t border-slate-700">
-        <div className="flex items-center gap-3 rounded-lg p-2 hover:bg-slate-800 transition-colors">
-          <div
-            className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold text-white',
-              accentColor
-            )}
-          >
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
+      {/* Bottom bar — user + theme toggle */}
+      <div className="px-3 py-3 border-t border-sidebar-border space-y-2.5">
+        {/* Theme toggle */}
+        <div className="flex items-center justify-center gap-0.5 rounded-lg bg-sidebar-border/40 dark:bg-sidebar-border/60 p-0.5 mx-1">
+          {themeOptions.map(({ value, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => setTheme(value)}
+              className={cn(
+                'flex-1 flex items-center justify-center rounded-md py-1 transition-all duration-100',
+                theme === value
+                  ? 'bg-card text-sidebar-foreground shadow-premium-sm dark:bg-muted'
+                  : 'text-sidebar-muted hover:text-sidebar-foreground'
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" strokeWidth={1.5} />
+            </button>
+          ))}
+        </div>
+
+        {/* User */}
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-[11px] font-bold text-primary shrink-0">
+              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-sidebar-foreground truncate">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-[11px] text-sidebar-muted truncate">
+                {user?.email}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium text-white">
-              {user?.firstName} {user?.lastName}
-            </p>
-            <p className="truncate text-xs text-slate-400">
-              {user?.email}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             onClick={() => logout()}
-            className="h-8 w-8 shrink-0 text-slate-400 hover:text-white hover:bg-slate-800"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-sidebar-muted hover:bg-sidebar-border/60 hover:text-sidebar-foreground transition-colors shrink-0"
+            title="Se déconnecter"
           >
             <LogOut className="h-4 w-4" strokeWidth={1.5} />
-          </Button>
+          </button>
         </div>
       </div>
     </div>

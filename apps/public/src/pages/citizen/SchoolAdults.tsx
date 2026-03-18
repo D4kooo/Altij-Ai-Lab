@@ -1,44 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Briefcase,
-  BookOpen,
-  Shield,
-  Brain,
-  Scale,
-  FileText,
-  Lock,
-  Play,
-  Clock,
-  CheckCircle2,
-  ChevronRight,
-  Loader2,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
 import { useCoursesData } from '@/hooks/useCoursesData';
-
-// Map icon strings to components
-const iconMap: Record<string, typeof Shield> = {
-  Scale,
-  Brain,
-  Shield,
-  FileText,
-  Lock,
-  Briefcase,
-  BookOpen,
-};
-
-// Color palette for dynamic categories
-const categoryColors = [
-  { color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-400/10', bar: 'bg-blue-600' },
-  { color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-400/10', bar: 'bg-purple-600' },
-  { color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-400/10', bar: 'bg-green-600' },
-  { color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-400/10', bar: 'bg-amber-600' },
-  { color: 'text-rose-600 dark:text-rose-400', bgColor: 'bg-rose-100 dark:bg-rose-400/10', bar: 'bg-rose-600' },
-  { color: 'text-cyan-600 dark:text-cyan-400', bgColor: 'bg-cyan-100 dark:bg-cyan-400/10', bar: 'bg-cyan-600' },
-];
 
 export function SchoolAdults() {
   const navigate = useNavigate();
@@ -49,28 +12,10 @@ export function SchoolAdults() {
   const totalModules = allModules.length;
   const progress = totalModules > 0 ? (completedCount / totalModules) * 100 : 0;
 
-  // Extract unique categories dynamically
-  const categoryNames = [...new Set(allModules.map((m) => m.courseCategory).filter(Boolean))] as string[];
-  const categories = categoryNames.map((name, idx) => ({
-    id: name,
-    name,
-    colors: categoryColors[idx % categoryColors.length],
-  }));
-
-  // Calculate total duration
-  const totalDuration = allModules.reduce((acc, m) => {
-    const mins = parseInt(m.duration.replace(/[^\d]/g, '')) || 0;
-    return acc + mins;
-  }, 0);
-
-  const handleStartModule = (moduleId: string) => {
-    navigate(`/school/adultes/module/${moduleId}`);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-6 w-6 animate-spin text-black/30" />
       </div>
     );
   }
@@ -78,234 +23,96 @@ export function SchoolAdults() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">{error}</p>
-        <Button onClick={() => window.location.reload()} className="mt-4">
+        <p className="text-black/50">{error}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100">
           Réessayer
-        </Button>
+        </button>
       </div>
     );
   }
 
+  // Find next module to do
+  const nextModuleIndex = allModules.findIndex((m) => !isModuleCompleted('adultes', m.id));
+
   return (
-    <div className="space-y-8">
-      {/* Back link */}
-      <NavLink
-        to="/school"
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour aux parcours
+    <div className="space-y-10 px-6 lg:px-10 py-8 lg:py-10 pt-20">
+      {/* Back */}
+      <NavLink to="/school" className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.15em] uppercase text-black/40 hover:text-black transition-colors duration-100">
+        <ArrowLeft size={14} strokeWidth={1.5} /> Parcours
       </NavLink>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl border border-primary/20 bg-primary/10 p-8">
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
-          <div className="p-4 rounded-2xl bg-primary/20 text-primary">
-            <Briefcase className="h-10 w-10" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-foreground text-balance">Parcours Adultes</h1>
-              <span className="px-2 py-1 rounded bg-primary/20 text-primary text-xs font-medium">
-                16-60 ans
-              </span>
-            </div>
-            <p className="text-muted-foreground text-pretty">
-              Maîtrisez les enjeux du numérique moderne. RGPD, intelligence
-              artificielle, cybersécurité : tout ce qu'il faut savoir pour
-              protéger vos données et celles de votre entreprise.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Header + progress */}
+      <div>
+        <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Adultes · 16–60 ans</span>
+        <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95] mb-6" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+          Ton parcours
+        </h1>
 
-      {/* Progress */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Votre progression</h2>
-            <p className="text-sm text-muted-foreground">
-              {completedCount} modules terminés sur {totalModules}
-            </p>
+        {/* Progress bar */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-[3px] bg-black/10">
+            <div className="h-full bg-black transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <div className="text-right">
-            <span className="text-3xl font-bold text-primary">
-              {Math.round(progress)}%
-            </span>
-          </div>
-        </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+          <span className="font-mono text-[10px] tracking-[0.15em] text-black/40">
+            {completedCount}/{totalModules}
+          </span>
         </div>
       </div>
 
-      {/* Categories */}
-      {categories.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-xl font-bold text-foreground">Catégories</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {categories.map((cat) => {
-              const catModules = allModules.filter((m) => m.courseCategory === cat.id);
-              const catCompleted = catModules.filter((m) => isModuleCompleted('adultes', m.id)).length;
-              return (
-                <div
-                  key={cat.id}
-                  className="group rounded-xl border border-border bg-card p-4 hover:border-foreground/20 hover:shadow-sm transition-all"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={cn('p-2 rounded-lg', cat.colors.bgColor, cat.colors.color)}>
-                      <BookOpen className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-foreground">{cat.name}</h3>
-                      <p className="text-xs text-muted-foreground">
-                        {catCompleted}/{catModules.length} terminés
-                      </p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={cn('h-full rounded-full', cat.colors.bar)}
-                      style={{
-                        width: `${catModules.length > 0 ? (catCompleted / catModules.length) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* Module list */}
+      <div className="border-t-[2px] border-black">
+        {allModules.map((module, i) => {
+          const completed = isModuleCompleted('adultes', module.id);
+          const isNext = i === nextModuleIndex;
 
-      {/* All Modules */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-foreground">Tous les modules</h2>
-          {totalDuration > 0 && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              ~{Math.round(totalDuration / 60)}h de contenu
-            </div>
-          )}
-        </div>
+          return (
+            <button
+              key={module.id}
+              onClick={() => navigate(`/school/adultes/module/${module.id}`)}
+              className={`w-full text-left flex items-center gap-4 py-5 border-b border-black/10 hover:border-black transition-colors duration-100 group ${
+                isNext ? 'bg-black/[0.02]' : ''
+              }`}
+            >
+              {/* Number */}
+              <span className={`font-mono text-[10px] tracking-[0.3em] w-8 shrink-0 ${
+                completed ? 'text-[#21B2AA]' : 'text-black/20'
+              }`}>
+                {String(i + 1).padStart(2, '0')}.
+              </span>
 
-        <div className="grid gap-4">
-          {allModules.map((module) => {
-            const category = categories.find((c) => c.id === module.courseCategory);
-            const completed = isModuleCompleted('adultes', module.id);
-            const IconComponent = iconMap[module.icon] || Shield;
-
-            return (
-              <div
-                key={module.id}
-                className={cn(
-                  'relative group rounded-xl border p-5 transition-all',
-                  completed
-                    ? 'border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5'
-                    : 'border-border bg-card hover:border-primary/30 hover:shadow-sm'
+              {/* Title + meta */}
+              <div className="flex-1 min-w-0">
+                <span className={`block text-base tracking-tight truncate ${
+                  completed ? 'text-black/40' : isNext ? 'font-bold text-black' : 'text-black/70'
+                }`} style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                  {module.title}
+                </span>
+                {module.courseCategory && (
+                  <span className="font-mono text-[9px] tracking-[0.15em] text-black/25 uppercase">
+                    {module.courseCategory}
+                  </span>
                 )}
-              >
-                <div className="flex items-start gap-4">
-                  <div
-                    className={cn(
-                      'p-3 rounded-xl',
-                      completed
-                        ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400'
-                        : category?.colors.bgColor,
-                      !completed && category?.colors.color
-                    )}
-                  >
-                    {completed ? (
-                      <CheckCircle2 className="h-5 w-5" />
-                    ) : (
-                      <IconComponent className="h-5 w-5" />
-                    )}
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-foreground">{module.title}</h3>
-                      {completed && (
-                        <span className="px-2 py-0.5 rounded bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-xs">
-                          Terminé
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{module.description}</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      {category && <span className={category.colors.color}>{category.name}</span>}
-                      {category && <span>•</span>}
-                      <span>{module.duration}</span>
-                      <span>•</span>
-                      <span
-                        className={cn(
-                          module.difficulty === 'facile' && 'text-green-600 dark:text-green-400',
-                          module.difficulty === 'moyen' && 'text-amber-600 dark:text-amber-400',
-                          module.difficulty === 'expert' && 'text-red-600 dark:text-red-400'
-                        )}
-                      >
-                        {module.difficulty && module.difficulty.charAt(0).toUpperCase() + module.difficulty.slice(1)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    onClick={() => handleStartModule(module.id)}
-                    className={cn(
-                      completed
-                        ? 'bg-green-500 hover:bg-green-600'
-                        : 'bg-primary hover:bg-primary/90',
-                      'text-white'
-                    )}
-                  >
-                    <Play className="h-4 w-4 mr-1" />
-                    {completed ? 'Revoir' : 'Commencer'}
-                  </Button>
-                </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
 
-      {/* Resources */}
-      <section className="rounded-xl border border-border bg-muted p-6">
-        <div className="flex items-start gap-4">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">
-            <BookOpen className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground mb-1">
-              Ressources complémentaires
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4 text-pretty">
-              Approfondissez vos connaissances avec ces guides pratiques.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                'Guide RGPD (PDF)',
-                'Checklist Cybersécurité',
-                'Modèles de lettres RGPD',
-                "FAQ Intelligence Artificielle",
-              ].map((resource) => (
-                <NavLink
-                  key={resource}
-                  to="/outils"
-                  className="px-3 py-1.5 rounded-lg bg-card border border-border text-sm text-muted-foreground hover:bg-muted cursor-pointer transition-colors"
-                >
-                  {resource}
-                </NavLink>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+              {/* Duration */}
+              <span className="font-mono text-[10px] tracking-[0.1em] text-black/30 shrink-0 hidden sm:block">
+                {module.duration}
+              </span>
+
+              {/* Status */}
+              <div className="w-6 shrink-0 flex justify-center">
+                {completed ? (
+                  <Check size={16} strokeWidth={2} className="text-[#21B2AA]" />
+                ) : isNext ? (
+                  <ArrowRight size={14} strokeWidth={1.5} className="text-black group-hover:translate-x-1 transition-transform duration-100" />
+                ) : (
+                  <span className="w-3 h-3 border border-black/15 rounded-full" />
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -1,277 +1,389 @@
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import {
-  ArrowLeft,
-  AlertTriangle,
-  Mail,
-  Search,
-  Loader2,
-  Shield,
-  ShieldCheck,
-  ShieldAlert,
-  Calendar,
-  Database,
-  Key,
-  CreditCard,
-  Lock,
-  ExternalLink,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
-interface Breach {
-  name: string;
-  domain: string;
-  date: string;
-  dataClasses: string[];
-  description: string;
-  pwnCount: number;
-}
-
-// Example breaches for demo purposes
-const exampleBreaches: Breach[] = [
-  {
-    name: 'LinkedIn',
-    domain: 'linkedin.com',
-    date: '2021-06-22',
-    dataClasses: ['Adresses email', 'Noms', 'Numéros de téléphone', 'Emplois'],
-    description: 'Données de 700 millions d\'utilisateurs exposées suite à un scraping.',
-    pwnCount: 700000000,
-  },
-  {
-    name: 'Facebook',
-    domain: 'facebook.com',
-    date: '2019-04-01',
-    dataClasses: ['Adresses email', 'Noms', 'Numéros de téléphone', 'Dates de naissance'],
-    description: 'Fuite de données touchant 533 millions de comptes dans 106 pays.',
-    pwnCount: 533000000,
-  },
-  {
-    name: 'Adobe',
-    domain: 'adobe.com',
-    date: '2013-10-04',
-    dataClasses: ['Adresses email', 'Mots de passe', 'Indices de mot de passe'],
-    description: 'Fuite massive incluant des mots de passe faiblement chiffrés.',
-    pwnCount: 153000000,
-  },
-];
+import { useState, useEffect, useRef } from 'react';
+import { Search, Loader2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { breachCheckApi, ApiError } from '@/lib/api';
+import type { BreachResult } from '@/lib/api';
 
 const securityTips = [
-  {
-    icon: Key,
-    title: 'Changez vos mots de passe',
-    description: 'Utilisez un mot de passe unique pour chaque service compromis.',
-  },
-  {
-    icon: Lock,
-    title: 'Activez la 2FA',
-    description: "L'authentification à deux facteurs protège même si votre mot de passe fuite.",
-  },
-  {
-    icon: CreditCard,
-    title: 'Surveillez vos comptes',
-    description: 'Vérifiez régulièrement vos relevés bancaires pour détecter des fraudes.',
-  },
-  {
-    icon: Mail,
-    title: 'Méfiez-vous du phishing',
-    description: 'Les données volées sont souvent utilisées pour des attaques ciblées.',
-  },
+  { title: 'Changez vos mots de passe', text: 'Utilisez un mot de passe unique pour chaque service compromis.' },
+  { title: 'Activez la 2FA', text: "L'authentification à deux facteurs protège même si votre mot de passe fuite." },
+  { title: 'Surveillez vos comptes', text: 'Vérifiez régulièrement vos relevés bancaires pour détecter des fraudes.' },
+  { title: 'Méfiez-vous du phishing', text: 'Les données volées sont souvent utilisées pour des attaques ciblées.' },
 ];
 
+const severityLabels: Record<string, { label: string; style: string }> = {
+  critical: { label: 'Critique', style: 'border-black bg-black text-white' },
+  high: { label: 'Élevée', style: 'border-black/60 text-black' },
+  medium: { label: 'Moyenne', style: 'border-black/30 text-black/60' },
+  low: { label: 'Faible', style: 'border-black/15 text-black/40' },
+};
+
+function BreachAnimation() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    let t = 0;
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * 2;
+      canvas.height = rect.height * 2;
+      ctx.scale(2, 2);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    type Node = { baseX: number; baseY: number; x: number; y: number; r: number; broken: boolean; breakTime: number };
+    const nodes: Node[] = [];
+
+    const initNodes = () => {
+      nodes.length = 0;
+      const w = canvas.width / 2;
+      const h = canvas.height / 2;
+      for (let i = 0; i < 30; i++) {
+        const x = 20 + Math.random() * (w - 40);
+        const y = 10 + Math.random() * (h - 20);
+        nodes.push({
+          baseX: x, baseY: y, x, y,
+          r: 2.5 + Math.random() * 3.5,
+          broken: false,
+          breakTime: 3 + Math.random() * 7,
+        });
+      }
+    };
+    initNodes();
+
+    const sparks: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
+
+    const draw = () => {
+      const w = canvas.width / 2;
+      const h = canvas.height / 2;
+      ctx.clearRect(0, 0, w, h);
+      t += 0.01;
+
+      nodes.forEach((n) => {
+        n.x = n.baseX + Math.sin(t * 1.5 + n.baseX * 0.08) * 4;
+        n.y = n.baseY + Math.cos(t * 1.2 + n.baseY * 0.08) * 3;
+        const cycle = (t % n.breakTime) / n.breakTime;
+        const wasBroken = n.broken;
+        n.broken = cycle > 0.65 && cycle < 0.85;
+
+        if (n.broken && !wasBroken) {
+          for (let s = 0; s < 4; s++) {
+            sparks.push({
+              x: n.x, y: n.y,
+              vx: (Math.random() - 0.5) * 3,
+              vy: (Math.random() - 0.5) * 3,
+              life: 30,
+            });
+          }
+        }
+      });
+
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i];
+          const b = nodes[j];
+          const dist = Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+          if (dist > 100) continue;
+
+          const broken = a.broken || b.broken;
+          const alpha = (1 - dist / 100) * 0.12;
+
+          if (broken) {
+            ctx.setLineDash([3, 5]);
+            ctx.strokeStyle = `rgba(0,0,0,${alpha * 0.4})`;
+          } else {
+            ctx.setLineDash([]);
+            ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+          }
+
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+      ctx.setLineDash([]);
+
+      nodes.forEach((n) => {
+        if (n.broken) {
+          const ringR = n.r + 5 + Math.sin(t * 8) * 2;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, ringR, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(33,178,170,0.2)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(33,178,170,0.08)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(33,178,170,0.25)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.06)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      });
+
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vx *= 0.95;
+        s.vy *= 0.95;
+        s.life--;
+
+        const alpha = (s.life / 30) * 0.3;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(33,178,170,${alpha})`;
+        ctx.fill();
+
+        if (s.life <= 0) sparks.splice(i, 1);
+      }
+
+      const tx = w - 40;
+      const ty = h - 30;
+      const ts = 16 + Math.sin(t * 3) * 3;
+      const tAlpha = 0.08 + Math.sin(t * 3) * 0.04;
+
+      ctx.beginPath();
+      ctx.moveTo(tx, ty - ts);
+      ctx.lineTo(tx + ts, ty + ts * 0.6);
+      ctx.lineTo(tx - ts, ty + ts * 0.6);
+      ctx.closePath();
+      ctx.strokeStyle = `rgba(0,0,0,${tAlpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(tx, ty - ts * 0.25);
+      ctx.lineTo(tx, ty + ts * 0.1);
+      ctx.strokeStyle = `rgba(0,0,0,${tAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(tx, ty + ts * 0.3, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0,0,0,${tAlpha})`;
+      ctx.fill();
+
+      animId = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ left: '35%', width: '65%' }}
+    />
+  );
+}
+
 export function DataBreachAlerts() {
-  const [email, setEmail] = useState('');
+  const { user } = useAuthStore();
+  const [email, setEmail] = useState(user?.email || '');
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [breaches, setBreaches] = useState<Breach[]>([]);
+  const [breaches, setBreaches] = useState<BreachResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!email.trim()) return;
-
     setIsSearching(true);
     setHasSearched(false);
+    setError(null);
+    setInfoMessage(null);
 
-    setTimeout(() => {
-      setIsSearching(false);
+    try {
+      const result = await breachCheckApi.check(email.trim());
+      setBreaches(result.breaches);
       setHasSearched(true);
-
-      if (email.includes('@gmail') || email.includes('@hotmail') || email.includes('@yahoo')) {
-        setBreaches(exampleBreaches.slice(0, 2));
-      } else if (email.includes('@')) {
-        setBreaches(exampleBreaches.slice(0, 1));
-      } else {
-        setBreaches([]);
+      if (result.message) {
+        setInfoMessage(result.message);
       }
-    }, 2000);
-  };
-
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000000) return `${(num / 1000000000).toFixed(1)} Mrd`;
-    if (num >= 1000000) return `${(num / 1000000).toFixed(0)} M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(0)} K`;
-    return num.toString();
-  };
-
-  const getDataClassIcon = (dataClass: string) => {
-    if (dataClass.toLowerCase().includes('email')) return Mail;
-    if (dataClass.toLowerCase().includes('mot de passe') || dataClass.toLowerCase().includes('password')) return Key;
-    if (dataClass.toLowerCase().includes('téléphone') || dataClass.toLowerCase().includes('phone')) return Mail;
-    return Database;
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        setError('Limite de vérifications atteinte (5 par heure). Réessayez plus tard.');
+      } else if (err instanceof ApiError && err.status === 401) {
+        setError('Vous devez être connecté pour utiliser cette fonctionnalité.');
+      } else {
+        setError('Une erreur est survenue. Veuillez réessayer.');
+      }
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      {/* Back link */}
-      <NavLink
-        to="/outils"
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour aux outils
-      </NavLink>
+    <div className="space-y-10">
+      {/* Header with animation */}
+      <div className="relative min-h-[180px] sm:min-h-[200px]">
+        <BreachAnimation />
 
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400 text-sm font-medium">
-          <AlertTriangle className="h-4 w-4" />
-          Alertes Violations
+        <div className="relative z-10 max-w-md">
+          <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Alertes</span>
+          <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            Vos données<br />
+            <span className="italic font-normal">ont-elles fuité ?</span>
+          </h1>
+          <p className="mt-4 text-black/50 text-sm leading-relaxed">
+            Vérifiez si votre adresse email apparaît dans des fuites de données connues.
+          </p>
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
-          Vos données ont-elles fuité ?
-        </h1>
-        <p className="text-muted-foreground max-w-xl mx-auto text-pretty">
-          Vérifiez si votre adresse email apparaît dans des fuites de données
-          connues. Basé sur la base de données Have I Been Pwned.
-        </p>
       </div>
 
       {/* Search */}
-      <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Entrez votre adresse email"
-              className="bg-muted border-border pl-10 h-12"
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-          </div>
-          <Button
+      <div className="border-2 border-black p-6 sm:p-8">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Entrez votre adresse email"
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="flex-1 px-4 py-3 border-2 border-black/15 text-sm placeholder:text-black/25 focus:border-black focus:outline-none transition-colors"
+          />
+          <button
             onClick={handleSearch}
             disabled={!email.trim() || isSearching}
-            className="bg-amber-500 hover:bg-amber-600 text-white h-12 px-6"
+            className="px-6 py-3 bg-black text-white text-[11px] font-medium tracking-[0.15em] uppercase border-2 border-black hover:bg-white hover:text-black transition-colors duration-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isSearching ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Recherche...
-              </>
+              <><Loader2 size={14} className="animate-spin" /> Vérification...</>
             ) : (
-              <>
-                <Search className="h-4 w-4 mr-2" />
-                Vérifier
-              </>
+              <><Search size={14} strokeWidth={1.5} /> Vérifier</>
             )}
-          </Button>
+          </button>
         </div>
-
-        <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-          <Shield className="h-3 w-3" />
+        <p className="font-mono text-[9px] tracking-[0.1em] text-black/25 uppercase mt-3">
           Votre email n'est pas stocké ni partagé. La vérification est anonyme.
         </p>
+        {isSearching && (
+          <p className="font-mono text-[9px] tracking-[0.1em] text-black/40 uppercase mt-2">
+            La vérification peut prendre quelques secondes...
+          </p>
+        )}
       </div>
 
+      {/* Error */}
+      {error && (
+        <div className="border-2 border-black p-6 flex items-start gap-4">
+          <AlertTriangle size={20} strokeWidth={1.5} className="shrink-0 mt-0.5" />
+          <p className="text-sm text-black/70">{error}</p>
+        </div>
+      )}
+
+      {/* Info message (e.g. API unavailable fallback) */}
+      {infoMessage && hasSearched && (
+        <div className="border border-black/15 p-4">
+          <p className="font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase">{infoMessage}</p>
+        </div>
+      )}
+
       {/* Results */}
-      {hasSearched && (
-        <div className="space-y-6">
-          {/* Status */}
+      {hasSearched && !error && (
+        <div className="space-y-8">
           {breaches.length === 0 ? (
-            <div className="rounded-2xl border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 p-6 text-center">
-              <ShieldCheck className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-foreground mb-2">
-                Bonne nouvelle !
-              </h2>
-              <p className="text-muted-foreground text-pretty">
-                Aucune fuite de données connue n'a été trouvée pour cette
-                adresse email. Restez vigilant et continuez à utiliser des mots
-                de passe uniques.
+            <div className="border-2 border-black p-8 text-center">
+              <ShieldCheck size={32} strokeWidth={1.5} className="mx-auto mb-4 text-[#21B2AA]" />
+              <p className="font-bold text-xl tracking-tight mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                Aucune fuite détectée
+              </p>
+              <p className="text-black/50 text-sm max-w-md mx-auto leading-relaxed">
+                Aucune fuite de données connue n'a été trouvée pour cette adresse email. Restez vigilant et continuez à utiliser des mots de passe uniques.
               </p>
             </div>
           ) : (
             <>
-              <div className="rounded-2xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 p-6">
-                <div className="flex items-start gap-4">
-                  <ShieldAlert className="h-10 w-10 text-red-600 dark:text-red-400 shrink-0" />
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground mb-2">
-                      Attention : {breaches.length} fuite(s) détectée(s)
-                    </h2>
-                    <p className="text-muted-foreground text-pretty">
-                      Votre adresse email a été trouvée dans {breaches.length}{' '}
-                      violation(s) de données. Nous vous recommandons de changer
-                      vos mots de passe et d'activer l'authentification à deux
-                      facteurs.
-                    </p>
-                  </div>
+              {/* Alert banner */}
+              <div className="border-2 border-black p-6 flex items-start gap-4">
+                <AlertTriangle size={20} strokeWidth={1.5} className="shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-lg tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                    {breaches.length} fuite{breaches.length > 1 ? 's' : ''} détectée{breaches.length > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-black/50 text-sm leading-relaxed mt-1">
+                    Nous vous recommandons de changer vos mots de passe et d'activer l'authentification à deux facteurs.
+                  </p>
                 </div>
               </div>
 
               {/* Breach List */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">
+              <div>
+                <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase block mb-6">
                   Détail des fuites
-                </h3>
-                {breaches.map((breach, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-xl border border-border bg-card p-5"
-                  >
-                    <div className="flex items-start justify-between gap-4 mb-4">
-                      <div>
-                        <h4 className="text-lg font-semibold text-foreground">
-                          {breach.name}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">{breach.domain}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(breach.date).toLocaleDateString('fr-FR')}
+                </span>
+                <div className="border-t-[2px] border-black">
+                  {breaches.map((breach, idx) => {
+                    const severity = severityLabels[breach.severity] || severityLabels.low;
+                    return (
+                      <div key={idx} className="py-6 border-b border-black/10">
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <h4 className="font-bold text-lg tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                                {breach.name}
+                              </h4>
+                              <span className={`font-mono text-[8px] tracking-[0.15em] uppercase border px-2 py-0.5 ${severity.style}`}>
+                                {severity.label}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            {breach.date && (
+                              <span className="font-mono text-[10px] tracking-[0.1em] text-black/40">
+                                {new Date(breach.date).toLocaleDateString('fr-FR')}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {formatNumber(breach.pwnCount)} comptes touchés
-                        </p>
-                      </div>
-                    </div>
 
-                    <p className="text-sm text-muted-foreground mb-4 text-pretty">
-                      {breach.description}
-                    </p>
+                        {breach.description && (
+                          <p className="text-black/50 text-sm leading-relaxed mb-4">
+                            {breach.description}
+                          </p>
+                        )}
 
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Données compromises :
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {breach.dataClasses.map((dataClass, i) => {
-                          const Icon = getDataClassIcon(dataClass);
-                          return (
-                            <span
-                              key={i}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-muted text-muted-foreground text-xs"
-                            >
-                              <Icon className="h-3 w-3" />
-                              {dataClass}
-                            </span>
-                          );
-                        })}
+                        {breach.dataTypes.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {breach.dataTypes.map((dataType, i) => (
+                              <span
+                                key={i}
+                                className="font-mono text-[9px] tracking-[0.1em] text-black/40 uppercase border border-black/15 px-2 py-1"
+                              >
+                                {dataType}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
             </>
           )}
@@ -279,63 +391,21 @@ export function DataBreachAlerts() {
       )}
 
       {/* Security Tips */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-foreground">
+      <div>
+        <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase block mb-6">
           Conseils de sécurité
-        </h3>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {securityTips.map((tip, idx) => (
-            <div
-              key={idx}
-              className="rounded-xl border border-border bg-card p-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400">
-                  <tip.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-foreground text-sm">{tip.title}</h4>
-                  <p className="text-xs text-muted-foreground mt-1 text-pretty">{tip.description}</p>
-                </div>
-              </div>
+        </span>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border-[2px] border-black">
+          {securityTips.map((tip, i) => (
+            <div key={i} className={`p-5 ${i < 3 ? 'border-r border-black' : ''} ${i < 2 ? 'border-b md:border-b-0' : i === 2 ? 'border-b md:border-b-0' : ''}`}>
+              <p className="font-bold text-sm tracking-tight mb-1" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                {tip.title}
+              </p>
+              <p className="text-black/40 text-xs leading-relaxed">{tip.text}</p>
             </div>
           ))}
         </div>
-      </section>
-
-      {/* About HIBP */}
-      <div className="rounded-xl border border-border bg-muted p-6">
-        <div className="flex items-start gap-4">
-          <Shield className="h-6 w-6 text-primary shrink-0" />
-          <div>
-            <h4 className="font-medium text-foreground mb-2">
-              À propos de cette vérification
-            </h4>
-            <p className="text-sm text-muted-foreground mb-3 text-pretty">
-              Cette fonctionnalité utilise la base de données Have I Been Pwned
-              (HIBP), une ressource gratuite créée par l'expert en sécurité Troy
-              Hunt. Elle agrège des données provenant de fuites de données
-              publiquement connues.
-            </p>
-            <a
-              href="https://haveibeenpwned.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              En savoir plus sur HIBP
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          </div>
-        </div>
       </div>
-
-      {/* Disclaimer */}
-      <p className="text-xs text-muted-foreground text-center">
-        Note : Cette démonstration simule une vérification. En production, le
-        service utiliserait l'API officielle Have I Been Pwned pour des
-        résultats réels.
-      </p>
     </div>
   );
 }

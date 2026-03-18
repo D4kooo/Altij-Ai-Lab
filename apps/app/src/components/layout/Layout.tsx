@@ -1,22 +1,35 @@
-import { Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { Sidebar } from './Sidebar';
-import { Header } from './Header';
+import { useThemeStore } from '@/stores/themeStore';
 
 export function Layout() {
+  const { theme } = useThemeStore();
+  const location = useLocation();
+
+  useEffect(() => {
+    useThemeStore.getState().setTheme(theme);
+  }, [theme]);
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar - fixed, never scrolls */}
       <Sidebar />
-      {/* Main content area with inset canvas effect */}
-      <div className="flex flex-1 flex-col overflow-hidden p-3 pl-0">
-        <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-primary/[0.04] bg-white shadow-premium">
-          {/* Header - fixed at top */}
-          <Header />
-          {/* Content area - this is where scrolling happens */}
+      <div className="flex flex-1 flex-col overflow-hidden p-2 pl-0">
+        <div className="flex flex-1 flex-col overflow-hidden rounded-xl bg-card border border-border shadow-linear dark:shadow-none">
           <main className="relative flex-1 overflow-hidden">
-            <div className="absolute inset-0 overflow-auto p-6">
-              <Outlet />
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname.split('/').slice(0, 2).join('/')}
+                className="absolute inset-0 overflow-auto p-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12, ease: 'easeOut' }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
       </div>

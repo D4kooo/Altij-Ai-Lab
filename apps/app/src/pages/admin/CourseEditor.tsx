@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor, type RichTextEditorRef } from '@/components/ui/rich-text-editor';
 import {
   coursesApi,
   type Course,
@@ -54,6 +55,65 @@ const colorOptions = ['#57C5B6', '#6366f1', '#f59e0b', '#ef4444', '#10b981', '#8
 function cleanNulls<T extends Record<string, any>>(obj: T): Record<string, any> {
   return Object.fromEntries(
     Object.entries(obj).map(([k, v]) => [k, v === null ? undefined : v])
+  );
+}
+
+// Isolated lesson content editor — Tiptap is the source of truth, saves on button click
+function LessonEditor({
+  lesson,
+  moduleId,
+  onSave,
+}: {
+  lesson: Lesson;
+  moduleId: string;
+  onSave: (lessonId: string, moduleId: string, data: Partial<Lesson>) => Promise<void>;
+}) {
+  const editorRef = useRef<RichTextEditorRef>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = useCallback(async () => {
+    const html = editorRef.current?.getHTML() || '';
+    setSaving(true);
+    setSaved(false);
+    try {
+      await onSave(lesson.id, moduleId, { content: html });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }, [lesson.id, moduleId, onSave]);
+
+  return (
+    <div className="p-3 border-t border-border bg-card">
+      <div className="flex items-center justify-between mb-2">
+        <label className="block text-xs font-medium text-muted-foreground">
+          Contenu de la leçon
+        </label>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSave}
+          disabled={saving}
+          className="h-7 text-xs gap-1.5"
+        >
+          {saving ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : saved ? (
+            <Check className="h-3 w-3 text-green-500" />
+          ) : (
+            <Save className="h-3 w-3" />
+          )}
+          {saved ? 'Enregistré' : 'Enregistrer'}
+        </Button>
+      </div>
+      <RichTextEditor
+        ref={editorRef}
+        content={lesson.content || ''}
+        placeholder="Rédigez le contenu de la leçon ici..."
+      />
+    </div>
   );
 }
 
@@ -494,7 +554,7 @@ export function CourseEditor() {
             Retour
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
               {isNew ? 'Nouveau cours' : 'Modifier le cours'}
             </h1>
           </div>
@@ -515,15 +575,15 @@ export function CourseEditor() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-700">{error}</p>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-destructive" />
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
       {/* Course Form */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-6">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+      <div className="rounded-xl border border-border bg-card p-6 space-y-6">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-[#57C5B6]" />
           Informations du cours
         </h2>
@@ -531,20 +591,20 @@ export function CourseEditor() {
         <div className="grid gap-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Nom du cours *
             </label>
             <Input
               value={course.name || ''}
               onChange={(e) => setCourse({ ...course, name: e.target.value })}
               placeholder="Ex: Protection des données personnelles"
-              className="bg-gray-50"
+              className="bg-muted"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Description
             </label>
             <Textarea
@@ -552,29 +612,29 @@ export function CourseEditor() {
               onChange={(e) => setCourse({ ...course, description: e.target.value })}
               placeholder="Description du cours..."
               rows={3}
-              className="bg-gray-50"
+              className="bg-muted"
             />
           </div>
 
           {/* Category / Thématique */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Thématique
             </label>
             <Input
               value={course.category || ''}
               onChange={(e) => setCourse({ ...course, category: e.target.value || null })}
               placeholder="Ex: Protection des données, Droits numériques..."
-              className="bg-gray-50"
+              className="bg-muted"
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Utilisé pour grouper les cours dans le gestionnaire
             </p>
           </div>
 
           {/* Audience */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Audience cible *
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -587,11 +647,11 @@ export function CourseEditor() {
                     'p-3 rounded-lg border-2 text-left transition-all',
                     course.audience === option.value
                       ? 'border-[#57C5B6] bg-[#57C5B6]/5'
-                      : 'border-gray-200 hover:border-gray-300'
+                      : 'border-border hover:border-border'
                   )}
                 >
-                  <p className="font-medium text-gray-900 text-sm">{option.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
+                  <p className="font-medium text-foreground text-sm">{option.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
                 </button>
               ))}
             </div>
@@ -600,7 +660,7 @@ export function CourseEditor() {
           {/* Color & Published */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Couleur
               </label>
               <div className="flex gap-2">
@@ -611,7 +671,7 @@ export function CourseEditor() {
                     onClick={() => setCourse({ ...course, color })}
                     className={cn(
                       'w-8 h-8 rounded-full transition-transform',
-                      course.color === color && 'ring-2 ring-offset-2 ring-gray-400 scale-110'
+                      course.color === color && 'ring-2 ring-offset-2 ring-ring scale-110'
                     )}
                     style={{ backgroundColor: color }}
                   />
@@ -619,7 +679,7 @@ export function CourseEditor() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Statut
               </label>
               <Button
@@ -645,7 +705,7 @@ export function CourseEditor() {
 
           {/* Order */}
           <div className="w-32">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Ordre d'affichage
             </label>
             <Input
@@ -653,7 +713,7 @@ export function CourseEditor() {
               value={course.order || 0}
               onChange={(e) => setCourse({ ...course, order: parseInt(e.target.value) || 0 })}
               min={0}
-              className="bg-gray-50"
+              className="bg-muted"
             />
           </div>
         </div>
@@ -661,9 +721,9 @@ export function CourseEditor() {
 
       {/* Modules Section */}
       {!isNew && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <FileText className="h-5 w-5 text-[#57C5B6]" />
               Modules ({modules.length})
             </h2>
@@ -678,9 +738,9 @@ export function CourseEditor() {
           </div>
 
           {modules.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 rounded-lg">
-              <FileText className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500">Aucun module</p>
+            <div className="text-center py-8 bg-muted rounded-lg">
+              <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">Aucun module</p>
               <Button
                 onClick={handleAddModule}
                 variant="ghost"
@@ -696,18 +756,18 @@ export function CourseEditor() {
               {modules.map((module) => (
                 <div
                   key={module.id}
-                  className="border border-gray-200 rounded-lg overflow-hidden"
+                  className="border border-border rounded-lg overflow-hidden"
                 >
                   {/* Module Header */}
                   <div
-                    className="flex items-center gap-3 p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="flex items-center gap-3 p-4 bg-muted cursor-pointer hover:bg-accent transition-colors"
                     onClick={() => toggleModuleExpanded(module.id)}
                   >
-                    <GripVertical className="h-4 w-4 text-gray-400" />
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
                     {expandedModules.has(module.id) ? (
-                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-gray-500" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     )}
                     <div className="flex-1">
                       <Input
@@ -726,12 +786,12 @@ export function CourseEditor() {
                     </div>
                     <span className={cn(
                       'text-xs px-2 py-0.5 rounded',
-                      difficultyOptions.find(d => d.value === module.difficulty)?.color || 'text-gray-500',
-                      'bg-white'
+                      difficultyOptions.find(d => d.value === module.difficulty)?.color || 'text-muted-foreground',
+                      'bg-card'
                     )}>
                       {module.difficulty || 'facile'}
                     </span>
-                    <span className="text-xs text-gray-400">{module.duration || '15 min'}</span>
+                    <span className="text-xs text-muted-foreground">{module.duration || '15 min'}</span>
                     {module.hasAudio && <Volume2 className="h-4 w-4 text-blue-500" />}
                     {module.isLocked && <Lock className="h-4 w-4 text-amber-500" />}
                     <Button
@@ -748,7 +808,7 @@ export function CourseEditor() {
 
                   {/* Module Content */}
                   {expandedModules.has(module.id) && (
-                    <div className="p-4 border-t border-gray-200 space-y-4">
+                    <div className="p-4 border-t border-border space-y-4">
                       {loadingModules.has(module.id) ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader2 className="h-6 w-6 animate-spin text-[#57C5B6]" />
@@ -758,13 +818,13 @@ export function CourseEditor() {
                           {/* Module Settings */}
                           <div className="grid grid-cols-3 gap-4">
                             <div>
-                              <label className="block text-xs font-medium text-gray-500 mb-1">
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">
                                 Difficulté
                               </label>
                               <select
                                 value={module.difficulty}
                                 onChange={(e) => handleUpdateModule(module.id, { difficulty: e.target.value as 'facile' | 'moyen' | 'expert' })}
-                                className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm"
+                                className="w-full rounded-md border border-border bg-muted px-3 py-1.5 text-sm"
                               >
                                 {difficultyOptions.map(opt => (
                                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -772,7 +832,7 @@ export function CourseEditor() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-medium text-gray-500 mb-1">
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">
                                 Durée
                               </label>
                               <Input
@@ -782,7 +842,7 @@ export function CourseEditor() {
                                 ))}
                                 onBlur={() => handleUpdateModule(module.id, { duration: module.duration })}
                                 placeholder="15 min"
-                                className="h-8 text-sm bg-gray-50"
+                                className="h-8 text-sm bg-muted"
                               />
                             </div>
                             <div className="flex items-end gap-2">
@@ -808,7 +868,7 @@ export function CourseEditor() {
                           {/* Lessons */}
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-medium text-gray-700">Leçons</h4>
+                              <h4 className="text-sm font-medium text-foreground">Leçons</h4>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -819,7 +879,7 @@ export function CourseEditor() {
                               </Button>
                             </div>
                             {moduleDetails.get(module.id)?.lessons.length === 0 ? (
-                              <p className="text-sm text-gray-400 py-2">Aucune leçon</p>
+                              <p className="text-sm text-muted-foreground py-2">Aucune leçon</p>
                             ) : (
                               <div className="space-y-2">
                                 {moduleDetails.get(module.id)?.lessons.map((lesson, lessonIndex) => {
@@ -827,14 +887,14 @@ export function CourseEditor() {
                                   return (
                                     <div
                                       key={lesson.id}
-                                      className="border border-gray-200 rounded-lg overflow-hidden"
+                                      className="border border-border rounded-lg overflow-hidden"
                                     >
                                       {/* Lesson header row */}
-                                      <div className="flex items-center gap-2 p-2 bg-gray-50">
+                                      <div className="flex items-center gap-2 p-2 bg-muted">
                                         <button
                                           type="button"
                                           onClick={() => toggleLessonExpanded(lesson.id)}
-                                          className="text-gray-400 hover:text-gray-600"
+                                          className="text-muted-foreground hover:text-foreground"
                                         >
                                           {isLessonExpanded ? (
                                             <ChevronDown className="h-4 w-4" />
@@ -842,17 +902,17 @@ export function CourseEditor() {
                                             <ChevronRight className="h-4 w-4" />
                                           )}
                                         </button>
-                                        <span className="text-xs text-gray-400 w-6">{lessonIndex + 1}.</span>
+                                        <span className="text-xs text-muted-foreground w-6">{lessonIndex + 1}.</span>
                                         <Input
                                           value={lesson.title}
                                           onChange={(e) => updateLessonLocal(module.id, lesson.id, 'title', e.target.value)}
                                           onBlur={() => handleUpdateLesson(lesson.id, module.id, { title: lesson.title })}
-                                          className="flex-1 h-7 text-sm bg-white"
+                                          className="flex-1 h-7 text-sm bg-card"
                                         />
                                         <select
                                           value={lesson.contentType}
                                           onChange={(e) => handleUpdateLesson(lesson.id, module.id, { contentType: e.target.value as 'text' | 'video' | 'image' | 'audio' })}
-                                          className="h-7 text-xs border border-gray-200 rounded bg-white px-2"
+                                          className="h-7 text-xs border border-border rounded bg-card px-2"
                                         >
                                           <option value="text">Texte</option>
                                           <option value="video">Vidéo</option>
@@ -871,22 +931,11 @@ export function CourseEditor() {
 
                                       {/* Lesson content editor */}
                                       {isLessonExpanded && (
-                                        <div className="p-3 border-t border-gray-200 bg-white">
-                                          <label className="block text-xs font-medium text-gray-500 mb-1">
-                                            Contenu de la leçon
-                                          </label>
-                                          <Textarea
-                                            value={lesson.content || ''}
-                                            onChange={(e) => updateLessonLocal(module.id, lesson.id, 'content', e.target.value)}
-                                            onBlur={() => handleUpdateLesson(lesson.id, module.id, { content: lesson.content || '' })}
-                                            placeholder="Rédigez le contenu de la leçon ici..."
-                                            rows={8}
-                                            className="text-sm font-mono bg-gray-50"
-                                          />
-                                          <p className="text-xs text-gray-400 mt-1">
-                                            {(lesson.content || '').length} caractères
-                                          </p>
-                                        </div>
+                                        <LessonEditor
+                                          lesson={lesson}
+                                          moduleId={module.id}
+                                          onSave={handleUpdateLesson}
+                                        />
                                       )}
                                     </div>
                                   );
@@ -898,7 +947,7 @@ export function CourseEditor() {
                           {/* Quiz */}
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                              <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                                 <HelpCircle className="h-4 w-4" />
                                 Quiz
                               </h4>
@@ -932,7 +981,7 @@ export function CourseEditor() {
                                 onDeleteQuestion={handleDeleteQuestion}
                               />
                             ) : (
-                              <p className="text-sm text-gray-400 py-2">Pas de quiz pour ce module</p>
+                              <p className="text-sm text-muted-foreground py-2">Pas de quiz pour ce module</p>
                             )}
                           </div>
                         </>
@@ -990,7 +1039,7 @@ function QuizEditor({
               value={quiz.passingScore}
               onChange={(e) => onUpdateQuizLocal(moduleId, 'passingScore', parseInt(e.target.value) || 0)}
               onBlur={() => onUpdateQuiz(quiz.id, { passingScore: quiz.passingScore })}
-              className="w-16 h-7 text-xs text-center bg-white border-purple-200"
+              className="w-16 h-7 text-xs text-center bg-card border-purple-200"
               min={0}
               max={100}
             />
@@ -1010,7 +1059,7 @@ function QuizEditor({
       {/* Questions */}
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-500">
+          <span className="text-xs font-medium text-muted-foreground">
             {quiz.questions?.length || 0} question(s)
           </span>
           <Button
@@ -1090,16 +1139,16 @@ function QuestionEditor({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+    <div className="border border-border rounded-lg p-3 space-y-2 bg-muted">
       {/* Question header */}
       <div className="flex items-start gap-2">
-        <span className="text-xs text-gray-400 mt-2 shrink-0">Q{index + 1}.</span>
+        <span className="text-xs text-muted-foreground mt-2 shrink-0">Q{index + 1}.</span>
         <Textarea
           value={question.question}
           onChange={(e) => onUpdateLocal(moduleId, question.id, 'question', e.target.value)}
           onBlur={() => onUpdate(question.id, moduleId, { question: question.question })}
           rows={2}
-          className="flex-1 text-sm bg-white"
+          className="flex-1 text-sm bg-card"
           placeholder="Texte de la question..."
         />
         <Button
@@ -1132,7 +1181,7 @@ function QuestionEditor({
                 'h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
                 option.isCorrect
                   ? 'border-green-500 bg-green-500 text-white'
-                  : 'border-gray-300 hover:border-gray-400'
+                  : 'border-border hover:border-primary/30'
               )}
             >
               {option.isCorrect && <Check className="h-3 w-3" />}
@@ -1141,7 +1190,7 @@ function QuestionEditor({
               value={option.text}
               onChange={(e) => updateOption(option.id, 'text', e.target.value)}
               onBlur={saveOptions}
-              className="flex-1 h-7 text-sm bg-white"
+              className="flex-1 h-7 text-sm bg-card"
               placeholder="Texte de l'option..."
             />
             <Button
@@ -1150,14 +1199,14 @@ function QuestionEditor({
               className="h-7 w-7 p-0"
               onClick={() => removeOption(option.id)}
             >
-              <X className="h-3 w-3 text-gray-400" />
+              <X className="h-3 w-3 text-muted-foreground" />
             </Button>
           </div>
         ))}
         <Button
           variant="ghost"
           size="sm"
-          className="text-xs text-gray-500"
+          className="text-xs text-muted-foreground"
           onClick={addOption}
         >
           <Plus className="h-3 w-3 mr-1" />
@@ -1171,7 +1220,7 @@ function QuestionEditor({
           value={question.explanation || ''}
           onChange={(e) => onUpdateLocal(moduleId, question.id, 'explanation', e.target.value)}
           onBlur={() => onUpdate(question.id, moduleId, { explanation: question.explanation || '' })}
-          className="h-7 text-xs bg-white"
+          className="h-7 text-xs bg-card"
           placeholder="Explication (affichée après la réponse)..."
         />
       </div>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { coursesApi } from '@/lib/api';
 
 const STORAGE_KEY = 'dataring-school-progress';
 
@@ -22,12 +24,11 @@ const defaultProgress: ProgressData = {
   lastUpdated: new Date().toISOString(),
 };
 
-function loadProgress(): ProgressData {
+function loadLocalProgress(): ProgressData {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Ensure all audiences exist
       return {
         ...defaultProgress,
         ...parsed,
@@ -43,7 +44,7 @@ function loadProgress(): ProgressData {
   return defaultProgress;
 }
 
-function saveProgress(progress: ProgressData): void {
+function saveLocalProgress(progress: ProgressData): void {
   try {
     progress.lastUpdated = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
@@ -52,8 +53,46 @@ function saveProgress(progress: ProgressData): void {
   }
 }
 
+/** Build ProgressData from API response, merging with local cache */
+function mergeApiProgress(local: ProgressData): ProgressData {
+  // The API returns course-level progress (completedModules count per course),
+  // not individual module IDs. We keep local data as the source of truth
+  // for module-level granularity since the API progress is tracked per-module
+  // via the module.progress field when fetching modules individually.
+  // The local cache stays in sync because we update it on every completeModule call.
+  return {
+    completedModules: { ...local.completedModules },
+    quizScores: { ...local.quizScores },
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+function isLoggedIn(): boolean {
+  return !!localStorage.getItem('citizen_token');
+}
+
 export function useSchoolProgress() {
-  const [progress, setProgress] = useState<ProgressData>(loadProgress);
+  const [progress, setProgress] = useState<ProgressData>(loadLocalProgress);
+  const queryClient = useQueryClient();
+
+  // Fetch API progress if authenticated
+  const { data: apiProgress } = useQuery({
+    queryKey: ['courses', 'progress', 'me'],
+    queryFn: () => coursesApi.getMyProgress(),
+    enabled: isLoggedIn(),
+    staleTime: 30_000,
+  });
+
+  // Merge API data into local state when it arrives
+  useEffect(() => {
+    if (apiProgress) {
+      setProgress((prev) => {
+        const merged = mergeApiProgress(prev);
+        saveLocalProgress(merged);
+        return merged;
+      });
+    }
+  }, [apiProgress]);
 
   // Reload progress when storage changes (e.g., from another tab)
   useEffect(() => {
@@ -92,12 +131,21 @@ export function useSchoolProgress() {
         },
       };
 
-      saveProgress(newProgress);
+      saveLocalProgress(newProgress);
       return newProgress;
     });
-  }, []);
 
-  // Reset a module (mark as not completed)
+    // POST to API if authenticated (fire and forget, ModuleViewer also calls this)
+    if (isLoggedIn()) {
+      coursesApi.completeModule(moduleId).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['courses', 'progress', 'me'] });
+      }).catch(() => {
+        // Local state already updated; API sync will retry on next page load
+      });
+    }
+  }, [queryClient]);
+
+  // Reset a module (mark as not completed) — local only, no API endpoint for this
   const resetModule = useCallback((audience: string, moduleId: string): void => {
     setProgress(prev => {
       const audienceModules = prev.completedModules[audience] || [];
@@ -109,7 +157,7 @@ export function useSchoolProgress() {
         },
       };
 
-      saveProgress(newProgress);
+      saveLocalProgress(newProgress);
       return newProgress;
     });
   }, []);
@@ -143,9 +191,10 @@ export function useSchoolProgress() {
         },
       };
 
-      saveProgress(newProgress);
+      saveLocalProgress(newProgress);
       return newProgress;
     });
+    // Quiz submission is handled in ModuleViewer via coursesApi.submitQuiz directly
   }, []);
 
   // Get quiz score
@@ -157,7 +206,7 @@ export function useSchoolProgress() {
   // Reset all progress
   const resetAllProgress = useCallback((): void => {
     setProgress(defaultProgress);
-    saveProgress(defaultProgress);
+    saveLocalProgress(defaultProgress);
   }, []);
 
   // Reset progress for a specific audience
@@ -180,7 +229,7 @@ export function useSchoolProgress() {
         quizScores: newQuizScores,
       };
 
-      saveProgress(newProgress);
+      saveLocalProgress(newProgress);
       return newProgress;
     });
   }, []);

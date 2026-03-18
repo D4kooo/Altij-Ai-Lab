@@ -1,52 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Heart,
-  Phone,
-  Mail,
-  CreditCard,
-  ShieldAlert,
-  HelpCircle,
-  Play,
-  CheckCircle2,
-  AlertTriangle,
-  Lightbulb,
-  Volume2,
-  Eye,
-  Lock,
-  Loader2,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, ArrowRight, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
 import { useCoursesData } from '@/hooks/useCoursesData';
 
-// Map icon strings to components
-const iconMap: Record<string, typeof Phone> = {
-  Mail,
-  Phone,
-  ShieldAlert,
-  CreditCard,
-  HelpCircle,
-  Lock,
-};
-
 const scamAlerts = [
-  {
-    title: 'Faux conseiller bancaire',
-    description: 'Votre banque ne vous demandera JAMAIS vos codes par téléphone.',
-    severity: 'high',
-  },
-  {
-    title: 'Colis en attente',
-    description: 'Méfiez-vous des SMS de "livraison" demandant un paiement.',
-    severity: 'high',
-  },
-  {
-    title: 'Gain à une loterie',
-    description: 'On ne gagne pas à un jeu auquel on n\'a pas participé.',
-    severity: 'medium',
-  },
+  { title: 'Faux conseiller bancaire', text: 'Votre banque ne vous demandera JAMAIS vos codes par téléphone.' },
+  { title: 'Colis en attente', text: 'Méfiez-vous des SMS de "livraison" demandant un paiement.' },
+  { title: 'Gain à une loterie', text: 'On ne gagne pas à un jeu auquel on n\'a pas participé.' },
 ];
 
 export function SchoolSeniors() {
@@ -58,14 +18,10 @@ export function SchoolSeniors() {
   const totalModules = allModules.length;
   const progress = totalModules > 0 ? (completedCount / totalModules) * 100 : 0;
 
-  const handleStartModule = (moduleId: string) => {
-    navigate(`/school/seniors/module/${moduleId}`);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-black/30" />
       </div>
     );
   }
@@ -73,244 +29,127 @@ export function SchoolSeniors() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">{error}</p>
-        <Button onClick={() => window.location.reload()} className="mt-4">
+        <p className="text-black/50">{error}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100">
           Réessayer
-        </Button>
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Back link */}
-      <NavLink
-        to="/school"
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour aux parcours
+    <div className="space-y-10 px-6 lg:px-10 py-8 lg:py-10 pt-20">
+      {/* Back */}
+      <NavLink to="/school" className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.15em] uppercase text-black/40 hover:text-black transition-colors duration-100">
+        <ArrowLeft size={14} strokeWidth={1.5} /> Parcours
       </NavLink>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl border border-purple-200 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/5 p-8">
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
-          <div className="p-4 rounded-2xl bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
-            <Heart className="h-10 w-10" />
+      {/* Header */}
+      <div>
+        <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Seniors · 60+ ans</span>
+        <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95] mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+          Votre parcours numérique
+        </h1>
+        <p className="text-black/50 text-lg leading-relaxed">
+          À votre rythme, sans jargon, juste l'essentiel.
+        </p>
+
+        {/* Progress */}
+        <div className="flex items-center gap-4 mt-6">
+          <div className="flex-1 h-[4px] bg-black/10">
+            <div className="h-full bg-black transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-foreground text-balance">Parcours Seniors</h1>
-              <span className="px-2 py-1 rounded bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 text-xs font-medium">
-                60+ ans
+          <span className="font-mono text-xs tracking-[0.1em] text-black/40">
+            {completedCount}/{totalModules}
+          </span>
+        </div>
+      </div>
+
+      {/* Scam alerts */}
+      <div className="border-2 border-black p-6 sm:p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <AlertTriangle size={18} strokeWidth={1.5} />
+          <span className="font-bold text-sm tracking-tight uppercase" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            Alertes arnaques
+          </span>
+        </div>
+        <div className="space-y-4">
+          {scamAlerts.map((alert, i) => (
+            <div key={i} className="flex gap-3">
+              <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/50 mt-1 shrink-0">
+                {String(i + 1).padStart(2, '0')}.
               </span>
-            </div>
-            <p className="text-muted-foreground text-lg text-pretty">
-              Découvrez le numérique à votre rythme, avec des explications
-              claires et un accompagnement bienveillant. Pas de jargon, juste
-              l'essentiel.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Accessibility options */}
-      <div className="flex flex-wrap gap-3">
-        <Button
-          variant="outline"
-          className="border-border text-muted-foreground hover:bg-muted"
-        >
-          <Eye className="h-4 w-4 mr-2" />
-          Agrandir le texte
-        </Button>
-        <Button
-          variant="outline"
-          className="border-border text-muted-foreground hover:bg-muted"
-        >
-          <Volume2 className="h-4 w-4 mr-2" />
-          Version audio disponible
-        </Button>
-      </div>
-
-      {/* Progress */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">Votre progression</h2>
-            <p className="text-muted-foreground">
-              Vous avez terminé {completedCount} leçon(s) sur {totalModules}
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="text-4xl font-bold text-purple-600 dark:text-purple-400">
-              {Math.round(progress)}%
-            </span>
-          </div>
-        </div>
-        <div className="h-3 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full bg-purple-500 rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Scam Alerts */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-          <h2 className="text-xl font-bold text-foreground">Alertes arnaques</h2>
-        </div>
-        <div className="grid gap-4">
-          {scamAlerts.map((alert, idx) => (
-            <div
-              key={idx}
-              className={cn(
-                'rounded-xl border p-5',
-                alert.severity === 'high'
-                  ? 'border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5'
-                  : 'border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5'
-              )}
-            >
-              <div className="flex items-start gap-4">
-                <div
-                  className={cn(
-                    'p-2 rounded-lg',
-                    alert.severity === 'high'
-                      ? 'bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400'
-                      : 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                  )}
-                >
-                  <ShieldAlert className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground text-lg">{alert.title}</h3>
-                  <p className="text-muted-foreground mt-1 text-pretty">{alert.description}</p>
-                </div>
+              <div>
+                <p className="font-bold text-sm" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{alert.title}</p>
+                <p className="text-black/50 text-sm">{alert.text}</p>
               </div>
             </div>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* Modules */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-bold text-foreground">Les leçons</h2>
-        <div className="grid gap-4">
-          {allModules.map((module) => {
-            const completed = isModuleCompleted('seniors', module.id);
-            const IconComponent = iconMap[module.icon] || HelpCircle;
+      {/* Module list */}
+      <div className="border-t-[2px] border-black">
+        {allModules.map((module, i) => {
+          const completed = isModuleCompleted('seniors', module.id);
 
-            return (
-              <div
-                key={module.id}
-                className={cn(
-                  'relative group rounded-xl border p-6 transition-all',
-                  completed
-                    ? 'border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5'
-                    : 'border-border bg-card hover:border-purple-300 dark:hover:border-purple-500/30 hover:shadow-sm'
+          return (
+            <button
+              key={module.id}
+              onClick={() => navigate(`/school/seniors/module/${module.id}`)}
+              className="w-full text-left flex items-center gap-4 py-6 border-b border-black/10 hover:border-black transition-colors duration-100 group"
+            >
+              <span className={`font-mono text-[10px] tracking-[0.3em] w-8 shrink-0 ${
+                completed ? 'text-[#21B2AA]' : 'text-black/20'
+              }`}>
+                {String(i + 1).padStart(2, '0')}.
+              </span>
+
+              <div className="flex-1 min-w-0">
+                <span className={`block text-lg tracking-tight truncate ${
+                  completed ? 'text-black/40' : 'text-black'
+                }`} style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                  {module.title}
+                </span>
+                {module.hasAudio && (
+                  <span className="font-mono text-[9px] tracking-[0.15em] text-[#21B2AA]/50 uppercase">Audio disponible</span>
                 )}
-              >
-                <div className="flex items-start gap-4">
-                  <div
-                    className={cn(
-                      'p-3 rounded-xl',
-                      completed
-                        ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400'
-                        : 'bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400'
-                    )}
-                  >
-                    {completed ? (
-                      <CheckCircle2 className="h-6 w-6" />
-                    ) : (
-                      <IconComponent className="h-6 w-6" />
-                    )}
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold text-foreground text-lg">
-                        {module.title}
-                      </h3>
-                      {completed && (
-                        <span className="px-2 py-0.5 rounded bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-sm">
-                          Terminé
-                        </span>
-                      )}
-                      {module.hasAudio && (
-                        <span className="px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 text-sm flex items-center gap-1">
-                          <Volume2 className="h-3 w-3" />
-                          Audio
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-muted-foreground">{module.description}</p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Durée : {module.duration}
-                    </p>
-                  </div>
-
-                  <Button
-                    size="lg"
-                    onClick={() => handleStartModule(module.id)}
-                    className={cn(
-                      completed
-                        ? 'bg-green-500 hover:bg-green-600'
-                        : 'bg-purple-600 hover:bg-purple-700',
-                      'text-white'
-                    )}
-                  >
-                    <Play className="h-5 w-5 mr-2" />
-                    {completed ? 'Revoir' : 'Commencer'}
-                  </Button>
-                </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
 
-      {/* Tips */}
-      <section className="rounded-xl border border-purple-200 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/5 p-6">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
-            <Lightbulb className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground text-lg mb-2">
-              Le conseil du jour
-            </h3>
-            <p className="text-muted-foreground text-lg text-pretty">
-              En cas de doute sur un email ou un appel, ne faites rien dans
-              l'urgence. Prenez le temps de demander conseil à un proche ou
-              appelez directement l'organisme concerné avec le numéro habituel
-              (pas celui donné dans le message).
-            </p>
-          </div>
-        </div>
-      </section>
+              <span className="font-mono text-[10px] tracking-[0.1em] text-black/30 shrink-0 hidden sm:block">
+                {module.duration}
+              </span>
 
-      {/* Help section */}
-      <section className="rounded-xl border border-border bg-muted p-6">
-        <div className="text-center space-y-4">
-          <HelpCircle className="h-12 w-12 text-purple-600 dark:text-purple-400 mx-auto" />
-          <h3 className="text-xl font-semibold text-foreground">
-            Besoin d'aide ?
-          </h3>
-          <p className="text-muted-foreground max-w-lg mx-auto text-pretty">
-            Vous pouvez contacter notre équipe de bénévoles pour un
-            accompagnement personnalisé. Nous sommes là pour vous aider.
-          </p>
-          <Button
-            size="lg"
-            variant="outline"
-            className="border-purple-200 dark:border-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/5"
-          >
-            <Phone className="h-5 w-5 mr-2" />
-            Demander de l'aide
-          </Button>
-        </div>
-      </section>
+              <div className="w-6 shrink-0 flex justify-center">
+                {completed ? (
+                  <Check size={18} strokeWidth={2} className="text-[#21B2AA]" />
+                ) : (
+                  <ArrowRight size={16} strokeWidth={1.5} className="text-black/40 group-hover:translate-x-1 transition-transform duration-100" />
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tip */}
+      <div className="border-l-[3px] border-[#21B2AA]/30 pl-6 py-2">
+        <p className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase mb-2">Conseil du jour</p>
+        <p className="text-black/50 text-base leading-relaxed">
+          En cas de doute sur un email ou un appel, ne faites rien dans l'urgence. Prenez le temps de demander conseil à un proche ou appelez directement l'organisme avec le numéro habituel.
+        </p>
+      </div>
+
+      {/* Help */}
+      <div className="border-2 border-black p-8 text-center">
+        <p className="font-bold text-lg mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>Besoin d'aide ?</p>
+        <p className="text-black/50 text-sm mb-6 max-w-md mx-auto">
+          Contactez notre équipe de bénévoles pour un accompagnement personnalisé.
+        </p>
+        <button className="px-8 py-3 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100">
+          Demander de l'aide
+        </button>
+      </div>
     </div>
   );
 }

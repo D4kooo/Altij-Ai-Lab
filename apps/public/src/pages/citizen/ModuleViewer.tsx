@@ -1,63 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, NavLink } from 'react-router-dom';
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Volume2,
-  ChevronLeft,
-  ChevronRight,
-  Trophy,
-  RefreshCw,
-  HelpCircle,
-  Loader2,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Loader2, Volume2 } from 'lucide-react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import DOMPurify from 'dompurify';
 import { coursesApi, type ModuleWithDetails } from '@/lib/api';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
 
-// Audience colors
-const audienceConfig = {
-  juniors: {
-    color: 'amber',
-    borderColor: 'border-amber-200 dark:border-amber-500/20',
-    accentColor: 'text-amber-600 dark:text-amber-400',
-    accentBg: 'bg-amber-100 dark:bg-amber-500/10',
-    buttonBg: 'bg-amber-500 hover:bg-amber-600',
-    progressBg: 'bg-amber-500',
-    backPath: '/school/juniors',
-    title: 'Parcours Juniors',
-  },
-  adultes: {
-    color: 'teal',
-    borderColor: 'border-primary/20',
-    accentColor: 'text-primary',
-    accentBg: 'bg-primary/10',
-    buttonBg: 'bg-primary hover:bg-primary/90',
-    progressBg: 'bg-primary',
-    backPath: '/school/adultes',
-    title: 'Parcours Adultes',
-  },
-  seniors: {
-    color: 'purple',
-    borderColor: 'border-purple-200 dark:border-purple-500/20',
-    accentColor: 'text-purple-600 dark:text-purple-400',
-    accentBg: 'bg-purple-100 dark:bg-purple-500/10',
-    buttonBg: 'bg-purple-600 hover:bg-purple-700',
-    progressBg: 'bg-purple-500',
-    backPath: '/school/seniors',
-    title: 'Parcours Seniors',
-  },
-};
-
-// Transform API quiz questions to the format the UI expects
 interface UIQuizQuestion {
   question: string;
   options: string[];
   correctIndex: number;
   explanation: string;
   questionId: string;
-  selectedOptionId?: string;
 }
 
 function transformQuizQuestions(quiz: ModuleWithDetails['quiz']): UIQuizQuestion[] {
@@ -74,8 +29,74 @@ function transformQuizQuestions(quiz: ModuleWithDetails['quiz']): UIQuizQuestion
   });
 }
 
+const lessonHtmlStyles = `
+.lesson-html h1{font-weight:700;font-size:1.5rem;letter-spacing:-0.03em;margin:2rem 0 1rem;font-family:'Inter Tight',sans-serif}
+.lesson-html h2{font-weight:700;font-size:1.25rem;letter-spacing:-0.02em;margin:2rem 0 .75rem;font-family:'Inter Tight',sans-serif}
+.lesson-html h3{font-weight:700;font-size:1rem;letter-spacing:-0.01em;margin:1.5rem 0 .5rem;font-family:'Inter Tight',sans-serif}
+.lesson-html p{color:rgba(0,0,0,.6);font-size:.875rem;line-height:1.625;margin-bottom:1rem}
+.lesson-html strong{color:#000;font-weight:600}
+.lesson-html ul,.lesson-html ol{margin-left:1rem;margin-bottom:1rem}
+.lesson-html ul{list-style:disc}
+.lesson-html ol{list-style:decimal}
+.lesson-html li{color:rgba(0,0,0,.6);font-size:.875rem;line-height:1.625;margin-bottom:.375rem}
+.lesson-html blockquote{border-left:3px solid rgba(33,178,170,.3);padding-left:1rem;margin:1rem 0;color:rgba(0,0,0,.5);font-size:.875rem;font-style:italic}
+.lesson-html table{width:100%;font-size:.875rem;border-collapse:collapse;border:2px solid #000;margin:1.5rem 0}
+.lesson-html thead{background:#000;color:#fff}
+.lesson-html th{padding:.625rem 1rem;text-align:left;font-family:monospace;font-size:.625rem;letter-spacing:.15em;text-transform:uppercase}
+.lesson-html td{padding:.625rem 1rem;border-top:1px solid rgba(0,0,0,.1);color:rgba(0,0,0,.6)}
+.lesson-html code{background:rgba(0,0,0,.05);padding:.125rem .375rem;font-size:.75rem;font-family:monospace;border-radius:.25rem}
+.lesson-html hr{border:none;border-top:2px solid rgba(0,0,0,.1);margin:2rem 0}
+.lesson-html mark{background:rgba(33,178,170,.2);padding:.125rem .25rem;border-radius:.125rem}
+`;
+
+function LessonContent({ content }: { content: string }) {
+  const isHtml = content.trimStart().startsWith('<');
+
+  if (isHtml) {
+    const sanitized = DOMPurify.sanitize(content);
+    return (
+      <>
+        <style>{lessonHtmlStyles}</style>
+        <div className="lesson-html" dangerouslySetInnerHTML={{ __html: sanitized }} />
+      </>
+    );
+  }
+
+  return (
+    <Markdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        h1: ({ children }) => <h1 className="font-bold text-2xl tracking-tighter mt-8 mb-4" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{children}</h1>,
+        h2: ({ children }) => <h2 className="font-bold text-xl tracking-tight mt-8 mb-3" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{children}</h2>,
+        h3: ({ children }) => <h3 className="font-bold text-base tracking-tight mt-6 mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{children}</h3>,
+        p: ({ children }) => <p className="text-black/60 text-sm leading-relaxed mb-4">{children}</p>,
+        strong: ({ children }) => <strong className="text-black font-semibold">{children}</strong>,
+        ul: ({ children }) => <ul className="space-y-1.5 ml-4 mb-4">{children}</ul>,
+        ol: ({ children }) => <ol className="space-y-1.5 ml-4 mb-4 list-decimal">{children}</ol>,
+        li: ({ children }) => <li className="text-black/60 text-sm leading-relaxed flex gap-2"><span className="text-[#21B2AA]/50 shrink-0">—</span><span>{children}</span></li>,
+        blockquote: ({ children }) => <blockquote className="border-l-[3px] border-[#21B2AA]/30 pl-4 py-1 my-4 text-black/50 text-sm italic">{children}</blockquote>,
+        table: ({ children }) => <div className="overflow-x-auto my-6"><table className="w-full text-sm border-collapse border-2 border-black">{children}</table></div>,
+        thead: ({ children }) => <thead className="bg-black text-white">{children}</thead>,
+        th: ({ children }) => <th className="px-4 py-2.5 text-left font-mono text-[10px] tracking-[0.15em] uppercase">{children}</th>,
+        td: ({ children }) => <td className="px-4 py-2.5 border-t border-black/10 text-black/60">{children}</td>,
+        code: ({ children }) => <code className="bg-black/5 px-1.5 py-0.5 text-xs font-mono">{children}</code>,
+        hr: () => <hr className="border-t-2 border-black/10 my-8" />,
+      }}
+    >
+      {content}
+    </Markdown>
+  );
+}
+
+const audienceLabels: Record<string, string> = {
+  juniors: 'Juniors',
+  adultes: 'Adultes',
+  seniors: 'Seniors',
+  organisation: 'Formation',
+};
+
 export function ModuleViewer() {
-  const { audience, moduleId } = useParams<{ audience: string; moduleId: string }>();
+  const { audience, moduleId, courseId } = useParams<{ audience?: string; moduleId: string; courseId?: string }>();
   const navigate = useNavigate();
   const { isModuleCompleted, completeModule, getQuizScore, saveQuizScore } = useSchoolProgress();
 
@@ -89,54 +110,45 @@ export function ModuleViewer() {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState<number | null>(null);
 
-  // Validate audience
-  const validAudience = audience as 'juniors' | 'adultes' | 'seniors';
-  const isValidAudience = ['juniors', 'adultes', 'seniors'].includes(audience || '');
-  const config = isValidAudience ? audienceConfig[validAudience] : audienceConfig.adultes;
+  // Org context: route is /org/formation/:courseId/module/:moduleId (no audience param)
+  const isOrgContext = !!courseId && !audience;
+  const validAudience = isOrgContext ? 'organisation' : (audience as 'juniors' | 'adultes' | 'seniors');
+  const isValidContext = isOrgContext || ['juniors', 'adultes', 'seniors'].includes(audience || '');
+  const backPath = isOrgContext ? `/org/formation/${courseId}` : audience ? `/school/${audience}` : '/school';
 
-  // Fetch module data from API
   useEffect(() => {
-    if (!moduleId || !isValidAudience) return;
-
+    if (!moduleId || !isValidContext) return;
     let cancelled = false;
     setLoading(true);
     setFetchError(null);
 
     coursesApi.getModule(moduleId).then((data) => {
-      if (!cancelled) {
-        setModuleData(data);
-        setLoading(false);
-      }
+      if (!cancelled) { setModuleData(data); setLoading(false); }
     }).catch((err) => {
-      if (!cancelled) {
-        setFetchError(err instanceof Error ? err.message : 'Module non trouvé');
-        setLoading(false);
-      }
+      if (!cancelled) { setFetchError(err instanceof Error ? err.message : 'Module non trouvé'); setLoading(false); }
     });
 
     return () => { cancelled = true; };
-  }, [moduleId, isValidAudience]);
+  }, [moduleId, isValidContext]);
 
-  // Derived data from API response
   const lessons = moduleData?.lessons || [];
   const quizQuestions = moduleData ? transformQuizQuestions(moduleData.quiz) : [];
   const hasQuiz = quizQuestions.length > 0;
   const totalSections = lessons.length;
 
-  // Initialize quiz answers when quiz data changes
   useEffect(() => {
     if (quizQuestions.length > 0) {
       setQuizAnswers(new Array(quizQuestions.length).fill(null));
     }
   }, [quizQuestions.length]);
 
-  if (!isValidAudience) {
+  if (!isValidContext) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Parcours non trouvé</p>
-        <Button onClick={() => navigate('/school')} className="mt-4">
-          Retour à la School
-        </Button>
+        <p className="text-black/50">Parcours non trouvé</p>
+        <button onClick={() => navigate('/school')} className="mt-4 px-6 py-2 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100">
+          Retour
+        </button>
       </div>
     );
   }
@@ -144,7 +156,7 @@ export function ModuleViewer() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-6 w-6 animate-spin text-black/30" />
       </div>
     );
   }
@@ -152,10 +164,10 @@ export function ModuleViewer() {
   if (fetchError || !moduleData) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">{fetchError || 'Module non trouvé'}</p>
-        <Button onClick={() => navigate(config.backPath)} className="mt-4">
-          Retour au parcours
-        </Button>
+        <p className="text-black/50">{fetchError || 'Module non trouvé'}</p>
+        <button onClick={() => navigate(backPath)} className="mt-4 px-6 py-2 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100">
+          Retour
+        </button>
       </div>
     );
   }
@@ -163,6 +175,8 @@ export function ModuleViewer() {
   const isCompleted = isModuleCompleted(validAudience, moduleData.id);
   const previousScore = getQuizScore(validAudience, moduleData.id);
   const isLastSection = currentSection === totalSections - 1;
+  const progress = showQuiz ? 100 : totalSections > 0 ? Math.round(((currentSection + 1) / totalSections) * (hasQuiz ? 80 : 100)) : 0;
+  const currentLesson = lessons[currentSection];
 
   const handleNext = () => {
     if (isLastSection) {
@@ -171,10 +185,10 @@ export function ModuleViewer() {
       } else {
         completeModule(validAudience, moduleData.id);
         coursesApi.completeModule(moduleData.id).catch(() => {});
-        navigate(config.backPath);
+        navigate(backPath);
       }
     } else {
-      setCurrentSection(prev => prev + 1);
+      setCurrentSection((prev) => prev + 1);
     }
   };
 
@@ -182,13 +196,13 @@ export function ModuleViewer() {
     if (showQuiz) {
       setShowQuiz(false);
     } else if (currentSection > 0) {
-      setCurrentSection(prev => prev - 1);
+      setCurrentSection((prev) => prev - 1);
     }
   };
 
   const handleQuizAnswer = (questionIndex: number, answerIndex: number) => {
     if (!quizSubmitted) {
-      setQuizAnswers(prev => {
+      setQuizAnswers((prev) => {
         const newAnswers = [...prev];
         newAnswers[questionIndex] = answerIndex;
         return newAnswers;
@@ -199,15 +213,11 @@ export function ModuleViewer() {
   const handleSubmitQuiz = async () => {
     if (!moduleData.quiz || quizQuestions.length === 0) return;
 
-    // Build answers for API submission
     const apiAnswers = quizQuestions.map((q, idx) => {
       const selectedIdx = quizAnswers[idx];
       const originalQuestion = moduleData.quiz!.questions![idx];
       const selectedOption = selectedIdx !== null ? originalQuestion.options[selectedIdx] : null;
-      return {
-        questionId: q.questionId,
-        selectedOptionId: selectedOption?.id || '',
-      };
+      return { questionId: q.questionId, selectedOptionId: selectedOption?.id || '' };
     });
 
     try {
@@ -216,20 +226,13 @@ export function ModuleViewer() {
       setQuizScore(score);
       setQuizSubmitted(true);
       saveQuizScore(validAudience, moduleData.id, score);
-
-      if (result.passed) {
-        completeModule(validAudience, moduleData.id);
-      }
+      if (result.passed) completeModule(validAudience, moduleData.id);
     } catch {
-      // Fallback to local scoring if API fails
-      const correctCount = quizQuestions.reduce((count, q, idx) => {
-        return count + (quizAnswers[idx] === q.correctIndex ? 1 : 0);
-      }, 0);
+      const correctCount = quizQuestions.reduce((count, q, idx) => count + (quizAnswers[idx] === q.correctIndex ? 1 : 0), 0);
       const score = Math.round((correctCount / quizQuestions.length) * 100);
       setQuizScore(score);
       setQuizSubmitted(true);
       saveQuizScore(validAudience, moduleData.id, score);
-
       if (score >= 70) {
         completeModule(validAudience, moduleData.id);
         coursesApi.completeModule(moduleData.id).catch(() => {});
@@ -243,184 +246,113 @@ export function ModuleViewer() {
     setQuizScore(null);
   };
 
-  const handleFinish = () => {
-    navigate(config.backPath);
-  };
-
-  const currentLesson = lessons[currentSection];
-  const progress = showQuiz
-    ? 100
-    : totalSections > 0 ? Math.round(((currentSection + 1) / totalSections) * (hasQuiz ? 80 : 100)) : 0;
-
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Back link */}
-      <NavLink
-        to={config.backPath}
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour au {config.title}
+    <div className="space-y-8 max-w-4xl mx-auto px-6 lg:px-10 py-8 lg:py-10">
+      {/* Back */}
+      <NavLink to={backPath} className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.15em] uppercase text-black/40 hover:text-black transition-colors duration-100">
+        <ArrowLeft size={14} strokeWidth={1.5} /> {audienceLabels[validAudience] || 'Parcours'}
       </NavLink>
 
       {/* Header */}
-      <div className={cn(
-        'rounded-2xl border p-6',
-        config.borderColor,
-        config.accentBg
-      )}>
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-foreground text-balance">{moduleData.title}</h1>
-              {isCompleted && (
-                <span className="px-2 py-1 rounded bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-sm flex items-center gap-1">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Terminé
-                </span>
-              )}
-              {moduleData.hasAudio && (
-                <span className={cn('px-2 py-1 rounded text-sm flex items-center gap-1', config.accentBg, config.accentColor)}>
-                  <Volume2 className="h-4 w-4" />
-                  Audio
-                </span>
-              )}
-            </div>
-            <p className="text-muted-foreground">{moduleData.description}</p>
-            <p className="text-sm text-muted-foreground mt-2">Durée estimée : {moduleData.duration}</p>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">
-              {showQuiz ? 'Quiz' : `Section ${currentSection + 1} sur ${totalSections}`}
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase">
+            {audienceLabels[validAudience]}
+          </span>
+          {isCompleted && (
+            <span className="font-mono text-[9px] tracking-[0.2em] text-[#21B2AA] uppercase border border-[#21B2AA]/30 px-2 py-0.5 flex items-center gap-1">
+              <Check size={10} strokeWidth={2} /> Terminé
             </span>
-            <span className={cn('text-sm font-medium', config.accentColor)}>{progress}%</span>
+          )}
+          {moduleData.hasAudio && (
+            <span className="font-mono text-[9px] tracking-[0.15em] text-[#21B2AA]/50 uppercase flex items-center gap-1">
+              <Volume2 size={12} strokeWidth={1.5} /> Audio
+            </span>
+          )}
+        </div>
+        <h1 className="font-bold text-2xl sm:text-3xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+          {moduleData.title}
+        </h1>
+        {moduleData.description && (
+          <p className="mt-3 text-black/50 text-sm leading-relaxed">{moduleData.description}</p>
+        )}
+
+        {/* Progress */}
+        <div className="flex items-center gap-4 mt-6">
+          <div className="flex-1 h-[3px] bg-black/10">
+            <div className="h-full bg-black transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <div className="h-2 bg-background rounded-full overflow-hidden">
-            <div
-              className={cn('h-full rounded-full transition-all duration-500', config.progressBg)}
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+          <span className="font-mono text-[10px] tracking-[0.1em] text-black/40">
+            {showQuiz ? 'Quiz' : `${currentSection + 1}/${totalSections}`}
+          </span>
         </div>
       </div>
 
       {/* Content */}
       {!showQuiz ? (
         currentLesson ? (
-          <div className="rounded-xl border border-border bg-card p-8">
-            <h2 className="text-xl font-semibold text-foreground mb-6">
+          <div className="border-t-[2px] border-black pt-8">
+            <h2 className="font-bold text-xl tracking-tight mb-6" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
               {currentLesson.title}
             </h2>
 
-            {/* Main content */}
-            <div className="prose prose-gray dark:prose-invert max-w-none">
-              {(currentLesson.content || '').split('\n\n').map((paragraph, idx) => {
-                if (paragraph.includes('\n- ')) {
-                  const [intro, ...items] = paragraph.split('\n- ');
-                  return (
-                    <div key={idx} className="mb-4">
-                      {intro && <p className="mb-2">{intro}</p>}
-                      <ul className="list-disc pl-6 space-y-1">
-                        {items.map((item, i) => (
-                          <li key={i} className="text-foreground/70">{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  );
-                }
-
-                const formattedParagraph = paragraph
-                  .split(/\*\*(.*?)\*\*/g)
-                  .map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part);
-
-                return (
-                  <p key={idx} className="mb-4 text-foreground/70 leading-relaxed">
-                    {formattedParagraph}
-                  </p>
-                );
-              })}
-            </div>
+            <LessonContent content={currentLesson.content || ''} />
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">Aucun contenu disponible</div>
+          <div className="text-center py-8 text-black/30 font-mono text-[10px] tracking-[0.15em] uppercase">
+            Aucun contenu disponible
+          </div>
         )
       ) : (
         /* Quiz */
-        <div className="rounded-xl border border-border bg-card p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className={cn('p-3 rounded-xl', config.accentBg, config.accentColor)}>
-              <HelpCircle className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">Quiz</h2>
-              <p className="text-muted-foreground">Testez vos connaissances</p>
-            </div>
+        <div className="border-t-[2px] border-black pt-8">
+          <div className="mb-8">
+            <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-2">Quiz</span>
+            <p className="text-black/50 text-sm">Testez vos connaissances</p>
           </div>
 
           {quizSubmitted && quizScore !== null && (
-            <div className={cn(
-              'mb-6 p-6 rounded-xl border text-center',
-              quizScore >= 70
-                ? 'border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5'
-                : 'border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5'
-            )}>
-              <div className={cn(
-                'inline-flex items-center justify-center w-16 h-16 rounded-full mb-4',
-                quizScore >= 70 ? 'bg-green-100 dark:bg-green-500/10' : 'bg-amber-100 dark:bg-amber-500/10'
-              )}>
-                {quizScore >= 70 ? (
-                  <Trophy className="h-8 w-8 text-green-600 dark:text-green-400" />
-                ) : (
-                  <RefreshCw className="h-8 w-8 text-amber-600 dark:text-amber-400" />
-                )}
-              </div>
-              <h3 className={cn(
-                'text-2xl font-bold mb-2',
-                quizScore >= 70 ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'
-              )}>
+            <div className="border-2 border-black p-6 sm:p-8 text-center mb-8">
+              <span className="text-4xl font-bold tracking-tighter block" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
                 {quizScore}%
-              </h3>
-              <p className={quizScore >= 70 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}>
+              </span>
+              <p className={`text-sm mt-2 ${quizScore >= 70 ? 'text-[#21B2AA]' : 'text-black/50'}`}>
                 {quizScore >= 70
                   ? 'Bravo ! Vous avez réussi le quiz !'
                   : 'Pas tout à fait... Réessayez pour obtenir au moins 70%'}
               </p>
               {previousScore !== null && previousScore !== quizScore && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Votre meilleur score : {Math.max(previousScore, quizScore)}%
+                <p className="font-mono text-[9px] tracking-[0.1em] text-black/25 uppercase mt-3">
+                  Meilleur score : {Math.max(previousScore, quizScore)}%
                 </p>
               )}
             </div>
           )}
 
-          <div className="space-y-8">
+          <div className="space-y-10">
             {quizQuestions.map((question, qIdx) => {
               const userAnswer = quizAnswers[qIdx];
               const isCorrect = userAnswer === question.correctIndex;
 
               return (
                 <div key={qIdx} className="space-y-4">
-                  <h3 className="font-medium text-foreground">
-                    {qIdx + 1}. {question.question}
+                  <h3 className="font-bold text-sm tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                    <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/50 mr-3">
+                      {String(qIdx + 1).padStart(2, '0')}.
+                    </span>
+                    {question.question}
                   </h3>
                   <div className="space-y-2">
                     {question.options.map((option, oIdx) => {
                       const isSelected = userAnswer === oIdx;
                       const isCorrectAnswer = question.correctIndex === oIdx;
 
-                      let optionClass = 'border-border bg-card hover:bg-muted';
+                      let borderClass = 'border-black/10 hover:border-black/30';
                       if (quizSubmitted) {
-                        if (isCorrectAnswer) {
-                          optionClass = 'border-green-300 dark:border-green-500/30 bg-green-50 dark:bg-green-500/5';
-                        } else if (isSelected && !isCorrectAnswer) {
-                          optionClass = 'border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-500/5';
-                        }
+                        if (isCorrectAnswer) borderClass = 'border-[#21B2AA] bg-[#21B2AA]/5';
+                        else if (isSelected && !isCorrectAnswer) borderClass = 'border-black bg-black/5';
                       } else if (isSelected) {
-                        optionClass = cn(config.borderColor, config.accentBg);
+                        borderClass = 'border-black';
                       }
 
                       return (
@@ -428,38 +360,30 @@ export function ModuleViewer() {
                           key={oIdx}
                           onClick={() => handleQuizAnswer(qIdx, oIdx)}
                           disabled={quizSubmitted}
-                          className={cn(
-                            'w-full text-left p-4 rounded-lg border transition-all',
-                            optionClass,
-                            !quizSubmitted && 'cursor-pointer'
-                          )}
+                          className={`w-full text-left px-4 py-3 border-2 transition-colors duration-100 ${borderClass} ${
+                            !quizSubmitted ? 'cursor-pointer' : ''
+                          }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={cn(
-                              'w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-medium',
-                              isSelected
-                                ? cn(config.accentColor, 'border-current')
-                                : 'border-border text-muted-foreground'
-                            )}>
+                            <span className={`font-mono text-[10px] tracking-[0.1em] w-6 h-6 flex items-center justify-center border ${
+                              isSelected ? 'border-black text-black' : 'border-black/20 text-black/30'
+                            }`}>
                               {String.fromCharCode(65 + oIdx)}
-                            </div>
-                            <span className="text-foreground/70">{option}</span>
+                            </span>
+                            <span className="text-sm text-black/70">{option}</span>
                             {quizSubmitted && isCorrectAnswer && (
-                              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 ml-auto" />
+                              <Check size={16} strokeWidth={2} className="text-[#21B2AA] ml-auto" />
                             )}
                           </div>
                         </button>
                       );
                     })}
                   </div>
-                  {quizSubmitted && (
-                    <div className={cn(
-                      'p-4 rounded-lg text-sm',
-                      isCorrect
-                        ? 'bg-green-50 dark:bg-green-500/5 text-green-700 dark:text-green-400'
-                        : 'bg-amber-50 dark:bg-amber-500/5 text-amber-700 dark:text-amber-400'
-                    )}>
-                      <strong>{isCorrect ? 'Correct !' : 'Explication :'}</strong> {question.explanation}
+                  {quizSubmitted && question.explanation && (
+                    <div className="border-l-[3px] border-[#21B2AA]/30 pl-4 py-1">
+                      <p className="text-sm text-black/50 leading-relaxed">
+                        <strong className="text-black">{isCorrect ? 'Correct' : 'Explication'} :</strong> {question.explanation}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -469,16 +393,16 @@ export function ModuleViewer() {
 
           {!quizSubmitted && (
             <div className="mt-8">
-              <Button
+              <button
                 onClick={handleSubmitQuiz}
-                disabled={quizAnswers.some(a => a === null)}
-                className={cn('w-full', config.buttonBg, 'text-white')}
+                disabled={quizAnswers.some((a) => a === null)}
+                className="w-full px-6 py-3 bg-black text-white text-[11px] font-medium tracking-[0.15em] uppercase border-2 border-black hover:bg-white hover:text-black transition-colors duration-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-black disabled:hover:text-white"
               >
                 Valider mes réponses
-              </Button>
-              {quizAnswers.some(a => a === null) && (
-                <p className="text-sm text-muted-foreground text-center mt-2">
-                  Répondez à toutes les questions pour valider
+              </button>
+              {quizAnswers.some((a) => a === null) && (
+                <p className="font-mono text-[9px] tracking-[0.1em] text-black/25 uppercase text-center mt-3">
+                  Répondez à toutes les questions
                 </p>
               )}
             </div>
@@ -487,69 +411,59 @@ export function ModuleViewer() {
       )}
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
+      <div className="flex items-center justify-between border-t-[2px] border-black pt-6">
+        <button
           onClick={handlePrevious}
           disabled={currentSection === 0 && !showQuiz}
+          className="inline-flex items-center gap-2 px-5 py-3 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-black"
         >
-          <ChevronLeft className="h-4 w-4 mr-2" />
-          Précédent
-        </Button>
+          <ChevronLeft size={14} strokeWidth={1.5} /> Précédent
+        </button>
+
+        {/* Section dots */}
+        {!showQuiz && totalSections > 1 && (
+          <div className="flex items-center gap-2">
+            {lessons.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentSection(idx)}
+                className={`w-2 h-2 transition-all ${
+                  idx === currentSection ? 'bg-black w-4' : 'bg-black/15 hover:bg-black/30'
+                }`}
+              />
+            ))}
+          </div>
+        )}
 
         {showQuiz ? (
           quizSubmitted ? (
             <div className="flex gap-3">
               {quizScore !== null && quizScore < 70 && (
-                <Button variant="outline" onClick={handleRetryQuiz}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                <button
+                  onClick={handleRetryQuiz}
+                  className="px-5 py-3 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100"
+                >
                   Réessayer
-                </Button>
+                </button>
               )}
-              <Button onClick={handleFinish} className={cn(config.buttonBg, 'text-white')}>
-                Terminer
-                <CheckCircle2 className="h-4 w-4 ml-2" />
-              </Button>
+              <button
+                onClick={() => navigate(backPath)}
+                className="inline-flex items-center gap-2 px-5 py-3 bg-black text-white text-[11px] font-medium tracking-[0.15em] uppercase border-2 border-black hover:bg-white hover:text-black transition-colors duration-100"
+              >
+                Terminer <Check size={14} strokeWidth={1.5} />
+              </button>
             </div>
-          ) : null
+          ) : <div />
         ) : (
-          <Button onClick={handleNext} className={cn(config.buttonBg, 'text-white')}>
-            {isLastSection ? (hasQuiz ? 'Passer au quiz' : 'Terminer') : 'Suivant'}
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
+          <button
+            onClick={handleNext}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-black text-white text-[11px] font-medium tracking-[0.15em] uppercase border-2 border-black hover:bg-white hover:text-black transition-colors duration-100"
+          >
+            {isLastSection ? (hasQuiz ? 'Quiz' : 'Terminer') : 'Suivant'}
+            <ChevronRight size={14} strokeWidth={1.5} />
+          </button>
         )}
       </div>
-
-      {/* Section dots navigation */}
-      {!showQuiz && totalSections > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          {lessons.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentSection(idx)}
-              className={cn(
-                'w-2 h-2 rounded-full transition-all',
-                idx === currentSection
-                  ? cn(config.buttonBg, 'w-4')
-                  : 'bg-border hover:bg-muted-foreground'
-              )}
-            />
-          ))}
-          {hasQuiz && (
-            <>
-              <span className="text-border mx-1">|</span>
-              <button
-                onClick={() => setShowQuiz(true)}
-                disabled={!isLastSection && currentSection < totalSections - 1}
-                className={cn(
-                  'w-2 h-2 rounded-full transition-all',
-                  showQuiz ? cn(config.buttonBg, 'w-4') : 'bg-border'
-                )}
-              />
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }

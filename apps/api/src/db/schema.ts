@@ -26,6 +26,7 @@ export const favoriteTypeEnum = pgEnum('favorite_item_type', ['assistant', 'auto
 export const assistantTypeEnum = pgEnum('assistant_type', ['openrouter', 'webhook']);
 export const resourceTypeEnum = pgEnum('resource_type', ['assistant', 'automation']);
 export const organizationTypeEnum = pgEnum('organization_type', ['work', 'family']);
+export const accountTypeEnum = pgEnum('account_type', ['particulier', 'organisation']);
 // Document status is stored as TEXT (not enum) for flexibility
 
 // Organisations (Multi-tenant: Work & Family)
@@ -69,6 +70,9 @@ export const users = pgTable('users', {
   department: departmentEnum('department'),
   creditLimit: real('credit_limit'), // NULL = unlimited, in dollars
   organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
+  accountType: accountTypeEnum('account_type').default('particulier'),
+  organizationName: text('organization_name'),  // For citizen orgs (different from the staff organizationId)
+  organizationRole: text('organization_role'),  // Role within the org (DPO, Manager, etc.)
   isOnboarded: boolean('is_onboarded').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
@@ -374,7 +378,7 @@ export const auditLogs = pgTable('audit_logs', {
 // =====================================================
 
 // Enums pour le CMS
-export const courseAudienceEnum = pgEnum('course_audience', ['juniors', 'adultes', 'seniors']);
+export const courseAudienceEnum = pgEnum('course_audience', ['juniors', 'adultes', 'seniors', 'organisation']);
 export const moduleDifficultyEnum = pgEnum('module_difficulty', ['facile', 'moyen', 'expert']);
 export const lessonContentTypeEnum = pgEnum('lesson_content_type', ['text', 'video', 'image', 'audio']);
 export const quizQuestionTypeEnum = pgEnum('quiz_question_type', ['multiple_choice', 'true_false']);

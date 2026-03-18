@@ -1,8 +1,14 @@
-import { ComponentType } from 'react';
+import { ComponentType, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { motion } from 'motion/react';
 import { Bot, Copy, Check, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+
+// ─── Shared spring config ────────────────────────────────────────────
+
+const messageSpring = { type: 'spring' as const, damping: 25, stiffness: 300 };
+
+// ─── ChatMessage ─────────────────────────────────────────────────────
 
 interface ChatMessageProps {
   role: 'user' | 'assistant';
@@ -35,24 +41,37 @@ export function ChatMessage({
 
   if (role === 'user') {
     return (
-      <div className={cn('flex justify-end', isNew && 'message-animate')}>
+      <motion.div
+        className="flex justify-end"
+        initial={isNew ? { opacity: 0, y: 10, scale: 0.98 } : false}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={messageSpring}
+      >
         <div className="message-user max-w-[80%] md:max-w-[65%]">
           <p className="text-[14.5px] whitespace-pre-wrap leading-[1.65]">{content}</p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className={cn('message-container group', isNew && 'message-animate')}>
+    <motion.div
+      className="message-container group"
+      initial={isNew ? { opacity: 0, y: 12 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...messageSpring, delay: 0.05 }}
+    >
       <div className="flex gap-3.5">
         {/* Avatar */}
-        <div
+        <motion.div
           className="message-avatar shrink-0 mt-0.5"
           style={{ backgroundColor: `${assistantColor}12`, color: assistantColor }}
+          initial={isNew ? { scale: 0.5, opacity: 0 } : false}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ ...messageSpring, delay: 0.1 }}
         >
           <AssistantIcon className="h-4 w-4" />
-        </div>
+        </motion.div>
 
         {/* Content */}
         <div className="flex-1 min-w-0 space-y-1.5">
@@ -64,14 +83,25 @@ export function ChatMessage({
 
           {/* Actions */}
           {!isStreaming && content && (
-            <div className="message-actions flex items-center gap-0.5">
+            <motion.div
+              className="flex items-center gap-0.5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.2 }}
+            >
               <button
                 onClick={handleCopy}
                 className="message-action-btn"
                 title={copied ? 'Copié !' : 'Copier'}
               >
                 {copied ? (
-                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', damping: 15, stiffness: 400 }}
+                  >
+                    <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  </motion.span>
                 ) : (
                   <Copy className="h-3.5 w-3.5" />
                 )}
@@ -79,13 +109,15 @@ export function ChatMessage({
               <button className="message-action-btn" title="Régénérer">
                 <RotateCcw className="h-3.5 w-3.5" />
               </button>
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
+
+// ─── StreamingMessage ────────────────────────────────────────────────
 
 interface StreamingMessageProps {
   content: string;
@@ -102,18 +134,24 @@ export function StreamingMessage({
   assistantColor = '#6366f1',
 }: StreamingMessageProps) {
   return (
-    <div className="message-container message-fade">
+    <motion.div
+      className="message-container"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={messageSpring}
+    >
       <div className="flex gap-3.5">
         {/* Avatar */}
-        <div
-          className={cn(
-            'message-avatar shrink-0 mt-0.5',
-            isThinking && !content && 'animate-pulse'
-          )}
+        <motion.div
+          className="message-avatar shrink-0 mt-0.5"
           style={{ backgroundColor: `${assistantColor}12`, color: assistantColor }}
+          animate={isThinking && !content ? {
+            scale: [1, 1.1, 1],
+            transition: { repeat: Infinity, duration: 1.5, ease: 'easeInOut' }
+          } : { scale: 1 }}
         >
           <AssistantIcon className="h-4 w-4" />
-        </div>
+        </motion.div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -124,17 +162,36 @@ export function StreamingMessage({
               </div>
             </div>
           ) : (
-            <div className="thinking-indicator">
-              <div className="thinking-dots">
-                <span style={{ backgroundColor: assistantColor }} />
-                <span style={{ backgroundColor: assistantColor }} />
-                <span style={{ backgroundColor: assistantColor }} />
+            <motion.div
+              className="flex items-center gap-3 py-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <motion.span
+                    key={i}
+                    className="h-[5px] w-[5px] rounded-full"
+                    style={{ backgroundColor: assistantColor }}
+                    animate={{
+                      scale: [0.8, 1.2, 0.8],
+                      opacity: [0.3, 0.8, 0.3],
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.2,
+                      delay: i * 0.15,
+                      ease: 'easeInOut',
+                    }}
+                  />
+                ))}
               </div>
-              <span className="text-[13px] text-muted-foreground/60">Réflexion en cours...</span>
-            </div>
+              <span className="text-[13px] text-muted-foreground/50">Réflexion...</span>
+            </motion.div>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

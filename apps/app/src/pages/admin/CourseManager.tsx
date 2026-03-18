@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronRight,
   FolderOpen,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,12 +26,14 @@ const audienceTabs = [
   { key: 'juniors', label: 'Juniors', subtitle: '7-15 ans', icon: <Users className="h-4 w-4" />, color: 'purple' },
   { key: 'adultes', label: 'Adultes', subtitle: '16-60 ans', icon: <GraduationCap className="h-4 w-4" />, color: 'blue' },
   { key: 'seniors', label: 'Seniors', subtitle: '60+ ans', icon: <Users className="h-4 w-4" />, color: 'amber' },
+  { key: 'organisation', label: 'Organisation', subtitle: 'Entreprises', icon: <Building2 className="h-4 w-4" />, color: 'teal' },
 ] as const;
 
 const tabColors: Record<string, { active: string; badge: string }> = {
-  purple: { active: 'border-purple-500 text-purple-700', badge: 'bg-purple-100 text-purple-700' },
-  blue: { active: 'border-blue-500 text-blue-700', badge: 'bg-blue-100 text-blue-700' },
-  amber: { active: 'border-amber-500 text-amber-700', badge: 'bg-amber-100 text-amber-700' },
+  purple: { active: 'border-purple-500 text-purple-700', badge: 'bg-purple-500/15 text-purple-600 dark:text-purple-400' },
+  blue: { active: 'border-blue-500 text-blue-700', badge: 'bg-blue-500/15 text-blue-600 dark:text-blue-400' },
+  amber: { active: 'border-amber-500 text-amber-700', badge: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
+  teal: { active: 'border-[#57C5B6] text-[#57C5B6]', badge: 'bg-[#57C5B6]/15 text-[#57C5B6]' },
 };
 
 export function CourseManager() {
@@ -41,6 +44,7 @@ export function CourseManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<string>('juniors');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -60,17 +64,21 @@ export function CourseManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Voulez-vous vraiment supprimer ce cours ?')) return;
+  const handleDelete = (id: string) => {
+    setConfirmDeleteId(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      setDeletingId(id);
-      await coursesApi.delete(id);
-      setCourses(courses.filter(c => c.id !== id));
+      setDeletingId(confirmDeleteId);
+      await coursesApi.delete(confirmDeleteId);
+      setCourses(courses.filter(c => c.id !== confirmDeleteId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
     } finally {
       setDeletingId(null);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -142,8 +150,8 @@ export function CourseManager() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des Cours</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Gestion des Cours</h1>
+          <p className="text-muted-foreground mt-1">
             Créez et gérez les cours de la School Data Ring
           </p>
         </div>
@@ -157,7 +165,7 @@ export function CourseManager() {
       </div>
 
       {/* Audience Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-border">
         <div className="flex gap-0">
           {audienceTabs.map((tab) => {
             const isActive = activeTab === tab.key;
@@ -170,15 +178,15 @@ export function CourseManager() {
                   'flex items-center gap-2 px-5 py-3 border-b-2 transition-colors text-sm font-medium',
                   isActive
                     ? colors.active
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                 )}
               >
                 {tab.icon}
                 <span>{tab.label}</span>
-                <span className="text-xs text-gray-400">({tab.subtitle})</span>
+                <span className="text-xs text-muted-foreground">({tab.subtitle})</span>
                 <span className={cn(
                   'ml-1 px-1.5 py-0.5 rounded-full text-xs font-medium',
-                  isActive ? colors.badge : 'bg-gray-100 text-gray-500'
+                  isActive ? colors.badge : 'bg-muted text-muted-foreground'
                 )}>
                   {audienceCounts[tab.key] || 0}
                 </span>
@@ -190,31 +198,31 @@ export function CourseManager() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Rechercher un cours..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 bg-white"
+          className="pl-10 bg-card"
         />
       </div>
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-700">{error}</p>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-destructive" />
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
       {/* Course Groups */}
       {groupedCourses.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-          <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="text-center py-12 bg-muted rounded-xl border border-border">
+          <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-lg font-medium text-foreground mb-2">
             {searchQuery ? 'Aucun cours trouvé' : 'Aucun cours pour cette audience'}
-          </h3>
-          <p className="text-gray-500 mb-4">
+          </h2>
+          <p className="text-muted-foreground mb-4">
             {searchQuery
               ? 'Modifiez votre recherche ou créez un nouveau cours'
               : 'Commencez par créer un cours pour ce parcours'}
@@ -234,31 +242,31 @@ export function CourseManager() {
           {groupedCourses.map(([category, categoryCourses]) => {
             const isCollapsed = collapsedCategories.has(category);
             return (
-              <div key={category} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+              <div key={category} className="rounded-xl border border-border bg-card overflow-hidden">
                 {/* Category Header */}
                 <button
                   onClick={() => toggleCategory(category)}
-                  className="flex items-center gap-3 w-full px-5 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                  className="flex items-center gap-3 w-full px-5 py-3 bg-muted hover:bg-accent transition-colors text-left"
                 >
                   {isCollapsed ? (
-                    <ChevronRight className="h-4 w-4 text-gray-500" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   )}
                   <FolderOpen className="h-4 w-4 text-[#57C5B6]" />
-                  <span className="font-semibold text-gray-900">{category}</span>
-                  <span className="text-xs text-gray-400">
+                  <span className="font-semibold text-foreground">{category}</span>
+                  <span className="text-xs text-muted-foreground">
                     {categoryCourses.length} cours
                   </span>
                 </button>
 
                 {/* Course Cards */}
                 {!isCollapsed && (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-border">
                     {categoryCourses.map((course) => (
                       <div
                         key={course.id}
-                        className="flex items-start gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors"
+                        className="flex items-start gap-4 px-5 py-4 hover:bg-muted/50 transition-colors"
                       >
                         {/* Icon */}
                         <div
@@ -271,62 +279,94 @@ export function CourseManager() {
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <h3 className="font-semibold text-gray-900 truncate text-sm">
+                            <h3 className="font-semibold text-foreground truncate text-sm">
                               {course.name}
                             </h3>
                             {course.isPublished ? (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-xs">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-500/15 text-green-600 dark:text-green-400 text-xs">
                                 <Eye className="h-3 w-3" />
                                 Publié
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-xs">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs">
                                 <EyeOff className="h-3 w-3" />
                                 Brouillon
                               </span>
                             )}
                           </div>
-                          <p className="text-gray-500 text-xs line-clamp-1">
+                          <p className="text-muted-foreground text-xs line-clamp-1">
                             {course.description || 'Aucune description'}
                           </p>
-                          <span className="text-xs text-gray-400 mt-1 inline-block">
+                          <span className="text-xs text-muted-foreground mt-1 inline-block">
                             {course.moduleCount || 0} module(s)
                           </span>
                         </div>
 
                         {/* Actions */}
                         <div className="flex items-center gap-1 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleTogglePublish(course)}
-                            title={course.isPublished ? 'Dépublier' : 'Publier'}
-                          >
-                            {course.isPublished ? (
-                              <EyeOff className="h-4 w-4 text-gray-400" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-green-600" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/admin/courses/${course.id}`)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(course.id)}
-                            disabled={deletingId === course.id}
-                          >
-                            {deletingId === course.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            )}
-                          </Button>
+                          {confirmDeleteId === course.id ? (
+                            <>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="min-w-[44px] min-h-[44px]"
+                                onClick={confirmDelete}
+                                disabled={deletingId === course.id}
+                              >
+                                {deletingId === course.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  'Supprimer'
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="min-w-[44px] min-h-[44px]"
+                                onClick={() => setConfirmDeleteId(null)}
+                                disabled={deletingId === course.id}
+                              >
+                                Annuler
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="min-w-[44px] min-h-[44px]"
+                                onClick={() => handleTogglePublish(course)}
+                                title={course.isPublished ? 'Dépublier' : 'Publier'}
+                              >
+                                {course.isPublished ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-green-600" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="min-w-[44px] min-h-[44px]"
+                                onClick={() => navigate(`/admin/courses/${course.id}`)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="min-w-[44px] min-h-[44px]"
+                                onClick={() => handleDelete(course.id)}
+                                disabled={deletingId === course.id}
+                              >
+                                {deletingId === course.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                )}
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}

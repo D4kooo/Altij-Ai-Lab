@@ -119,6 +119,9 @@ export const authApi = {
     password: string;
     firstName: string;
     lastName: string;
+    accountType?: string;
+    organizationName?: string;
+    organizationRole?: string;
   }): Promise<AuthResponse> => {
     const response = await fetchApi<AuthResponse>('/auth/register-citizen', {
       method: 'POST',
@@ -137,7 +140,7 @@ export interface Course {
   createdBy: string | null;
   name: string;
   description: string | null;
-  audience: 'juniors' | 'adultes' | 'seniors';
+  audience: 'juniors' | 'adultes' | 'seniors' | 'organisation';
   icon: string;
   color: string;
   category: string | null;
@@ -400,6 +403,33 @@ export const templatesApi = {
 
   getCategories: async (): Promise<TemplateCategory[]> => {
     return fetchApi<TemplateCategory[]>('/templates/categories/list');
+  },
+};
+
+// Breach Check Types
+export interface BreachResult {
+  name: string;
+  date: string;
+  description: string;
+  dataTypes: string[];
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
+export interface BreachCheckResponse {
+  email: string;
+  breachCount: number;
+  breaches: BreachResult[];
+  message?: string;
+  remaining?: number;
+}
+
+// Breach Check API
+export const breachCheckApi = {
+  check: async (email: string): Promise<BreachCheckResponse> => {
+    return fetchApi<BreachCheckResponse>('/breach-check', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   },
 };
 

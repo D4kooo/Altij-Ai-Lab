@@ -1,32 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Gamepad2,
-  Star,
-  Lock,
-  Eye,
-  MessageSquare,
-  Users,
-  Shield,
-  Sparkles,
-  Play,
-  CheckCircle2,
-  Loader2,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, ArrowRight, Check, Lock, Loader2 } from 'lucide-react';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
 import { useCoursesData } from '@/hooks/useCoursesData';
-
-// Map icon strings to components
-const iconMap: Record<string, typeof Shield> = {
-  Sparkles,
-  Lock,
-  Eye,
-  MessageSquare,
-  Users,
-  Shield,
-};
 
 const badges = [
   { name: 'Explorateur', icon: '🔍', modulesRequired: 1 },
@@ -44,14 +19,10 @@ export function SchoolJuniors() {
   const totalModules = allModules.length;
   const progress = totalModules > 0 ? (completedCount / totalModules) * 100 : 0;
 
-  const handleStartModule = (moduleId: string) => {
-    navigate(`/school/juniors/module/${moduleId}`);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-black/30" />
       </div>
     );
   }
@@ -59,212 +30,112 @@ export function SchoolJuniors() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">{error}</p>
-        <Button onClick={() => window.location.reload()} className="mt-4">
+        <p className="text-black/50">{error}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 border-2 border-black text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-black hover:text-white transition-colors duration-100">
           Réessayer
-        </Button>
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Back link */}
-      <NavLink
-        to="/school"
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour aux parcours
+    <div className="space-y-10 px-6 lg:px-10 py-8 lg:py-10 pt-20">
+      {/* Back */}
+      <NavLink to="/school" className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.15em] uppercase text-black/40 hover:text-black transition-colors duration-100">
+        <ArrowLeft size={14} strokeWidth={1.5} /> Parcours
       </NavLink>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-8">
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
-          <div className="p-4 rounded-2xl bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Gamepad2 className="h-10 w-10" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-foreground text-balance">Parcours Juniors</h1>
-              <span className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-medium">
-                7-15 ans
-              </span>
-            </div>
-            <p className="text-muted-foreground text-pretty">
-              Deviens un vrai super-héros du numérique ! Apprends à naviguer sur
-              Internet en toute sécurité avec des jeux et des quiz amusants.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Header */}
+      <div>
+        <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Juniors · 7–15 ans</span>
+        <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95] mb-6" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+          Ton aventure numérique
+        </h1>
 
-      {/* Progress & Badges */}
-      <div className="grid md:grid-cols-2 gap-6">
         {/* Progress */}
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Ta progression</h2>
-            <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-              {completedCount}/{totalModules}
-            </span>
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-[3px] bg-black/10">
+            <div className="h-full bg-black transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <div className="h-3 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-amber-500 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            {completedCount === 0
-              ? 'Commence ton aventure !'
-              : completedCount === totalModules
-              ? 'Bravo, tu as tout terminé ! 🎉'
-              : 'Continue comme ça, tu es sur la bonne voie !'}
-          </p>
-        </div>
-
-        {/* Badges */}
-        <div className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Tes badges</h2>
-          <div className="flex gap-4">
-            {badges.map((badge) => {
-              const earned = completedCount >= badge.modulesRequired;
-              return (
-                <div
-                  key={badge.name}
-                  className={cn(
-                    'flex flex-col items-center gap-2 p-3 rounded-xl transition-all',
-                    earned
-                      ? 'bg-amber-50 dark:bg-amber-500/10'
-                      : 'bg-muted opacity-50'
-                  )}
-                  title={earned ? `Badge obtenu !` : `Termine ${badge.modulesRequired} module(s) pour débloquer`}
-                >
-                  <span className="text-2xl">{badge.icon}</span>
-                  <span
-                    className={cn(
-                      'text-xs font-medium',
-                      earned ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
-                    )}
-                  >
-                    {badge.name}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <span className="font-mono text-[10px] tracking-[0.15em] text-black/40">
+            {completedCount}/{totalModules}
+          </span>
         </div>
       </div>
 
-      {/* Modules */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-bold text-foreground">Les modules</h2>
-        <div className="grid gap-4">
-          {allModules.map((module, index) => {
-            const completed = isModuleCompleted('juniors', module.id);
-            // Modules are locked if previous module isn't completed (except first)
-            const locked = index > 0 && !isModuleCompleted('juniors', allModules[index - 1].id) && !completed;
-            const IconComponent = iconMap[module.icon] || Shield;
+      {/* Badges */}
+      <div className="flex gap-6">
+        {badges.map((badge) => {
+          const earned = completedCount >= badge.modulesRequired;
+          return (
+            <div key={badge.name} className="text-center">
+              <span className={`text-2xl block mb-1 ${earned ? '' : 'grayscale opacity-30'}`}>
+                {badge.icon}
+              </span>
+              <span className={`font-mono text-[9px] tracking-[0.1em] uppercase ${
+                earned ? 'text-black' : 'text-black/20'
+              }`}>
+                {badge.name}
+              </span>
+            </div>
+          );
+        })}
+      </div>
 
-            return (
-              <div
-                key={module.id}
-                className={cn(
-                  'relative group rounded-xl border p-5 transition-all',
-                  locked
-                    ? 'border-border bg-muted opacity-60'
-                    : completed
-                    ? 'border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5'
-                    : 'border-border bg-card hover:border-amber-300 dark:hover:border-amber-500/30 hover:shadow-sm'
-                )}
-              >
-                <div className="flex items-start gap-4">
-                  <div
-                    className={cn(
-                      'p-3 rounded-xl',
-                      completed
-                        ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400'
-                        : locked
-                        ? 'bg-muted text-muted-foreground'
-                        : 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                    )}
-                  >
-                    {locked ? (
-                      <Lock className="h-5 w-5" />
-                    ) : completed ? (
-                      <CheckCircle2 className="h-5 w-5" />
-                    ) : (
-                      <IconComponent className="h-5 w-5" />
-                    )}
-                  </div>
+      {/* Module list */}
+      <div className="border-t-[2px] border-black">
+        {allModules.map((module, i) => {
+          const completed = isModuleCompleted('juniors', module.id);
+          const locked = i > 0 && !isModuleCompleted('juniors', allModules[i - 1].id) && !completed;
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-foreground">{module.title}</h3>
-                      {completed && (
-                        <span className="px-2 py-0.5 rounded bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-xs">
-                          Terminé
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{module.description}</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span>{module.duration}</span>
-                      <span>•</span>
-                      <span
-                        className={cn(
-                          module.difficulty === 'facile' && 'text-green-600 dark:text-green-400',
-                          module.difficulty === 'moyen' && 'text-amber-600 dark:text-amber-400',
-                          module.difficulty === 'expert' && 'text-red-600 dark:text-red-400'
-                        )}
-                      >
-                        {module.difficulty && module.difficulty.charAt(0).toUpperCase() +
-                          module.difficulty.slice(1)}
-                      </span>
-                    </div>
-                  </div>
+          return (
+            <button
+              key={module.id}
+              onClick={() => !locked && navigate(`/school/juniors/module/${module.id}`)}
+              disabled={locked}
+              className={`w-full text-left flex items-center gap-4 py-5 border-b border-black/10 transition-colors duration-100 group ${
+                locked ? 'opacity-40 cursor-not-allowed' : 'hover:border-black'
+              }`}
+            >
+              <span className={`font-mono text-[10px] tracking-[0.3em] w-8 shrink-0 ${
+                completed ? 'text-[#21B2AA]' : 'text-black/20'
+              }`}>
+                {String(i + 1).padStart(2, '0')}.
+              </span>
 
-                  {!locked && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStartModule(module.id)}
-                      className={cn(
-                        completed
-                          ? 'bg-green-500 hover:bg-green-600'
-                          : 'bg-amber-500 hover:bg-amber-600',
-                        'text-white'
-                      )}
-                    >
-                      <Play className="h-4 w-4 mr-1" />
-                      {completed ? 'Revoir' : 'Jouer'}
-                    </Button>
-                  )}
-                </div>
+              <div className="flex-1 min-w-0">
+                <span className={`block text-base tracking-tight truncate ${
+                  completed ? 'text-black/40' : locked ? 'text-black/30' : 'text-black'
+                }`} style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                  {module.title}
+                </span>
               </div>
-            );
-          })}
-        </div>
-      </section>
 
-      {/* Tips */}
-      <section className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-6">
-        <div className="flex items-start gap-4">
-          <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Star className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground mb-1">
-              Conseil du jour
-            </h3>
-            <p className="text-sm text-muted-foreground text-pretty">
-              Ne partage jamais ton mot de passe, même avec tes meilleurs amis.
-              Un mot de passe, c'est comme une brosse à dents : on ne le prête
-              pas !
-            </p>
-          </div>
-        </div>
-      </section>
+              <span className="font-mono text-[10px] tracking-[0.1em] text-black/30 shrink-0 hidden sm:block">
+                {module.duration}
+              </span>
+
+              <div className="w-6 shrink-0 flex justify-center">
+                {completed ? (
+                  <Check size={16} strokeWidth={2} className="text-[#21B2AA]" />
+                ) : locked ? (
+                  <Lock size={14} strokeWidth={1.5} className="text-black/20" />
+                ) : (
+                  <ArrowRight size={14} strokeWidth={1.5} className="text-black/40 group-hover:translate-x-1 transition-transform duration-100" />
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tip */}
+      <div className="border-l-[3px] border-[#21B2AA]/30 pl-6 py-2">
+        <p className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase mb-2">Conseil du jour</p>
+        <p className="text-black/50 text-sm leading-relaxed">
+          Ne partage jamais ton mot de passe, même avec tes meilleurs amis. Un mot de passe, c'est comme une brosse à dents : on ne le prête pas !
+        </p>
+      </div>
     </div>
   );
 }

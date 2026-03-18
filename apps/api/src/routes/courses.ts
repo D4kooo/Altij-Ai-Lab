@@ -15,7 +15,7 @@ const coursesRoutes = new Hono<Env>();
 const courseSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
-  audience: z.enum(['juniors', 'adultes', 'seniors']),
+  audience: z.enum(['juniors', 'adultes', 'seniors', 'organisation']),
   category: z.string().optional(),
   icon: z.string().optional().default('BookOpen'),
   color: z.string().optional().default('#57C5B6'),
@@ -92,11 +92,11 @@ coursesRoutes.get('/', async (c) => {
     : and(eq(schema.courses.isActive, true), eq(schema.courses.isPublished, true));
 
   let courses;
-  if (audience && ['juniors', 'adultes', 'seniors'].includes(audience)) {
+  if (audience && ['juniors', 'adultes', 'seniors', 'organisation'].includes(audience)) {
     courses = await db
       .select()
       .from(schema.courses)
-      .where(and(baseCondition, eq(schema.courses.audience, audience as 'juniors' | 'adultes' | 'seniors')))
+      .where(and(baseCondition, eq(schema.courses.audience, audience as 'juniors' | 'adultes' | 'seniors' | 'organisation')))
       .orderBy(asc(schema.courses.order), asc(schema.courses.name));
   } else {
     courses = await db

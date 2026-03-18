@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { CitizenLayout } from '@/components/layout/CitizenLayout';
+import { OrganisationLayout } from '@/components/layout/OrganisationLayout';
 
 // Public pages
 import { Landing } from '@/pages/Landing';
@@ -21,6 +22,12 @@ import { CGUAnalyzer } from '@/pages/citizen/CGUAnalyzer';
 import { DataBreachAlerts } from '@/pages/citizen/DataBreachAlerts';
 import { CollectiveActions } from '@/pages/citizen/CollectiveActions';
 
+// Organisation pages (protected)
+import { OrgDashboard } from '@/pages/organisation/OrgDashboard';
+import { OrgFormation } from '@/pages/organisation/OrgFormation';
+import { OrgOutils } from '@/pages/organisation/OrgOutils';
+import { OrgEquipe } from '@/pages/organisation/OrgEquipe';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -32,7 +39,7 @@ const queryClient = new QueryClient({
 
 // Route de login citoyen (redirige si déjà connecté)
 function CitizenAuthRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) {
     return (
@@ -43,7 +50,8 @@ function CitizenAuthRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/school" replace />;
+    const accountType = user?.accountType || 'particulier';
+    return <Navigate to={accountType === 'organisation' ? '/org' : '/school'} replace />;
   }
 
   return <>{children}</>;
@@ -51,7 +59,8 @@ function CitizenAuthRoute({ children }: { children: React.ReactNode }) {
 
 // Route protégée pour les citoyens
 function CitizenRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -63,6 +72,20 @@ function CitizenRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/citizen/login" replace />;
+  }
+
+  const accountType = user?.accountType || 'particulier';
+  const isOrgRoute = location.pathname.startsWith('/org');
+  const isParticulierRoute = !isOrgRoute;
+
+  // Redirect organisation users away from particulier routes
+  if (accountType === 'organisation' && isParticulierRoute) {
+    return <Navigate to="/org" replace />;
+  }
+
+  // Redirect particulier users away from org routes
+  if (accountType === 'particulier' && isOrgRoute) {
+    return <Navigate to="/school" replace />;
   }
 
   return <>{children}</>;
@@ -112,12 +135,32 @@ function AppContent() {
         <Route path="/school/seniors" element={<SchoolSeniors />} />
         <Route path="/school/:audience/module/:moduleId" element={<ModuleViewer />} />
 
-        <Route path="/outils" element={<CitizenTools />} />
-        <Route path="/outils/gdpr" element={<GDPRGenerator />} />
-        <Route path="/outils/cgu" element={<CGUAnalyzer />} />
-        <Route path="/outils/alertes" element={<DataBreachAlerts />} />
+        <Route path="/outils" element={<CitizenTools />}>
+          <Route path="gdpr" element={<GDPRGenerator />} />
+          <Route path="cgu" element={<CGUAnalyzer />} />
+          <Route path="alertes" element={<DataBreachAlerts />} />
+        </Route>
 
         <Route path="/actions" element={<CollectiveActions />} />
+      </Route>
+
+      {/* Organisation Routes (protected) */}
+      <Route
+        element={
+          <CitizenRoute>
+            <OrganisationLayout />
+          </CitizenRoute>
+        }
+      >
+        <Route path="/org" element={<OrgDashboard />} />
+        <Route path="/org/formation" element={<OrgFormation />} />
+        <Route path="/org/formation/:courseId" element={<OrgFormation />} />
+        <Route path="/org/formation/:courseId/module/:moduleId" element={<ModuleViewer />} />
+        <Route path="/org/outils" element={<OrgOutils />} />
+        <Route path="/org/outils/gdpr" element={<GDPRGenerator />} />
+        <Route path="/org/outils/cgu" element={<CGUAnalyzer />} />
+        <Route path="/org/outils/alertes" element={<DataBreachAlerts />} />
+        <Route path="/org/equipe" element={<OrgEquipe />} />
       </Route>
 
       {/* Fallback */}

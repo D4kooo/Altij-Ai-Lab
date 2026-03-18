@@ -47,6 +47,13 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          accent: 'hsl(var(--sidebar-accent))',
+          muted: 'hsl(var(--sidebar-muted))',
+        },
         brand: {
           turquoise: '#21B2AA',
           'turquoise-light': '#2DD4BF',
@@ -71,9 +78,10 @@ const config: Config = {
         serif: ['Georgia', 'Cambria', 'Times New Roman', 'Times', 'serif'],
       },
       boxShadow: {
-        'premium': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05), 0 12px 24px rgba(0,0,0,0.05)',
-        'premium-sm': '0 0 0 1px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04)',
-        'premium-lg': '0 0 0 1px rgba(0,0,0,0.03), 0 4px 8px rgba(0,0,0,0.04), 0 24px 48px rgba(0,0,0,0.06)',
+        'premium': '0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)',
+        'premium-sm': '0 1px 2px rgba(0,0,0,0.03)',
+        'premium-lg': '0 2px 4px rgba(0,0,0,0.04), 0 8px 16px rgba(0,0,0,0.06)',
+        'linear': '0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.04), 0 4px 8px rgba(0,0,0,0.04)',
         'glow': '0 0 20px rgba(0,0,0,0.03)',
         'inner-glow': 'inset 0 1px 0 0 rgba(255,255,255,0.05)',
       },
@@ -98,6 +106,14 @@ const config: Config = {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
+        'dropdown-in': {
+          from: { opacity: '0', transform: 'scale(0.96) translateY(-4px)' },
+          to: { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+        'dropdown-out': {
+          from: { opacity: '1', transform: 'scale(1) translateY(0)' },
+          to: { opacity: '0', transform: 'scale(0.96) translateY(-4px)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -105,10 +121,12 @@ const config: Config = {
         'fade-in': 'fade-in 0.3s ease-out',
         'scale-in': 'scale-in 0.2s ease-out',
         'shimmer': 'shimmer 2s linear infinite',
+        'dropdown-in': 'dropdown-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+        'dropdown-out': 'dropdown-out 0.1s ease-in',
       },
     },
   },
-  plugins: [],
+  plugins: [require('@tailwindcss/typography')],
 };
 
 export default config;
