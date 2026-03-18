@@ -15,8 +15,9 @@ import { usersRoutes } from './routes/users';
 import { dashboardRoutes } from './routes/dashboard';
 import { veilleRoutes } from './routes/veille';
 import { veilleIaRoutes } from './routes/veille-ia';
-import { anonymiseurRoutes } from './routes/anonymiseur';
-import { lettreMissionRoutes } from './routes/lettre-mission';
+// Coming soon — disabled to remove Puppeteer/Chromium dependency
+// import { anonymiseurRoutes } from './routes/anonymiseur';
+// import { lettreMissionRoutes } from './routes/lettre-mission';
 import { rolesRoutes } from './routes/roles';
 import { permissionsRoutes } from './routes/permissions';
 import { documentsRoutes } from './routes/documents';
@@ -66,8 +67,9 @@ app.route('/api/users', usersRoutes);
 app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/veille', veilleRoutes);
 app.route('/api/veille-ia', veilleIaRoutes);
-app.route('/api/anonymiseur', anonymiseurRoutes);
-app.route('/api/lettre-mission', lettreMissionRoutes);
+// Coming soon
+// app.route('/api/anonymiseur', anonymiseurRoutes);
+// app.route('/api/lettre-mission', lettreMissionRoutes);
 app.route('/api/roles', rolesRoutes);
 app.route('/api/permissions', permissionsRoutes);
 app.route('/api/organizations', organizationsRouter);

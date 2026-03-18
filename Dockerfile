@@ -35,17 +35,6 @@ RUN cd apps/api && bun run build
 FROM oven/bun:1-debian AS runtime
 WORKDIR /app
 
-# Install Chromium for Puppeteer PDF generation
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium \
-    fonts-liberation \
-    libgbm1 \
-    libnss3 \
-    libatk-bridge2.0-0 \
-    libgtk-3-0 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
-
 # API bundle
 COPY --from=build-api /app/apps/api/dist/ apps/api/dist/
 
@@ -73,7 +62,6 @@ COPY docker-entrypoint.sh .
 RUN chmod +x docker-entrypoint.sh
 
 ENV NODE_ENV=production
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # SECURITY: Run as non-root user
 RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser \

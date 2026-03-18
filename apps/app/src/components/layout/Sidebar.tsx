@@ -31,6 +31,7 @@ interface NavItem {
   icon: typeof LayoutDashboard;
   workOnly?: boolean;
   familyOnly?: boolean;
+  comingSoon?: boolean;
 }
 
 const allNavigation: NavItem[] = [
@@ -39,7 +40,7 @@ const allNavigation: NavItem[] = [
   { name: 'Assistants', href: '/assistants', icon: Bot },
   { name: 'Automatisations', href: '/automations', icon: Zap, workOnly: true },
   { name: 'Veille', href: '/veille', icon: Rss, workOnly: true },
-  { name: 'Anonymiseur', href: '/anonymiseur', icon: Shield, workOnly: true },
+  { name: 'Anonymiseur', href: '/anonymiseur', icon: Shield, workOnly: true, comingSoon: true },
   { name: 'Historique', href: '/history', icon: History },
 ];
 
@@ -117,6 +118,16 @@ export function Sidebar() {
               item.href === '/'
                 ? location.pathname === '/'
                 : location.pathname.startsWith(item.href);
+
+            if (item.comingSoon) {
+              return (
+                <span key={item.name} className={cn(navItemClass(false), 'opacity-40 cursor-not-allowed pointer-events-none')}>
+                  <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
+                  {item.name}
+                  <span className="ml-auto text-[9px] font-medium tracking-wider uppercase text-muted-foreground">Soon</span>
+                </span>
+              );
+            }
 
             return (
               <NavLink key={item.name} to={item.href} className={navItemClass(isActive)}>
