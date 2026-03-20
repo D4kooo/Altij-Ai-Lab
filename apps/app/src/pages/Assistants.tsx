@@ -151,6 +151,7 @@ export function Assistants() {
             {/* Favorite */}
             <button
               onClick={(e) => toggleFavorite(e, assistant.id)}
+              aria-label={isFavorite(assistant.id) ? `Retirer ${assistant.name} des favoris` : `Ajouter ${assistant.name} aux favoris`}
               className={cn(
                 'p-1.5 rounded-md transition-all duration-100 shrink-0',
                 isFavorite(assistant.id)

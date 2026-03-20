@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Lock, User, Shield, Bot, Users, Zap, BarChart3, KeyRound } from 'lucide-react';
+import { Lock, User, Shield, Bot, Users, BarChart3, KeyRound } from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { AssistantManagement } from '@/components/admin/AssistantManagement';
 import { UserManagement } from '@/components/admin/UserManagement';
@@ -111,7 +111,7 @@ export function Settings() {
               <div
                 className={`rounded-lg p-3 text-sm ${
                   passwordMessage.type === 'success'
-                    ? 'bg-green-100 text-green-800'
+                    ? 'bg-emerald-500/10 text-emerald-500'
                     : 'bg-destructive/10 text-destructive'
                 }`}
               >
@@ -203,13 +203,13 @@ export function Settings() {
                 <KeyRound className="h-4 w-4 mr-2" />
                 Gérer les accès
               </Button>
-              <Button variant="outline" className="justify-start">
-                <Zap className="h-4 w-4 mr-2" />
-                Gérer les automatisations
-              </Button>
-              <Button variant="outline" className="justify-start">
+              <Button
+                variant="outline"
+                className="justify-start"
+                onClick={() => navigate('/admin/supervision')}
+              >
                 <BarChart3 className="h-4 w-4 mr-2" />
-                Voir les statistiques
+                Supervision
               </Button>
             </div>
           </CardContent>

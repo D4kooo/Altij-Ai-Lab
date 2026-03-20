@@ -1,7 +1,7 @@
 import { ComponentType, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'motion/react';
-import { Bot, Copy, Check, RotateCcw } from 'lucide-react';
+import { Bot, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ─── Shared spring config ────────────────────────────────────────────
@@ -92,7 +92,7 @@ export function ChatMessage({
               <button
                 onClick={handleCopy}
                 className="message-action-btn"
-                title={copied ? 'Copié !' : 'Copier'}
+                aria-label={copied ? 'Copié' : 'Copier le message'}
               >
                 {copied ? (
                   <motion.span
@@ -105,9 +105,6 @@ export function ChatMessage({
                 ) : (
                   <Copy className="h-3.5 w-3.5" />
                 )}
-              </button>
-              <button className="message-action-btn" title="Régénérer">
-                <RotateCcw className="h-3.5 w-3.5" />
               </button>
             </motion.div>
           )}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -25,11 +25,12 @@ function CourseIcon({ name, className }: { name?: string; className?: string }) 
   return <Icon size={20} strokeWidth={1.5} className={className} />;
 }
 
-const categoryFilters = [
-  { id: 'all', label: 'Tous les cours' },
-  { id: 'IA & Décision', label: 'IA & Décision', description: 'Comprendre les enjeux de l\'intelligence artificielle pour la prise de décision en entreprise.' },
-  { id: 'Conformité', label: 'Conformité RGPD', description: 'Maîtriser les obligations réglementaires et mettre en place les processus de conformité.' },
-];
+const staticCategories: Record<string, { label: string; description: string }> = {
+  'IA & Décision': { label: 'IA & Décision', description: 'Comprendre les enjeux de l\'intelligence artificielle pour la prise de décision en entreprise.' },
+  'Conformité': { label: 'Conformité RGPD', description: 'Maîtriser les obligations réglementaires et mettre en place les processus de conformité.' },
+  'Intelligence Artificielle': { label: 'Claude & IA', description: 'Maîtriser Claude et l\'IA générative en contexte professionnel et juridique.' },
+  'Conformité & Sécurité': { label: 'Conformité & Sécurité', description: 'Protéger les données sensibles et respecter les obligations réglementaires.' },
+};
 
 export function OrgFormation() {
   const { courseId } = useParams<{ courseId?: string }>();
@@ -45,6 +46,17 @@ export function OrgFormation() {
   if (courseId) {
     return <CourseDetail courseId={courseId} />;
   }
+
+  // Build category filters dynamically from courses
+  const categoryFilters = useMemo(() => {
+    if (!courses) return [];
+    const uniqueCategories = [...new Set(courses.map(c => c.category).filter(Boolean))] as string[];
+    return uniqueCategories.map(cat => ({
+      id: cat,
+      label: staticCategories[cat]?.label || cat,
+      description: staticCategories[cat]?.description || '',
+    }));
+  }, [courses]);
 
   const filteredCourses = activeCategory === 'all'
     ? courses
@@ -66,8 +78,8 @@ export function OrgFormation() {
       </div>
 
       {/* Category filters — clickable cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 mb-10">
-        {categoryFilters.filter(c => c.id !== 'all').map((cat, i) => (
+      <div className={`grid grid-cols-1 gap-0 mb-10 ${categoryFilters.length <= 2 ? 'md:grid-cols-2' : categoryFilters.length <= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
+        {categoryFilters.map((cat, i) => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(activeCategory === cat.id ? 'all' : cat.id)}

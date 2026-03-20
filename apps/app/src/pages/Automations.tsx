@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Zap, Star, Clock } from 'lucide-react';
+import { Zap, Star, Clock, Loader2 } from 'lucide-react';
 import { automationsApi, favoritesApi } from '@/lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatDuration } from '@/lib/utils';
 import { DynamicIcon } from '@/components/DynamicIcon';
@@ -62,7 +60,7 @@ export function Automations() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -78,105 +76,105 @@ export function Automations() {
 
       {/* Category Filters */}
       {categories.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          <Badge
-            variant={selectedCategory === null ? 'default' : 'outline'}
-            className="cursor-pointer"
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer par catégorie">
+          <button
             onClick={() => setSelectedCategory(null)}
+            className={cn(
+              'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors',
+              selectedCategory === null
+                ? 'border-transparent bg-primary text-primary-foreground'
+                : 'border-border hover:bg-muted'
+            )}
           >
             Toutes
-          </Badge>
+          </button>
           {categories.map((category) => (
-            <Badge
+            <button
               key={category}
-              variant={selectedCategory === category ? 'default' : 'outline'}
-              className="cursor-pointer"
               onClick={() => setSelectedCategory(category)}
+              className={cn(
+                'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors',
+                selectedCategory === category
+                  ? 'border-transparent bg-primary text-primary-foreground'
+                  : 'border-border hover:bg-muted'
+              )}
             >
               {category}
-            </Badge>
+            </button>
           ))}
         </div>
       )}
 
-      {/* Automations Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Automations — flat rows */}
+      <div className="space-y-px">
         {filteredAutomations?.map((automation) => (
-          <Card
+          <Link
             key={automation.id}
-            className="group relative overflow-hidden transition-shadow hover:shadow-lg"
+            to={`/automations/${automation.id}`}
+            className="group flex items-center gap-4 rounded-lg px-3 py-3 -mx-3 hover:bg-muted/50 transition-colors"
           >
-            {/* Favorite button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2 z-10 h-8 w-8"
-              onClick={(e) => {
-                e.preventDefault();
-                toggleFavorite(automation.id);
+            {/* Icon */}
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+              style={{
+                backgroundColor: `${automation.color}10`,
+                color: automation.color,
               }}
             >
-              <Star
-                className={cn(
-                  'h-4 w-4',
-                  isFavorite(automation.id)
-                    ? 'fill-gold text-gold'
-                    : 'text-muted-foreground'
-                )}
-              />
-            </Button>
+              <DynamicIcon name={automation.icon} className="h-5 w-5" strokeWidth={1.5} />
+            </div>
 
-            <CardHeader className="pb-3">
-              <div className="flex items-start gap-4">
-                <div
-                  className="flex h-12 w-12 items-center justify-center rounded-xl"
-                  style={{
-                    backgroundColor: `${automation.color}20`,
-                    color: automation.color,
-                  }}
-                >
-                  <DynamicIcon name={automation.icon} className="h-6 w-6" />
-                </div>
-                <div className="flex-1 pr-8">
-                  <CardTitle className="text-lg">{automation.name}</CardTitle>
-                  <Badge variant="outline" className="mt-1">
-                    {automation.category}
-                  </Badge>
-                </div>
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium truncate">{automation.name}</p>
               </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <CardDescription className="line-clamp-3">
+              <p className="text-sm text-muted-foreground truncate mt-0.5">
                 {automation.description}
-              </CardDescription>
+              </p>
+            </div>
 
-              {automation.estimatedDuration && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>Durée estimée : {formatDuration(automation.estimatedDuration)}</span>
-                </div>
+            {/* Duration */}
+            {automation.estimatedDuration && (
+              <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground/50 shrink-0">
+                <Clock className="h-3 w-3" />
+                {formatDuration(automation.estimatedDuration)}
+              </span>
+            )}
+
+            {/* Category */}
+            <Badge variant="outline" className="hidden sm:inline-flex shrink-0">
+              {automation.category}
+            </Badge>
+
+            {/* Favorite */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleFavorite(automation.id);
+              }}
+              aria-label={isFavorite(automation.id) ? `Retirer ${automation.name} des favoris` : `Ajouter ${automation.name} aux favoris`}
+              className={cn(
+                'p-1.5 rounded-md transition-all duration-100 shrink-0',
+                isFavorite(automation.id)
+                  ? 'text-amber-400'
+                  : 'text-muted-foreground/0 group-hover:text-muted-foreground/30 hover:!text-amber-400'
               )}
-
-              <Button asChild className="w-full">
-                <Link to={`/automations/${automation.id}`}>
-                  <Zap className="mr-2 h-4 w-4" />
-                  Lancer
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+            >
+              <Star className={cn('h-4 w-4', isFavorite(automation.id) && 'fill-current')} strokeWidth={1.5} />
+            </button>
+          </Link>
         ))}
       </div>
 
       {filteredAutomations?.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Zap className="mb-4 h-12 w-12 text-muted-foreground/50" />
-          <p className="text-lg font-medium">Aucune automatisation trouvée</p>
+        <div className="py-16 text-center">
+          <Zap className="h-5 w-5 text-muted-foreground/20 mx-auto mb-2" strokeWidth={1.5} />
           <p className="text-sm text-muted-foreground">
             {selectedCategory
-              ? 'Essayez de sélectionner une autre catégorie'
-              : 'Les automatisations seront bientôt disponibles'}
+              ? 'Aucune automatisation dans cette catégorie'
+              : 'Aucune automatisation disponible'}
           </p>
         </div>
       )}

@@ -130,7 +130,7 @@ export function Sidebar() {
             }
 
             return (
-              <NavLink key={item.name} to={item.href} className={navItemClass(isActive)}>
+              <NavLink key={item.name} to={item.href} className={navItemClass(isActive)} aria-current={isActive ? 'page' : undefined}>
                 <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
                 {item.name}
               </NavLink>
@@ -149,7 +149,7 @@ export function Sidebar() {
               {adminNavigation.map((item) => {
                 const isActive = location.pathname.startsWith(item.href);
                 return (
-                  <NavLink key={item.name} to={item.href} className={navItemClass(isActive)}>
+                  <NavLink key={item.name} to={item.href} className={navItemClass(isActive)} aria-current={isActive ? 'page' : undefined}>
                     <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
                     {item.name}
                   </NavLink>

@@ -144,42 +144,38 @@ export function AutomationDetail() {
 
   // Auto-expand sections when their fields become visible
   useEffect(() => {
-    const newSections = new Set(expandedSections);
-    let changed = false;
+    setExpandedSections((prev) => {
+      const newSections = new Set(prev);
+      let changed = false;
 
-    groupedFields.forEach((fields, section) => {
-      // Check if any required field in this section needs to be filled
-      const hasVisibleRequiredField = fields.some(
-        (f) => f.required && formValues[f.name] === undefined
-      );
+      groupedFields.forEach((fields, section) => {
+        const hasVisibleRequiredField = fields.some(
+          (f) => f.required && formValues[f.name] === undefined
+        );
 
-      // Auto-expand if we have a required field that needs attention
-      // Only for the first unfilled section
-      if (hasVisibleRequiredField && !newSections.has(section)) {
-        // Find if all previous sections are complete
-        let canExpand = true;
-        for (const [prevSection] of groupedFields) {
-          if (prevSection === section) break;
-          const prevFields = groupedFields.get(prevSection) || [];
-          const prevComplete = prevFields.every(
-            (f) => !f.required || (formValues[f.name] !== undefined && formValues[f.name] !== '')
-          );
-          if (!prevComplete) {
-            canExpand = false;
-            break;
+        if (hasVisibleRequiredField && !newSections.has(section)) {
+          let canExpand = true;
+          for (const [prevSection] of groupedFields) {
+            if (prevSection === section) break;
+            const prevFields = groupedFields.get(prevSection) || [];
+            const prevComplete = prevFields.every(
+              (f) => !f.required || (formValues[f.name] !== undefined && formValues[f.name] !== '')
+            );
+            if (!prevComplete) {
+              canExpand = false;
+              break;
+            }
+          }
+
+          if (canExpand) {
+            newSections.add(section);
+            changed = true;
           }
         }
+      });
 
-        if (canExpand) {
-          newSections.add(section);
-          changed = true;
-        }
-      }
+      return changed ? newSections : prev;
     });
-
-    if (changed) {
-      setExpandedSections(newSections);
-    }
   }, [groupedFields, formValues]);
 
   // Removed auto-scroll - it was causing page jumps
@@ -344,7 +340,7 @@ export function AutomationDetail() {
   if (isLoading || !automation) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -635,66 +631,10 @@ export function AutomationDetail() {
                 Un aperçu du PDF sera généré pour vérification avant envoi pour signature.
               </p>
             )}
-            {/* Debug info - à supprimer en production */}
             {!isFormValid() && (
-              <div className="text-xs text-orange-500 text-center mt-2 text-left p-2 bg-orange-50 rounded">
-                <p className="font-semibold">Formulaire incomplet. Champs manquants :</p>
-                <ul className="mt-1 space-y-1">
-                  {visibleFields
-                    .filter((field) => {
-                      if (!field.required) return false;
-                      // Check file fields separately
-                      if (field.type === 'file' || field.type === 'multifile') {
-                        return !files[field.name] || files[field.name].length === 0;
-                      }
-                      const value = formValues[field.name];
-                      return value === undefined || value === '';
-                    })
-                    .map((field) => (
-                      <li key={field.name}>
-                        • <span className="font-medium">{field.label}</span>
-                        <span className="text-gray-500"> ({field.name})</span>
-                        <span className="text-red-600 ml-2">
-                          {field.type === 'file' || field.type === 'multifile'
-                            ? `fichiers: ${files[field.name]?.length || 0}`
-                            : `valeur: ${JSON.stringify(formValues[field.name])}`}
-                        </span>
-                        {field.showWhen && (
-                          <span className="text-blue-500 ml-1">
-                            [conditionnel: {field.showWhen.map(c => `${c.field}=${c.value}`).join(', ')}]
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                </ul>
-                <p className="mt-2 text-gray-600">
-                  Champs visibles: {visibleFields.length} |
-                  Requis visibles: {visibleFields.filter(f => f.required).length} |
-                  Sections: {sections.length}
-                </p>
-                <p className="mt-1 text-gray-500">
-                  Sections complètes: {sections.filter(s => isSectionComplete(s)).join(', ') || 'aucune'}
-                </p>
-                <p className="text-gray-500">
-                  Sections incomplètes: {sections.filter(s => !isSectionComplete(s)).join(', ') || 'aucune'}
-                </p>
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-blue-600">Voir tous les champs visibles requis</summary>
-                  <ul className="mt-1 text-gray-600 max-h-40 overflow-y-auto text-left">
-                    {visibleFields.filter(f => f.required).map(f => {
-                      const isFileField = f.type === 'file' || f.type === 'multifile';
-                      const isValid = isFileField
-                        ? (files[f.name]?.length || 0) > 0
-                        : formValues[f.name] !== undefined && formValues[f.name] !== '';
-                      return (
-                        <li key={f.name} className={isValid ? 'text-green-600' : 'text-red-600'}>
-                          {isValid ? '✓' : '✗'} {f.name}: {isFileField ? `${files[f.name]?.length || 0} fichier(s)` : JSON.stringify(formValues[f.name])} [{f.section}]
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </details>
-              </div>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Veuillez remplir tous les champs obligatoires avant de continuer.
+              </p>
             )}
           </CardContent>
         </Card>

@@ -32,6 +32,7 @@ export function History() {
 
   return (
     <div className="space-y-6">
+      <h1 className="sr-only">Historique</h1>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="conversations" className="gap-2">
@@ -64,7 +65,7 @@ export function History() {
               {conversations.map((conv) => (
                 <Link
                   key={conv.id}
-                  to={`/assistants/${conv.assistantId}/chat/${conv.id}`}
+                  to={`/chat/${conv.id}`}
                   className="block"
                 >
                   <Card className="transition-shadow hover:shadow-md">
@@ -72,12 +73,12 @@ export function History() {
                       <div
                         className="flex h-10 w-10 items-center justify-center rounded-lg"
                         style={{
-                          backgroundColor: `${(conv as any).assistant?.color}20`,
-                          color: (conv as any).assistant?.color,
+                          backgroundColor: `${conv.assistant?.color}20`,
+                          color: conv.assistant?.color,
                         }}
                       >
                         <DynamicIcon
-                          name={(conv as any).assistant?.icon || 'MessageSquare'}
+                          name={conv.assistant?.icon || 'MessageSquare'}
                           className="h-5 w-5"
                         />
                       </div>
@@ -86,7 +87,7 @@ export function History() {
                           {conv.title || 'Nouvelle conversation'}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {(conv as any).assistant?.name}
+                          {conv.assistant?.name}
                         </p>
                       </div>
                       <div className="text-right text-sm text-muted-foreground">
@@ -132,18 +133,18 @@ export function History() {
                       <div
                         className="flex h-10 w-10 items-center justify-center rounded-lg"
                         style={{
-                          backgroundColor: `${(run as any).automation?.color}20`,
-                          color: (run as any).automation?.color,
+                          backgroundColor: `${run.automation?.color}20`,
+                          color: run.automation?.color,
                         }}
                       >
                         <DynamicIcon
-                          name={(run as any).automation?.icon || 'Zap'}
+                          name={run.automation?.icon || 'Zap'}
                           className="h-5 w-5"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">
-                          {(run as any).automation?.name || 'Automatisation'}
+                          {run.automation?.name || 'Automatisation'}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {formatDateTime(run.startedAt)}

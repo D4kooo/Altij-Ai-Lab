@@ -282,6 +282,8 @@ export interface RecentActivity {
   assistantOrAutomationName: string;
   timestamp: Date;
   status?: 'completed' | 'failed' | 'running';
+  icon?: string;
+  color?: string;
 }
 
 // API Response types

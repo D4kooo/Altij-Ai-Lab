@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BarChart3, Users, MessageSquare, Coins, X, Eye, Edit2, Check } from 'lucide-react';
+import { BarChart3, Users, MessageSquare, Coins, Eye, Edit2, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { supervisionApi } from '@/lib/api';
 import type { SupervisionUser } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -23,12 +30,12 @@ export function Supervision() {
   const [editingLimit, setEditingLimit] = useState<string | null>(null);
   const [limitValue, setLimitValue] = useState('');
 
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['supervision-stats'],
     queryFn: supervisionApi.getStats,
   });
 
-  const { data: users } = useQuery({
+  const { data: users, isLoading: usersLoading, isError: usersError } = useQuery({
     queryKey: ['supervision-users'],
     queryFn: supervisionApi.getUsers,
   });
@@ -75,17 +82,38 @@ export function Supervision() {
       </div>
 
       {/* Stats cards */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={Coins} label="Coût ce mois" value={formatCost(stats.totalCost)} />
-          <StatCard icon={BarChart3} label="Tokens ce mois" value={formatTokens(stats.totalTokens)} />
-          <StatCard icon={Users} label="Users actifs" value={String(stats.activeUsers)} />
-          <StatCard icon={MessageSquare} label="Conversations" value={String(stats.activeConversations)} />
+      {statsError && (
+        <div className="flex items-center gap-2 text-sm text-destructive p-4 border border-destructive/20 rounded-lg">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          Impossible de charger les statistiques
         </div>
       )}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {statsLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : stats ? (
+          <>
+            <StatCard icon={Coins} label="Coût ce mois" value={formatCost(stats.totalCost)} />
+            <StatCard icon={BarChart3} label="Tokens ce mois" value={formatTokens(stats.totalTokens)} />
+            <StatCard icon={Users} label="Users actifs" value={String(stats.activeUsers)} />
+            <StatCard icon={MessageSquare} label="Conversations" value={String(stats.activeConversations)} />
+          </>
+        ) : null}
+      </div>
 
       {/* Users table */}
-      <div className="border rounded-lg overflow-hidden">
+      {usersError && (
+        <div className="flex items-center gap-2 text-sm text-destructive p-4 border border-destructive/20 rounded-lg">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          Impossible de charger les utilisateurs
+        </div>
+      )}
+      <div className="border rounded-lg overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr>
@@ -98,82 +126,123 @@ export function Supervision() {
             </tr>
           </thead>
           <tbody>
-            {users?.map((user) => (
-              <tr key={user.id} className="border-t hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3">
-                  <div>
-                    <p className="font-medium">{user.firstName} {user.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                  </div>
-                </td>
-                <td className="text-right px-4 py-3 tabular-nums">{formatTokens(user.totalTokens)}</td>
-                <td className="text-right px-4 py-3 tabular-nums">{formatCost(user.totalCost)}</td>
-                <td className="text-right px-4 py-3 tabular-nums">{user.conversationCount}</td>
-                <td className="text-right px-4 py-3">
-                  {editingLimit === user.id ? (
-                    <div className="flex items-center gap-1 justify-end">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={limitValue}
-                        onChange={(e) => setLimitValue(e.target.value)}
-                        placeholder="Illimité"
-                        className="w-20 px-2 py-1 text-xs border rounded text-right"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveLimit(user.id);
-                          if (e.key === 'Escape') setEditingLimit(null);
-                        }}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleSaveLimit(user.id)}
-                      >
-                        <Check className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setEditingLimit(user.id);
-                        setLimitValue(user.creditLimit !== null ? String(user.creditLimit) : '');
-                      }}
-                      className="inline-flex items-center gap-1 text-xs hover:text-primary transition-colors"
-                    >
-                      {user.creditLimit !== null ? `$${user.creditLimit}` : '∞'}
-                      <Edit2 className="h-3 w-3 opacity-50" />
-                    </button>
-                  )}
-                </td>
-                <td className="text-right px-4 py-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => {
-                      setSelectedUser(user);
-                      setSelectedConversation(null);
-                    }}
-                  >
-                    <Eye className="h-3 w-3" />
-                    Voir
-                  </Button>
+            {usersLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <tr key={i} className="border-t">
+                  <td className="px-4 py-3"><div className="h-4 w-32 bg-muted animate-pulse rounded" /></td>
+                  <td className="px-4 py-3"><div className="h-4 w-16 bg-muted animate-pulse rounded ml-auto" /></td>
+                  <td className="px-4 py-3"><div className="h-4 w-16 bg-muted animate-pulse rounded ml-auto" /></td>
+                  <td className="px-4 py-3"><div className="h-4 w-8 bg-muted animate-pulse rounded ml-auto" /></td>
+                  <td className="px-4 py-3"><div className="h-4 w-12 bg-muted animate-pulse rounded ml-auto" /></td>
+                  <td className="px-4 py-3"><div className="h-4 w-12 bg-muted animate-pulse rounded ml-auto" /></td>
+                </tr>
+              ))
+            ) : users?.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  Aucun utilisateur avec activité ce mois
                 </td>
               </tr>
-            ))}
+            ) : (
+              users?.map((user) => (
+                <tr key={user.id} className="border-t hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3">
+                    <div>
+                      <p className="font-medium">{user.firstName} {user.lastName}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+                  </td>
+                  <td className="text-right px-4 py-3 tabular-nums">{formatTokens(user.totalTokens)}</td>
+                  <td className="text-right px-4 py-3 tabular-nums">{formatCost(user.totalCost)}</td>
+                  <td className="text-right px-4 py-3 tabular-nums">{user.conversationCount}</td>
+                  <td className="text-right px-4 py-3">
+                    {editingLimit === user.id ? (
+                      <div className="flex items-center gap-1 justify-end">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={limitValue}
+                          onChange={(e) => setLimitValue(e.target.value)}
+                          placeholder="Illimité"
+                          aria-label={`Limite de crédit pour ${user.firstName} ${user.lastName}`}
+                          className="w-20 px-2 py-1 text-xs border rounded text-right bg-background"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveLimit(user.id);
+                            if (e.key === 'Escape') setEditingLimit(null);
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleSaveLimit(user.id)}
+                          aria-label="Enregistrer la limite"
+                        >
+                          {setCreditLimit.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingLimit(user.id);
+                          setLimitValue(user.creditLimit !== null ? String(user.creditLimit) : '');
+                        }}
+                        className="inline-flex items-center gap-1 text-xs hover:text-primary transition-colors"
+                        aria-label={`Modifier la limite de crédit de ${user.firstName} ${user.lastName} (${user.creditLimit !== null ? `$${user.creditLimit}` : 'illimité'})`}
+                      >
+                        {user.creditLimit !== null ? `$${user.creditLimit}` : '∞'}
+                        <Edit2 className="h-3 w-3 opacity-50" />
+                      </button>
+                    )}
+                  </td>
+                  <td className="text-right px-4 py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      aria-label={`Voir conversations de ${user.firstName} ${user.lastName}`}
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setSelectedConversation(null);
+                      }}
+                    >
+                      <Eye className="h-3 w-3" />
+                      Voir
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Conversations dialog */}
-      {selectedUser && (
-        <Dialog
-          title={`Conversations — ${selectedUser.firstName} ${selectedUser.lastName}`}
-          onClose={() => { setSelectedUser(null); setSelectedConversation(null); }}
-        >
+      <Dialog
+        open={!!selectedUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedUser(null);
+            setSelectedConversation(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Conversations — {selectedUser?.firstName} {selectedUser?.lastName}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Liste des conversations de {selectedUser?.firstName} {selectedUser?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+
           {selectedConversation ? (
             <div className="space-y-3">
               <button
@@ -187,16 +256,16 @@ export function Supervision() {
                 <div className="space-y-3 pr-4">
                   {messages?.map((msg) => (
                     <div key={msg.id} className={`text-sm ${msg.role === 'user' ? 'text-right' : ''}`}>
-                      <span className={`inline-block max-w-[85%] px-3 py-2 rounded-lg text-left ${
+                      <div className={`inline-block max-w-[85%] px-3 py-2 rounded-lg text-left ${
                         msg.role === 'user'
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted'
                       }`}>
-                        <p className="text-[10px] font-medium mb-1 opacity-70">
+                        <p className="text-xs font-medium mb-1 opacity-70">
                           {msg.role === 'user' ? 'Utilisateur' : 'Assistant'}
                         </p>
                         <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -221,7 +290,7 @@ export function Supervision() {
                           {conv.type === 'assistant' ? `Assistant: ${conv.assistantName}` : `Sega: ${conv.model}`}
                         </p>
                       </div>
-                      <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                      <span className="text-xs text-muted-foreground shrink-0 ml-2">
                         {new Date(conv.updatedAt).toLocaleDateString('fr-FR')}
                       </span>
                     </div>
@@ -230,8 +299,8 @@ export function Supervision() {
               </div>
             </ScrollArea>
           )}
-        </Dialog>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -248,21 +317,14 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof BarChart3; label:
   );
 }
 
-function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function StatCardSkeleton() {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div
-        className="bg-background border rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">{title}</h2>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        {children}
+    <div className="border rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="h-4 w-4 bg-muted animate-pulse rounded" />
+        <div className="h-3 w-20 bg-muted animate-pulse rounded" />
       </div>
+      <div className="h-8 w-24 bg-muted animate-pulse rounded" />
     </div>
   );
 }

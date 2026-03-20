@@ -62,6 +62,7 @@ assistantsRoutes.get('/models', adminMiddleware, async (c) => {
       'anthropic/claude-3-opus',
       'openai/gpt-4-turbo',
       'openai/gpt-4o',
+      'openrouter/hunter-alpha',
       'google/gemini-pro-1.5',
       'meta-llama/llama-3.1-70b-instruct',
     ];

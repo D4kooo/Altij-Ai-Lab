@@ -14,13 +14,19 @@ export function Layout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-medium"
+      >
+        Aller au contenu principal
+      </a>
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden p-2 pl-0">
         <div className="flex flex-1 flex-col overflow-hidden rounded-xl bg-card border border-border shadow-linear dark:shadow-none">
-          <main className="relative flex-1 overflow-hidden">
+          <main id="main-content" className="relative flex-1 overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div
-                key={location.pathname.split('/').slice(0, 2).join('/')}
+                key={location.pathname.split('/').slice(0, 3).join('/')}
                 className="absolute inset-0 overflow-auto p-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

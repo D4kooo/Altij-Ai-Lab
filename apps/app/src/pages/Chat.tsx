@@ -8,11 +8,23 @@ import {
   Check,
   Trash2,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { segaApi, chatApi, assistantsApi } from '@/lib/api';
 import { useChatStore } from '@/stores/chatStore';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,6 +91,8 @@ export function Chat() {
   const [selectedModel, setSelectedModel] = useState('anthropic/claude-sonnet-4');
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [modelSearch, setModelSearch] = useState('');
+  const [conversationToDelete, setConversationToDelete] = useState<UnifiedConversation | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -274,55 +288,67 @@ export function Chat() {
 
   return (
     <div className="flex h-[calc(100vh-7.5rem)] -m-6">
+      <h1 className="sr-only">Chat</h1>
 
       {/* ─── Sidebar ─── flat, no box */}
-      <div className="hidden lg:flex w-[260px] shrink-0 flex-col border-r border-border">
+      <div className={cn(
+        'hidden lg:flex shrink-0 flex-col border-r border-border transition-[width] duration-200 ease-in-out overflow-hidden',
+        sidebarOpen ? 'w-[260px]' : 'w-0 border-r-0'
+      )}>
         {/* Sidebar header */}
-        <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-[13px] font-medium text-muted-foreground">Conversations</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                <Plus className="h-4 w-4" strokeWidth={1.5} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" sideOffset={8} className="w-60 overflow-visible">
-              <DropdownMenuItem onClick={handleNewFreeChat} className="gap-2.5 py-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10 text-violet-500 shrink-0">
-                  <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.5} />
-                </div>
-                <div>
-                  <p className="text-[13px] font-medium">Chat libre</p>
-                  <p className="text-[11px] text-muted-foreground">Choisissez votre modèle</p>
-                </div>
-              </DropdownMenuItem>
-              {assistants && assistants.length > 0 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">
-                    Assistants
-                  </DropdownMenuLabel>
-                  {assistants.map((a) => (
-                    <DropdownMenuItem key={a.id} onClick={() => handleNewAssistantChat(a.id)} className="group/item relative gap-2.5 py-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-md shrink-0" style={{ backgroundColor: `${a.color}12`, color: a.color }}>
-                        <DynamicIcon name={a.icon || 'Bot'} className="h-3.5 w-3.5" strokeWidth={1.5} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-medium truncate">{a.name}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{a.specialty}</p>
-                      </div>
-                      {/* Tooltip on hover */}
-                      {a.description && (
-                        <div className="pointer-events-none absolute left-full top-0 ml-2 w-64 rounded-lg border border-border bg-popover p-3 shadow-premium-lg opacity-0 scale-95 translate-y-1 group-hover/item:opacity-100 group-hover/item:scale-100 group-hover/item:translate-y-0 transition-all duration-150 z-[60]">
-                          <p className="text-[12px] text-popover-foreground leading-relaxed">{a.description}</p>
+        <div className="flex items-center justify-between px-4 py-3 min-w-[260px]">
+          <span className="text-sm font-medium text-muted-foreground">Conversations</span>
+          <div className="flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                  <Plus className="h-4 w-4" strokeWidth={1.5} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" sideOffset={8} className="w-60 overflow-visible">
+                <DropdownMenuItem onClick={handleNewFreeChat} className="gap-2.5 py-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10 text-violet-500 shrink-0">
+                    <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Chat libre</p>
+                    <p className="text-xs text-muted-foreground">Choisissez votre modèle</p>
+                  </div>
+                </DropdownMenuItem>
+                {assistants && assistants.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs uppercase tracking-wider text-muted-foreground/60 font-semibold">
+                      Assistants
+                    </DropdownMenuLabel>
+                    {assistants.map((a) => (
+                      <DropdownMenuItem key={a.id} onClick={() => handleNewAssistantChat(a.id)} className="group/item relative gap-2.5 py-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md shrink-0" style={{ backgroundColor: `${a.color}12`, color: a.color }}>
+                          <DynamicIcon name={a.icon || 'Bot'} className="h-3.5 w-3.5" strokeWidth={1.5} />
                         </div>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{a.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{a.specialty}</p>
+                        </div>
+                        {a.description && (
+                          <div className="pointer-events-none absolute left-full top-0 ml-2 w-64 rounded-lg border border-border bg-popover p-3 shadow-premium-lg opacity-0 scale-95 translate-y-1 group-hover/item:opacity-100 group-hover/item:scale-100 group-hover/item:translate-y-0 transition-all duration-150 z-[60]">
+                            <p className="text-xs text-popover-foreground leading-relaxed">{a.description}</p>
+                          </div>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Fermer la barre latérale"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <PanelLeftClose className="h-4 w-4" strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
 
         {/* Conversation list — flat scroll */}
@@ -333,7 +359,7 @@ export function Chat() {
               <p className="text-[12px] text-muted-foreground/40">Aucune conversation</p>
             </div>
           ) : (
-            <ConversationList conversations={allConversations} activeConversationId={conversationId} onDelete={(conv) => deleteConversation.mutate(conv)} />
+            <ConversationList conversations={allConversations} activeConversationId={conversationId} onDelete={setConversationToDelete} />
           )}
         </div>
       </div>
@@ -343,6 +369,15 @@ export function Chat() {
 
         {/* Thin top bar */}
         <div className="flex items-center gap-3 px-6 h-12 shrink-0 border-b border-border">
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Ouvrir la barre latérale"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors -ml-1 mr-1"
+            >
+              <PanelLeft className="h-4 w-4" strokeWidth={1.5} />
+            </button>
+          )}
           <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ backgroundColor: `${chatColor}10`, color: chatColor }}>
             {currentAssistant
               ? <DynamicIcon name={chatIcon} className="h-3.5 w-3.5" />
@@ -350,24 +385,30 @@ export function Chat() {
             }
           </div>
           <div className="flex-1 min-w-0">
-            <span className="text-[13px] font-medium">{chatName}</span>
+            <span className="text-sm font-medium">{chatName}</span>
             {isSegaConversation ? (
               <div className="relative inline-block ml-2" ref={modelPickerRef}>
-                <button onClick={() => setShowModelPicker(!showModelPicker)} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+                <button
+                  onClick={() => setShowModelPicker(!showModelPicker)}
+                  aria-expanded={showModelPicker}
+                  aria-haspopup="listbox"
+                  aria-label={`Modèle: ${currentModelName}. Cliquez pour changer`}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                >
                   <span className="truncate max-w-[180px]">{currentModelName}</span>
                   <ChevronDown className="h-3 w-3 shrink-0" />
                 </button>
                 {showModelPicker && (
-                  <div className="absolute top-full left-0 mt-1 w-72 bg-popover border border-border rounded-lg shadow-premium-lg z-50">
+                  <div className="absolute top-full left-0 mt-1 w-72 bg-popover border border-border rounded-lg shadow-premium-lg z-50" role="listbox" aria-label="Sélectionner un modèle">
                     <div className="p-2 border-b border-border">
-                      <input type="text" value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Rechercher..." className="w-full px-2.5 py-1.5 text-[13px] bg-transparent border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary" autoFocus />
+                      <input type="text" value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Rechercher..." aria-label="Rechercher un modèle" className="w-full px-2.5 py-1.5 text-sm bg-transparent border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary" autoFocus />
                     </div>
                     <div className="max-h-56 overflow-y-auto p-1">
                       {filteredModels.map((model) => (
-                        <button key={model.id} onClick={() => handleModelChange(model.id)} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left rounded-md hover:bg-muted transition-colors">
+                        <button key={model.id} role="option" aria-selected={model.id === selectedModel} onClick={() => handleModelChange(model.id)} className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left rounded-md hover:bg-muted transition-colors">
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-medium truncate">{model.name}</p>
-                            <p className="text-[10px] text-muted-foreground/40 truncate">{model.id}</p>
+                            <p className="text-sm font-medium truncate">{model.name}</p>
+                            <p className="text-xs text-muted-foreground/40 truncate">{model.id}</p>
                           </div>
                           {model.id === selectedModel && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
                         </button>
@@ -377,7 +418,7 @@ export function Chat() {
                 )}
               </div>
             ) : chatSubtitle ? (
-              <span className="ml-2 text-[11px] text-muted-foreground/50">{chatSubtitle}</span>
+              <span className="ml-2 text-xs text-muted-foreground/50">{chatSubtitle}</span>
             ) : null}
           </div>
           <Button
@@ -464,6 +505,32 @@ export function Chat() {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!conversationToDelete} onOpenChange={(open) => !open && setConversationToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette conversation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La conversation « {conversationToDelete?.title || 'Sans titre'} » et tous ses messages seront supprimés définitivement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (conversationToDelete) {
+                  deleteConversation.mutate(conversationToDelete);
+                  setConversationToDelete(null);
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -488,7 +555,7 @@ function ConversationList({ conversations, activeConversationId, onDelete }: {
         if (!items.length) return null;
         return (
           <div key={group}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40 px-2 pb-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/40 px-2 pb-1">
               {groupLabels[group]}
             </p>
             <div className="space-y-px">
@@ -509,10 +576,11 @@ function ConversationList({ conversations, activeConversationId, onDelete }: {
                         <MessageCircle className="h-3 w-3" strokeWidth={1.5} />
                       </div>
                     )}
-                    <span className="truncate text-[13px]">{conv.title || 'Nouvelle conversation'}</span>
+                    <span className="truncate text-sm">{conv.title || 'Nouvelle conversation'}</span>
                   </Link>
                   <button
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(conv); }}
+                    aria-label={`Supprimer ${conv.title || 'conversation'}`}
                     className="p-1 rounded-md opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all duration-100"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -579,7 +647,7 @@ function WelcomeScreen({ onNewFreeChat, onNewAssistantChat, assistants, isCreati
 
         {/* Assistant grid */}
         <motion.div variants={welcomeItem} className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/40 text-center">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/40 text-center">
             Ou démarrez avec un assistant
           </p>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

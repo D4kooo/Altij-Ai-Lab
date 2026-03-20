@@ -1,4 +1,4 @@
-import { useRef, KeyboardEvent } from 'react';
+import { useRef, useEffect, KeyboardEvent } from 'react';
 import { ArrowUpIcon, Loader2Icon, PlusIcon, PaperclipIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
@@ -12,7 +12,7 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupInput,
+  InputGroupTextarea,
 } from '@/components/ui/input-group';
 
 interface ChatInputProps {
@@ -32,9 +32,17 @@ export function ChatInput({
   placeholder,
   assistantName = 'Assistant',
 }: ChatInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [value]);
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSend();
@@ -50,14 +58,15 @@ export function ChatInput({
       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
     >
       <Field>
-        <InputGroup className="bg-background rounded-full h-14 border p-1.5 outline-none [&:has([data-slot=input-group-control]:focus-visible)]:ring-[3px] [&:has([data-slot=input-group-control]:focus-visible)]:ring-muted-foreground/15">
-          <InputGroupAddon className="border-none pl-2">
+        <InputGroup className="bg-background rounded-2xl border p-1.5 outline-none [&:has([data-slot=input-group-control]:focus-visible)]:ring-[3px] [&:has([data-slot=input-group-control]:focus-visible)]:ring-muted-foreground/15">
+          <InputGroupAddon className="border-none pl-2 self-end pb-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <InputGroupButton
                   variant="ghost"
                   size="icon-sm"
                   className="text-muted-foreground hover:text-foreground rounded-full size-10"
+                  aria-label="Options"
                 >
                   <PlusIcon className="size-6" />
                 </InputGroupButton>
@@ -76,21 +85,23 @@ export function ChatInput({
             </DropdownMenu>
           </InputGroupAddon>
 
-          <InputGroupInput
-            ref={inputRef}
+          <InputGroupTextarea
+            ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown as any}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder || `Message ${assistantName}...`}
             disabled={isStreaming}
-            className="placeholder:text-muted-foreground/70 border-none px-2 text-lg shadow-none !ring-0 !outline-none"
+            rows={1}
+            className="placeholder:text-muted-foreground/70 border-none px-2 py-3 text-base shadow-none !ring-0 !outline-none min-h-[44px] max-h-[160px]"
           />
 
-          <InputGroupAddon align="inline-end" className="border-none pr-1">
+          <InputGroupAddon align="inline-end" className="border-none pr-1 self-end pb-1">
             <InputGroupButton
               variant="default"
               onClick={onSend}
               disabled={!canSend}
+              aria-label={isStreaming ? 'Envoi en cours' : 'Envoyer le message'}
               className="rounded-full size-11 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               {isStreaming ? (
@@ -103,7 +114,7 @@ export function ChatInput({
         </InputGroup>
       </Field>
 
-      <p className="text-[11px] text-center text-muted-foreground/25 mt-2 select-none">
+      <p className="text-xs text-center text-muted-foreground/25 mt-2 select-none">
         Entrée pour envoyer · Maj+Entrée pour un retour à la ligne
       </p>
     </motion.div>
