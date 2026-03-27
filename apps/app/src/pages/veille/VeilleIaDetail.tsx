@@ -61,11 +61,17 @@ export function VeilleIaDetail({
     queryFn: veilleIaApi.getDepartments,
   });
 
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
   const generateMutation = useMutation({
     mutationFn: () => veilleIaApi.generate(veille.id),
     onSuccess: () => {
+      setGenerateError(null);
       queryClient.invalidateQueries({ queryKey: ['veille-ia', veille.id] });
       queryClient.invalidateQueries({ queryKey: ['veille-ia-editions', veille.id] });
+    },
+    onError: () => {
+      setGenerateError('La génération a échoué. Réessayez dans quelques instants.');
     },
   });
 
@@ -75,6 +81,7 @@ export function VeilleIaDetail({
       queryClient.invalidateQueries({ queryKey: ['veilles-ia'] });
       onBack();
     },
+    onError: () => {},
   });
 
   const latestEdition = fullVeille?.latestEdition || editions?.[0];
@@ -93,13 +100,13 @@ export function VeilleIaDetail({
     >
       {/* Back + header */}
       <motion.div variants={fadeUp} className="space-y-4">
-        <button onClick={onBack} className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={onBack} className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm">
           <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
           Veilles IA
         </button>
 
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-tight">{veille.name}</h2>
             <p className="text-sm text-muted-foreground mt-1">{veille.description}</p>
           </div>
@@ -108,16 +115,16 @@ export function VeilleIaDetail({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => generateMutation.mutate()}
+                onClick={() => { setGenerateError(null); generateMutation.mutate(); }}
                 disabled={generateMutation.isPending}
-                className="h-8 text-[13px] gap-1.5"
+                className="h-9 sm:h-8 text-[13px] gap-1.5"
               >
                 {generateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                Generer
+                {generateMutation.isPending ? 'Génération...' : 'Générer'}
               </Button>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                  <Button variant="outline" size="icon" className="h-9 w-9 sm:h-8 sm:w-8 text-destructive hover:text-destructive">
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </DialogTrigger>
@@ -125,7 +132,7 @@ export function VeilleIaDetail({
                   <DialogHeader>
                     <DialogTitle>Supprimer cette veille ?</DialogTitle>
                     <DialogDescription>
-                      Cette action est irreversible. Toutes les editions seront supprimees.
+                      Cette action est irréversible. Toutes les éditions seront supprimées.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
@@ -164,14 +171,16 @@ export function VeilleIaDetail({
         ))}
       </motion.div>
 
-      {/* Tabs — flat */}
-      <motion.div variants={fadeUp} className="flex gap-1">
+      {/* Tabs */}
+      <motion.div variants={fadeUp} className="flex gap-1" role="tablist">
         {tabs.map((tab) => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'px-3 py-1.5 text-[13px] font-medium rounded-md transition-colors duration-100',
+              'px-3 py-1.5 text-[13px] font-medium rounded-md transition-colors duration-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
               activeTab === tab.id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
             )}
           >
@@ -179,6 +188,11 @@ export function VeilleIaDetail({
           </button>
         ))}
       </motion.div>
+
+      {/* Generate error */}
+      {generateError && (
+        <motion.p variants={fadeUp} className="text-[13px] text-destructive">{generateError}</motion.p>
+      )}
 
       {/* Content */}
       <motion.div variants={fadeUp}>
@@ -190,14 +204,14 @@ export function VeilleIaDetail({
           ) : latestEdition ? (
             <div className="space-y-4">
               <p className="text-[12px] text-muted-foreground/50">
-                Generee {formatRelativeTime(latestEdition.generatedAt)}
+                Générée {formatRelativeTime(latestEdition.generatedAt)}
                 {latestEdition.newItemsCount !== undefined && latestEdition.newItemsCount > 0 && (
                   <span className="ml-1.5 text-primary">({latestEdition.newItemsCount} nouveaux sujets)</span>
                 )}
               </p>
 
               {/* Markdown content — using existing .markdown class */}
-              <div className="markdown text-[14px] max-w-none">
+              <div className="markdown text-[14px] max-w-4xl mx-auto">
                 <ReactMarkdown
                   components={{
                     a: ({ href, children }) => (
@@ -235,8 +249,8 @@ export function VeilleIaDetail({
           ) : (
             <div className="py-16 text-center rounded-lg border border-dashed border-border">
               <FileText className="h-5 w-5 text-muted-foreground/20 mx-auto mb-2" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground">Aucune edition</p>
-              {isAdmin && <p className="text-[12px] text-muted-foreground/50 mt-1">Cliquez "Generer" pour creer la premiere edition.</p>}
+              <p className="text-sm text-muted-foreground">Aucune édition</p>
+              {isAdmin && <p className="text-[12px] text-muted-foreground/50 mt-1">Cliquez « Générer » pour créer la première édition.</p>}
             </div>
           )
         ) : (
@@ -261,7 +275,7 @@ export function VeilleIaDetail({
                         {new Date(edition.generatedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    {idx === 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Derniere</Badge>}
+                    {idx === 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Dernière</Badge>}
                   </div>
                   <span className="text-[11px] text-muted-foreground/40">{edition.sources.length} sources</span>
                 </div>

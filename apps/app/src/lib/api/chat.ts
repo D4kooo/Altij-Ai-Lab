@@ -25,7 +25,8 @@ export const chatApi = {
   sendMessage: async (
     conversationId: string,
     content: string,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    options?: { activeTools?: string[]; activeSkills?: string[]; activeDataSources?: string[] }
   ): Promise<void> => {
     const token = localStorage.getItem('staff_token');
 
@@ -35,7 +36,12 @@ export const chatApi = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({
+        content,
+        ...(options?.activeTools?.length && { activeTools: options.activeTools }),
+        ...(options?.activeSkills?.length && { activeSkills: options.activeSkills }),
+        ...(options?.activeDataSources?.length && { activeDataSources: options.activeDataSources }),
+      }),
     });
 
     if (!response.ok) {

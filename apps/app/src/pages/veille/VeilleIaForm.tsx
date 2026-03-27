@@ -45,6 +45,9 @@ export function VeilleIaForm({
         userIds: selectedUserIds.length > 0 ? selectedUserIds : undefined,
       }),
     onSuccess,
+    onError: (error) => {
+      console.error('Veille IA creation failed:', error);
+    },
   });
 
   const toggleDepartment = (id: string) => {
@@ -64,7 +67,7 @@ export function VeilleIaForm({
     >
       {/* Back */}
       <motion.div variants={fadeUp}>
-        <button onClick={onCancel} className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={onCancel} className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm">
           <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
           Veilles IA
         </button>
@@ -72,7 +75,7 @@ export function VeilleIaForm({
 
       <motion.div variants={fadeUp}>
         <h2 className="text-xl font-semibold tracking-tight">Nouvelle veille IA</h2>
-        <p className="text-sm text-muted-foreground mt-1">Creez une veille automatique generee par Perplexity</p>
+        <p className="text-sm text-muted-foreground mt-1">Créez une veille automatique générée par Perplexity</p>
       </motion.div>
 
       {/* Form — flat, no card */}
@@ -91,17 +94,17 @@ export function VeilleIaForm({
           <Label htmlFor="prompt" className="text-[13px]">Prompt pour l'IA</Label>
           <Textarea
             id="prompt"
-            placeholder="ex: Fais-moi une synthese des dernieres actualites en droit social..."
+            placeholder="ex: Fais-moi une synthèse des dernières actualités en droit social..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={3}
             className="text-[13px]"
           />
-          <p className="text-[11px] text-muted-foreground/50">Ce prompt sera envoye a Perplexity.</p>
+          <p className="text-[11px] text-muted-foreground/50">Ce prompt sera envoyé à Perplexity.</p>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-[13px]">Frequence</Label>
+          <Label className="text-[13px]">Fréquence</Label>
           <div className="flex flex-wrap gap-1">
             {(['daily', 'weekly', 'biweekly', 'monthly'] as const).map((freq) => (
               <button
@@ -119,7 +122,7 @@ export function VeilleIaForm({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-[13px]">Poles concernes</Label>
+          <Label className="text-[13px]">Pôles concernés</Label>
           <div className="grid grid-cols-2 gap-2">
             {departments.map((dept) => (
               <div key={dept.id} className="flex items-center gap-2">
@@ -132,8 +135,8 @@ export function VeilleIaForm({
 
         {orgUsers && orgUsers.length > 0 && (
           <div className="space-y-2">
-            <Label className="text-[13px]">Utilisateurs specifiques</Label>
-            <p className="text-[11px] text-muted-foreground/50">En plus des poles, ciblez des utilisateurs individuels.</p>
+            <Label className="text-[13px]">Utilisateurs spécifiques</Label>
+            <p className="text-[11px] text-muted-foreground/50">En plus des pôles, ciblez des utilisateurs individuels.</p>
             <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
               {orgUsers.map((u) => (
                 <div key={u.id} className="flex items-center gap-2">
@@ -154,9 +157,12 @@ export function VeilleIaForm({
             className="h-9 gap-1.5"
           >
             {createMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-            Creer
+            {createMutation.isPending ? 'Création...' : 'Créer'}
           </Button>
         </div>
+        {createMutation.isError && (
+          <p className="text-[13px] text-destructive">La création a échoué. Vérifiez les champs et réessayez.</p>
+        )}
       </motion.div>
     </motion.div>
   );

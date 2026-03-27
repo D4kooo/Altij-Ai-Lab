@@ -76,39 +76,25 @@ const updateNewsletterSchema = z.object({
 // FEEDS
 // ============================================
 
-// GET /api/veille/feeds - List user's feeds + org-level feeds
+// GET /api/veille/feeds - List all org feeds (shared for everyone)
 veilleRoutes.get('/feeds', async (c) => {
-  const user = c.get('user');
-  const organizationId = c.get('organizationId');
-
-  // User sees their own feeds + org-level feeds (userId IS NULL) in same org
-  const ownershipFilter = or(
-    eq(schema.feeds.userId, user.id),
-    isNull(schema.feeds.userId)
-  );
-
-  const conditions = [ownershipFilter];
-  if (organizationId) {
-    conditions.push(eq(schema.feeds.organizationId, organizationId));
-  }
-
   const feeds = await db
     .select()
     .from(schema.feeds)
-    .where(and(...conditions))
+    .where(isNull(schema.feeds.userId))
     .orderBy(desc(schema.feeds.createdAt));
 
   return c.json({ success: true, data: feeds });
 });
 
-// POST /api/veille/feeds - Add a new feed
+// POST /api/veille/feeds - Add a new feed (admin only, always org-level)
 veilleRoutes.post('/feeds', zValidator('json', addFeedSchema), async (c) => {
   const user = c.get('user');
-  const { url, name, type, isOrgLevel } = c.req.valid('json');
+  const { url, name, type } = c.req.valid('json');
 
-  // Only admins can create org-level feeds
-  if (isOrgLevel && user.role !== 'admin') {
-    return c.json({ success: false, error: 'Admin access required for org-level feeds' }, 403);
+  // Only admins can add feeds
+  if (user.role !== 'admin') {
+    return c.json({ success: false, error: 'Accès réservé aux administrateurs' }, 403);
   }
 
   // Try to fetch feed info
@@ -192,13 +178,11 @@ veilleRoutes.post('/feeds', zValidator('json', addFeedSchema), async (c) => {
     console.error('Error fetching feed info:', e);
   }
 
-  const organizationId = c.get('organizationId');
-
   const [feed] = await db
     .insert(schema.feeds)
     .values({
-      userId: isOrgLevel ? null : user.id,
-      organizationId: organizationId || null,
+      userId: null,
+      organizationId: null,
       url: feedUrl, // Utiliser l'URL du flux découvert
       name: feedName,
       type: detectedType,
@@ -216,25 +200,19 @@ veilleRoutes.post('/feeds', zValidator('json', addFeedSchema), async (c) => {
   return c.json({ success: true, data: feed });
 });
 
-// DELETE /api/veille/feeds/:id - Delete a feed
+// DELETE /api/veille/feeds/:id - Delete a feed (admin only)
 veilleRoutes.delete('/feeds/:id', async (c) => {
   const user = c.get('user');
   const feedId = c.req.param('id');
-  const organizationId = c.get('organizationId');
 
-  // Admin can delete org feeds (userId IS NULL), user can only delete their own
-  const ownershipFilter = user.role === 'admin'
-    ? or(eq(schema.feeds.userId, user.id), isNull(schema.feeds.userId))
-    : eq(schema.feeds.userId, user.id);
-
-  const conditions = [eq(schema.feeds.id, feedId), ownershipFilter];
-  if (organizationId) {
-    conditions.push(eq(schema.feeds.organizationId, organizationId));
+  // Only admins can delete feeds
+  if (user.role !== 'admin') {
+    return c.json({ success: false, error: 'Accès réservé aux administrateurs' }, 403);
   }
 
   await db
     .delete(schema.feeds)
-    .where(and(...conditions));
+    .where(and(eq(schema.feeds.id, feedId), isNull(schema.feeds.userId)));
 
   return c.json({ success: true });
 });
@@ -242,22 +220,17 @@ veilleRoutes.delete('/feeds/:id', async (c) => {
 // POST /api/veille/feeds/refresh - Refresh all feeds for current user (+ org feeds)
 veilleRoutes.post('/feeds/refresh', async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
 
   try {
     const ownershipFilter = or(
       eq(schema.feeds.userId, user.id),
       isNull(schema.feeds.userId)
     );
-    const conditions = [ownershipFilter];
-    if (organizationId) {
-      conditions.push(eq(schema.feeds.organizationId, organizationId));
-    }
 
     const feeds = await db
       .select()
       .from(schema.feeds)
-      .where(and(...conditions));
+      .where(ownershipFilter);
 
     // Process feeds in parallel with individual timeouts
     const results = await Promise.allSettled(
@@ -316,21 +289,14 @@ veilleRoutes.post('/feeds/refresh', async (c) => {
 // POST /api/veille/feeds/refresh-all - Refresh all feeds for all users in org (admin only)
 veilleRoutes.post('/feeds/refresh-all', async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
 
   if (user.role !== 'admin') {
     return c.json({ success: false, error: 'Admin access required' }, 403);
   }
 
-  const conditions = [];
-  if (organizationId) {
-    conditions.push(eq(schema.feeds.organizationId, organizationId));
-  }
-
   const feeds = await db
     .select()
-    .from(schema.feeds)
-    .where(conditions.length > 0 ? and(...conditions) : undefined);
+    .from(schema.feeds);
 
   console.log(`[Admin] Refreshing ${feeds.length} feeds...`);
 
@@ -374,23 +340,18 @@ veilleRoutes.post('/feeds/refresh-all', async (c) => {
 // GET /api/veille/articles - List articles
 veilleRoutes.get('/articles', async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
   const feedId = c.req.query('feedId');
 
-  // Get user's feeds + org feeds (scoped by org)
+  // Get user's feeds + org feeds
   const ownershipFilter = or(
     eq(schema.feeds.userId, user.id),
     isNull(schema.feeds.userId)
   );
-  const feedConditions = [ownershipFilter];
-  if (organizationId) {
-    feedConditions.push(eq(schema.feeds.organizationId, organizationId));
-  }
 
   const userFeeds = await db
     .select({ id: schema.feeds.id, name: schema.feeds.name })
     .from(schema.feeds)
-    .where(and(...feedConditions));
+    .where(ownershipFilter);
 
   const feedIds = userFeeds.map((f) => f.id);
   const feedMap = new Map(userFeeds.map((f) => [f.id, f.name]));
@@ -443,7 +404,6 @@ veilleRoutes.get('/articles', async (c) => {
 // POST /api/veille/articles/:id/read - Mark article as read (per-user)
 veilleRoutes.post('/articles/:id/read', async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
   const articleId = c.req.param('id');
 
   // Verify the article belongs to one of the user's feeds (incl. org feeds)
@@ -457,18 +417,13 @@ veilleRoutes.post('/articles/:id/read', async (c) => {
     return c.json({ success: false, error: 'Article not found' }, 404);
   }
 
-  const feedConditions = [
-    eq(schema.feeds.id, article.feedId),
-    or(eq(schema.feeds.userId, user.id), isNull(schema.feeds.userId)),
-  ];
-  if (organizationId) {
-    feedConditions.push(eq(schema.feeds.organizationId, organizationId));
-  }
-
   const [feed] = await db
     .select({ id: schema.feeds.id })
     .from(schema.feeds)
-    .where(and(...feedConditions))
+    .where(and(
+      eq(schema.feeds.id, article.feedId),
+      or(eq(schema.feeds.userId, user.id), isNull(schema.feeds.userId)),
+    ))
     .limit(1);
 
   if (!feed) {
@@ -494,7 +449,6 @@ veilleRoutes.post('/articles/:id/read', async (c) => {
 // POST /api/veille/articles/:id/favorite - Toggle favorite (per-user)
 veilleRoutes.post('/articles/:id/favorite', async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
   const articleId = c.req.param('id');
 
   const [article] = await db
@@ -508,18 +462,13 @@ veilleRoutes.post('/articles/:id/favorite', async (c) => {
   }
 
   // Verify the article belongs to one of the user's feeds (incl. org feeds)
-  const feedConditions = [
-    eq(schema.feeds.id, article.feedId),
-    or(eq(schema.feeds.userId, user.id), isNull(schema.feeds.userId)),
-  ];
-  if (organizationId) {
-    feedConditions.push(eq(schema.feeds.organizationId, organizationId));
-  }
-
   const [feed] = await db
     .select({ id: schema.feeds.id })
     .from(schema.feeds)
-    .where(and(...feedConditions))
+    .where(and(
+      eq(schema.feeds.id, article.feedId),
+      or(eq(schema.feeds.userId, user.id), isNull(schema.feeds.userId)),
+    ))
     .limit(1);
 
   if (!feed) {
@@ -563,17 +512,11 @@ veilleRoutes.post('/articles/:id/favorite', async (c) => {
 // GET /api/veille/newsletters - List user's newsletters
 veilleRoutes.get('/newsletters', async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
-
-  const conditions = [eq(schema.newsletters.userId, user.id)];
-  if (organizationId) {
-    conditions.push(eq(schema.newsletters.organizationId, organizationId));
-  }
 
   const newsletters = await db
     .select()
     .from(schema.newsletters)
-    .where(and(...conditions))
+    .where(eq(schema.newsletters.userId, user.id))
     .orderBy(desc(schema.newsletters.createdAt));
 
   return c.json({ success: true, data: newsletters });
@@ -582,14 +525,13 @@ veilleRoutes.get('/newsletters', async (c) => {
 // POST /api/veille/newsletters - Create a newsletter
 veilleRoutes.post('/newsletters', zValidator('json', createNewsletterSchema), async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
   const { name, email, frequency, feedIds } = c.req.valid('json');
 
   const [newsletter] = await db
     .insert(schema.newsletters)
     .values({
       userId: user.id,
-      organizationId: organizationId || null,
+      organizationId: null,
       name,
       email,
       frequency,
@@ -603,19 +545,13 @@ veilleRoutes.post('/newsletters', zValidator('json', createNewsletterSchema), as
 // PUT /api/veille/newsletters/:id - Update a newsletter
 veilleRoutes.put('/newsletters/:id', zValidator('json', updateNewsletterSchema), async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
   const newsletterId = c.req.param('id');
   const updates = c.req.valid('json');
-
-  const conditions = [eq(schema.newsletters.id, newsletterId), eq(schema.newsletters.userId, user.id)];
-  if (organizationId) {
-    conditions.push(eq(schema.newsletters.organizationId, organizationId));
-  }
 
   const [newsletter] = await db
     .update(schema.newsletters)
     .set(updates)
-    .where(and(...conditions))
+    .where(and(eq(schema.newsletters.id, newsletterId), eq(schema.newsletters.userId, user.id)))
     .returning();
 
   if (!newsletter) {
@@ -628,17 +564,11 @@ veilleRoutes.put('/newsletters/:id', zValidator('json', updateNewsletterSchema),
 // DELETE /api/veille/newsletters/:id - Delete a newsletter
 veilleRoutes.delete('/newsletters/:id', async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
   const newsletterId = c.req.param('id');
-
-  const conditions = [eq(schema.newsletters.id, newsletterId), eq(schema.newsletters.userId, user.id)];
-  if (organizationId) {
-    conditions.push(eq(schema.newsletters.organizationId, organizationId));
-  }
 
   await db
     .delete(schema.newsletters)
-    .where(and(...conditions));
+    .where(and(eq(schema.newsletters.id, newsletterId), eq(schema.newsletters.userId, user.id)));
 
   return c.json({ success: true });
 });
@@ -646,18 +576,12 @@ veilleRoutes.delete('/newsletters/:id', async (c) => {
 // POST /api/veille/newsletters/:id/send - Send newsletter now (manual trigger)
 veilleRoutes.post('/newsletters/:id/send', async (c) => {
   const user = c.get('user');
-  const organizationId = c.get('organizationId');
   const newsletterId = c.req.param('id');
-
-  const conditions = [eq(schema.newsletters.id, newsletterId), eq(schema.newsletters.userId, user.id)];
-  if (organizationId) {
-    conditions.push(eq(schema.newsletters.organizationId, organizationId));
-  }
 
   const [newsletter] = await db
     .select()
     .from(schema.newsletters)
-    .where(and(...conditions))
+    .where(and(eq(schema.newsletters.id, newsletterId), eq(schema.newsletters.userId, user.id)))
     .limit(1);
 
   if (!newsletter) {

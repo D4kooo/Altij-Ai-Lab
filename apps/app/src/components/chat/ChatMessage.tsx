@@ -1,8 +1,9 @@
 import { ComponentType, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'motion/react';
-import { Bot, Copy, Check } from 'lucide-react';
+import { Bot, Copy, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useChatStore } from '@/stores/chatStore';
 
 // ─── Shared spring config ────────────────────────────────────────────
 
@@ -130,6 +131,8 @@ export function StreamingMessage({
   assistantIcon: AssistantIcon = Bot,
   assistantColor = '#6366f1',
 }: StreamingMessageProps) {
+  const { activeToolCall } = useChatStore();
+
   return (
     <motion.div
       className="message-container"
@@ -152,6 +155,16 @@ export function StreamingMessage({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
+          {activeToolCall && (
+            <div className="flex items-center gap-2 text-[13px] text-muted-foreground mb-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>
+                {activeToolCall.status === 'calling'
+                  ? `Recherche : ${activeToolCall.name}...`
+                  : `${activeToolCall.name} terminé`}
+              </span>
+            </div>
+          )}
           {content ? (
             <div className="message-assistant typing-cursor">
               <div className="markdown text-[14.5px]">

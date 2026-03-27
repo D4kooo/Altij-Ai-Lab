@@ -1,0 +1,36 @@
+networks:
+  default:
+    external: false
+  traefik_internal:
+    external: true
+
+services:
+  app:
+    image: ghcr.io/d4kooo/altij-lab:latest
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - N8N_BASE_URL=${N8N_BASE_URL:-}
+      - N8N_API_KEY=${N8N_API_KEY:-}
+      - PISTE_CLIENT_ID=${PISTE_CLIENT_ID:-}
+      - PISTE_CLIENT_SECRET=${PISTE_CLIENT_SECRET:-}
+      - INSEE_API_KEY=${INSEE_API_KEY:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik_internal
+      - traefik.http.services.hubia.loadbalancer.server.port=3000
+      - traefik.http.routers.hubia.entrypoints=websecure
+      - traefik.http.routers.hubia.rule=Host(`hubia-altij.devtotem.com`)
+      - traefik.http.routers.hubia.tls=true
+      - traefik.http.routers.hubia.tls.certresolver=http
+      - traefik.http.routers.hubia.service=hubia
+    networks:
+      - default
+      - traefik_internal
+    restart: unless-stopped

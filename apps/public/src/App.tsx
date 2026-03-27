@@ -25,7 +25,7 @@ import { CollectiveActions } from '@/pages/citizen/CollectiveActions';
 // Organisation pages (protected)
 import { OrgDashboard } from '@/pages/organisation/OrgDashboard';
 import { OrgFormation } from '@/pages/organisation/OrgFormation';
-import { OrgOutils } from '@/pages/organisation/OrgOutils';
+import { OrgTools } from '@/pages/organisation/OrgTools';
 import { OrgEquipe } from '@/pages/organisation/OrgEquipe';
 
 const queryClient = new QueryClient({
@@ -156,10 +156,11 @@ function AppContent() {
         <Route path="/org/formation" element={<OrgFormation />} />
         <Route path="/org/formation/:courseId" element={<OrgFormation />} />
         <Route path="/org/formation/:courseId/module/:moduleId" element={<ModuleViewer />} />
-        <Route path="/org/outils" element={<OrgOutils />} />
-        <Route path="/org/outils/gdpr" element={<GDPRGenerator />} />
-        <Route path="/org/outils/cgu" element={<CGUAnalyzer />} />
-        <Route path="/org/outils/alertes" element={<DataBreachAlerts />} />
+        <Route path="/org/outils" element={<OrgTools />}>
+          <Route path="gdpr" element={<GDPRGenerator />} />
+          <Route path="cgu" element={<CGUAnalyzer />} />
+          <Route path="alertes" element={<DataBreachAlerts />} />
+        </Route>
         <Route path="/org/equipe" element={<OrgEquipe />} />
       </Route>
 

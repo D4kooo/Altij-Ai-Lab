@@ -19,7 +19,7 @@ const vector = customType<{ data: number[]; driverData: string }>({
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['admin', 'user']);
 export const departmentEnum = pgEnum('department', ['affaires', 'family_office', 'mna', 'it', 'ip', 'data', 'social', 'rh']);
-export const messageRoleEnum = pgEnum('message_role', ['user', 'assistant']);
+export const messageRoleEnum = pgEnum('message_role', ['user', 'assistant', 'tool']);
 export const outputTypeEnum = pgEnum('automation_output_type', ['file', 'text', 'json', 'redirect']);
 export const runStatusEnum = pgEnum('automation_run_status', ['pending', 'running', 'completed', 'failed']);
 export const favoriteTypeEnum = pgEnum('favorite_item_type', ['assistant', 'automation']);
@@ -98,6 +98,7 @@ export const assistants = pgTable('assistants', {
   color: text('color').notNull(),
   suggestedPrompts: jsonb('suggested_prompts').$type<string[]>().default([]),
   dataSources: jsonb('data_sources').$type<string[]>().default([]),
+  tools: jsonb('tools').$type<{ id: string; type: string; enabled: boolean; config?: Record<string, unknown> }[]>().default([]),
   isPinned: boolean('is_pinned').default(false).notNull(),
   pinOrder: integer('pin_order').default(0),
   isActive: boolean('is_active').default(true).notNull(),
@@ -119,6 +120,43 @@ export const assistantDocuments = pgTable('assistant_documents', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// MCP Servers
+export const mcpTransportEnum = pgEnum('mcp_transport', ['stdio', 'sse']);
+
+export const mcpServers = pgTable('mcp_servers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description').default(''),
+  transport: mcpTransportEnum('transport').notNull(),
+  config: jsonb('config').$type<Record<string, unknown>>().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Skills (reusable bundles: system prompt + tools + data sources)
+export const skills = pgTable('skills', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description').default(''),
+  icon: text('icon').default('Zap'),
+  color: text('color').default('#6366f1'),
+  systemPromptOverride: text('system_prompt_override'),
+  tools: jsonb('tools').$type<{ id: string; type: string; enabled: boolean }[]>().default([]),
+  dataSources: jsonb('data_sources').$type<string[]>().default([]),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Assistant-Skill links (many-to-many)
+export const assistantSkills = pgTable('assistant_skills', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  assistantId: uuid('assistant_id').notNull().references(() => assistants.id, { onDelete: 'cascade' }),
+  skillId: uuid('skill_id').notNull().references(() => skills.id, { onDelete: 'cascade' }),
+  isDefault: boolean('is_default').default(false).notNull(),
+});
+
 // Chunks de documents avec embeddings vectoriels
 export const documentChunks = pgTable('document_chunks', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -137,6 +175,7 @@ export const conversations = pgTable('conversations', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   assistantId: uuid('assistant_id').notNull().references(() => assistants.id, { onDelete: 'cascade' }),
   title: text('title'),
+  activeSkills: jsonb('active_skills').$type<string[]>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -148,6 +187,7 @@ export const messages = pgTable('messages', {
   role: messageRoleEnum('role').notNull(),
   content: text('content').notNull(),
   attachments: jsonb('attachments').$type<string[]>().default([]),
+  toolCalls: jsonb('tool_calls').$type<{ id: string; name: string; arguments: Record<string, unknown>; result?: string }[]>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -635,3 +675,9 @@ export type SegaMessageSelect = typeof segaMessages.$inferSelect;
 export type SegaMessageInsert = typeof segaMessages.$inferInsert;
 export type ApiUsageSelect = typeof apiUsage.$inferSelect;
 export type ApiUsageInsert = typeof apiUsage.$inferInsert;
+export type McpServerSelect = typeof mcpServers.$inferSelect;
+export type McpServerInsert = typeof mcpServers.$inferInsert;
+export type SkillSelect = typeof skills.$inferSelect;
+export type SkillInsert = typeof skills.$inferInsert;
+export type AssistantSkillSelect = typeof assistantSkills.$inferSelect;
+export type AssistantSkillInsert = typeof assistantSkills.$inferInsert;

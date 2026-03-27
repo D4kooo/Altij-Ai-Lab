@@ -2,7 +2,7 @@ import { Users } from 'lucide-react';
 
 export function OrgEquipe() {
   return (
-    <div className="px-6 lg:px-10 pt-36 pb-8 lg:pb-12">
+    <div className="px-6 lg:px-10 pt-16 pb-8 lg:pb-12">
       {/* Header */}
       <div className="mb-10">
         <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase block mb-3">

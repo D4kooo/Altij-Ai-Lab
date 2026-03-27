@@ -80,7 +80,7 @@ export function VeilleIaSection({ isAdmin }: { isAdmin: boolean }) {
             <button
               key={veille.id}
               onClick={() => setSelectedVeille(veille)}
-              className="group w-full flex items-center gap-4 rounded-lg px-3 py-3 -mx-3 text-left hover:bg-muted/50 transition-colors"
+              className="group w-full flex items-center gap-4 rounded-lg px-3 py-3 -mx-3 text-left hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500 shrink-0">
                 <Sparkles className="h-4 w-4" strokeWidth={1.5} />
@@ -119,10 +119,10 @@ export function VeilleIaSection({ isAdmin }: { isAdmin: boolean }) {
         <div className="py-16 text-center rounded-lg border border-dashed border-border">
           <Sparkles className="h-5 w-5 text-violet-400/20 mx-auto mb-2" strokeWidth={1.5} />
           <p className="text-sm text-muted-foreground">
-            {isAdmin ? 'Aucune veille IA creee' : 'Aucune veille disponible pour votre pole'}
+            {isAdmin ? 'Aucune veille IA créée' : 'Aucune veille disponible pour votre pôle'}
           </p>
           {isAdmin && (
-            <p className="text-[12px] text-muted-foreground/50 mt-1">Creez une veille pour recevoir un briefing automatique.</p>
+            <p className="text-[12px] text-muted-foreground/50 mt-1">Créez une veille pour recevoir un briefing automatique.</p>
           )}
         </div>
       )}

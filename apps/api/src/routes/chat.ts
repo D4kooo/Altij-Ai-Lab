@@ -6,10 +6,12 @@ import { eq, and, desc } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
 import { authMiddleware } from '../middleware/auth';
-import { streamChatCompletion, buildMessagesWithHistory } from '../services/openrouter';
+import { streamChatCompletion, buildMessagesWithHistory, streamChatWithTools } from '../services/openrouter';
+import { getToolsForAssistant } from '../services/tools';
 import { retrieveContext, formatContextForPrompt, hasDocuments, getRetrievalSummary } from '../services/retrieval';
 import { searchDataSources, formatDataSourceResults } from '../connectors';
 import { estimateCost, checkCreditLimit, saveApiUsage } from '../services/usage';
+import { resolveSkillsContext } from '../services/skills';
 
 const chatRoutes = new Hono<Env>();
 
@@ -20,6 +22,7 @@ const createConversationSchema = z.object({
 const sendMessageSchema = z.object({
   content: z.string().min(1),
   attachments: z.array(z.string()).optional(),
+  activeSkills: z.array(z.string()).optional(),
 });
 
 // Apply auth middleware to all routes
@@ -257,7 +260,7 @@ chatRoutes.post(
   async (c) => {
     const user = c.get('user');
     const conversationId = c.req.param('id');
-    const { content, attachments } = c.req.valid('json');
+    const { content, attachments, activeSkills: activeSkillIds } = c.req.valid('json');
 
     // Get conversation and verify ownership
     const [conversation] = await db
@@ -391,6 +394,18 @@ chatRoutes.post(
         .where(eq(schema.messages.conversationId, conversationId))
         .orderBy(schema.messages.createdAt);
 
+      // Resolve skills context
+      const skillsContext = await resolveSkillsContext(activeSkillIds || []);
+
+      // Merge assistant config with active skills
+      const mergedAssistant = {
+        tools: [...(assistant.tools || []), ...skillsContext.additionalTools],
+        dataSources: [...(assistant.dataSources || []), ...skillsContext.additionalDataSources],
+      };
+
+      // Get tools available for this assistant
+      const tools = await getToolsForAssistant(mergedAssistant);
+
       // RAG: Retrieve relevant document context if assistant has documents
       let ragContext: string | undefined;
       try {
@@ -411,9 +426,10 @@ chatRoutes.post(
       }
 
       // Data sources: query connected legal APIs in real-time
+      // Only inject data sources via prompt when no tool calling is available
       let dataSourcesContext: string | undefined;
       const dsArray = (assistant as Record<string, unknown>).dataSources as string[] | undefined;
-      if (dsArray && dsArray.length > 0) {
+      if (tools.length === 0 && dsArray && dsArray.length > 0) {
         try {
           const dsResults = await searchDataSources(dsArray, content, 3);
           if (dsResults.length > 0) {
@@ -425,9 +441,14 @@ chatRoutes.post(
         }
       }
 
+      // Build effective system prompt with skills additions
+      const effectiveSystemPrompt = skillsContext.systemPromptAdditions.length > 0
+        ? (assistant.systemPrompt || '') + '\n' + skillsContext.systemPromptAdditions.join('\n')
+        : assistant.systemPrompt;
+
       // Build messages with system prompt, history, RAG context, and data sources
       const messages = buildMessagesWithHistory(
-        assistant.systemPrompt,
+        effectiveSystemPrompt,
         previousMessages.slice(0, -1), // Exclude the message we just added
         content,
         undefined, // attachments
@@ -440,14 +461,36 @@ chatRoutes.post(
         let fullResponse = '';
 
         try {
-          const { stream: chatStream, getUsage } = streamChatCompletion(
-            assistant.model!,
-            messages,
-            {
-              temperature: assistant.temperature ?? 0.7,
-              maxTokens: assistant.maxTokens ?? 4096,
-            }
-          );
+          const { stream: chatStream, getUsage } = tools.length > 0
+            ? streamChatWithTools(
+                assistant.model!,
+                messages,
+                tools,
+                {
+                  temperature: assistant.temperature ?? 0.7,
+                  maxTokens: assistant.maxTokens ?? 4096,
+                  onToolCall: (name, args) => {
+                    // Send tool call event to client via SSE
+                    stream.writeSSE({
+                      data: JSON.stringify({ toolCall: { name, args } }),
+                    });
+                  },
+                  onToolResult: (name, result) => {
+                    // Send tool result event to client via SSE
+                    stream.writeSSE({
+                      data: JSON.stringify({ toolResult: { name, result } }),
+                    });
+                  },
+                }
+              )
+            : streamChatCompletion(
+                assistant.model!,
+                messages,
+                {
+                  temperature: assistant.temperature ?? 0.7,
+                  maxTokens: assistant.maxTokens ?? 4096,
+                }
+              );
 
           for await (const chunk of chatStream) {
             fullResponse += chunk;

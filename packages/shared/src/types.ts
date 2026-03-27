@@ -65,6 +65,20 @@ export interface AuthResponse {
   refreshToken: string;
 }
 
+export interface AssistantToolConfig {
+  id: string;
+  type: 'builtin' | 'mcp';
+  enabled: boolean;
+  config?: Record<string, unknown>;
+}
+
+export interface ToolCallRecord {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  result?: string;
+}
+
 // Assistant types
 export type AssistantType = 'openrouter' | 'webhook';
 
@@ -86,6 +100,7 @@ export interface Assistant {
   color: string;
   suggestedPrompts: string[];
   dataSources: string[];
+  tools: AssistantToolConfig[];
   isPinned: boolean;
   pinOrder: number | null;
   isActive: boolean;
@@ -158,9 +173,10 @@ export interface Conversation {
 export interface Message {
   id: string;
   conversationId: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'tool';
   content: string;
   attachments: string[] | null;
+  toolCalls?: ToolCallRecord[] | null;
   createdAt: Date;
 }
 
@@ -284,6 +300,22 @@ export interface RecentActivity {
   status?: 'completed' | 'failed' | 'running';
   icon?: string;
   color?: string;
+}
+
+// Skill types
+export interface Skill {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  systemPromptOverride: string | null;
+  tools: AssistantToolConfig[];
+  dataSources: string[];
+  isActive: boolean;
+  isDefault?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // API Response types

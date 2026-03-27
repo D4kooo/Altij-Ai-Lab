@@ -29,6 +29,8 @@ import { segaRoutes } from './routes/sega';
 import { supervisionRoutes } from './routes/supervision';
 import { cguAnalyzerRoutes } from './routes/cgu-analyzer';
 import { breachCheckRoutes } from './routes/breach-check';
+import mcpServersRoutes from './routes/mcp-servers';
+import skillsRoutes from './routes/skills';
 import { initScheduler } from './services/scheduler';
 
 const app = new Hono();
@@ -81,6 +83,8 @@ app.route('/api/sega', segaRoutes);
 app.route('/api/admin/supervision', supervisionRoutes);
 app.route('/api/cgu-analyze', cguAnalyzerRoutes);
 app.route('/api/breach-check', breachCheckRoutes);
+app.route('/api/mcp-servers', mcpServersRoutes);
+app.route('/api/skills', skillsRoutes);
 
 // Production: serve SPAs as static files
 if (process.env.NODE_ENV === 'production') {

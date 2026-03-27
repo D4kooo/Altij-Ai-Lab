@@ -67,19 +67,13 @@ function requireAdmin(c: any, next: any) {
 veilleIaRoutes.get('/', async (c) => {
   const user = c.get('user');
 
-  // Si pas d'organisation, retourner liste vide
-  if (!user.organizationId) {
-    return c.json({ success: true, data: [] });
-  }
-
   let veilles;
 
   if (user.role === 'admin') {
-    // Admin voit tout de son organisation
+    // Admin voit tout
     veilles = await db
       .select()
       .from(schema.veillesIa)
-      .where(eq(schema.veillesIa.organizationId, user.organizationId))
       .orderBy(desc(schema.veillesIa.createdAt));
   } else {
     // User voit les veilles de son pôle OU assignées à lui individuellement
@@ -94,7 +88,6 @@ veilleIaRoutes.get('/', async (c) => {
       .from(schema.veillesIa)
       .where(
         and(
-          eq(schema.veillesIa.organizationId, user.organizationId),
           eq(schema.veillesIa.isActive, true),
           sql`(${sql.join(accessConditions, sql` OR `)})`
         )
@@ -120,22 +113,13 @@ veilleIaRoutes.get('/departments', async (c) => {
 veilleIaRoutes.get('/favorites/list', async (c) => {
   const user = c.get('user');
 
-  if (!user.organizationId) {
-    return c.json({ success: true, data: [] });
-  }
-
   let veilles;
 
   if (user.role === 'admin') {
     veilles = await db
       .select()
       .from(schema.veillesIa)
-      .where(
-        and(
-          eq(schema.veillesIa.isFavorite, true),
-          eq(schema.veillesIa.organizationId, user.organizationId)
-        )
-      )
+      .where(eq(schema.veillesIa.isFavorite, true))
       .orderBy(desc(schema.veillesIa.updatedAt));
   } else {
     const accessConditions = [];
@@ -150,7 +134,6 @@ veilleIaRoutes.get('/favorites/list', async (c) => {
       .where(
         and(
           eq(schema.veillesIa.isFavorite, true),
-          eq(schema.veillesIa.organizationId, user.organizationId),
           eq(schema.veillesIa.isActive, true),
           sql`(${sql.join(accessConditions, sql` OR `)})`
         )
@@ -199,19 +182,10 @@ veilleIaRoutes.get('/:id', async (c) => {
   const user = c.get('user');
   const veilleId = c.req.param('id');
 
-  if (!user.organizationId) {
-    return c.json({ success: false, error: 'Organization required' }, 403);
-  }
-
   const [veille] = await db
     .select()
     .from(schema.veillesIa)
-    .where(
-      and(
-        eq(schema.veillesIa.id, veilleId),
-        eq(schema.veillesIa.organizationId, user.organizationId)
-      )
-    );
+    .where(eq(schema.veillesIa.id, veilleId));
 
   if (!veille) {
     return c.json({ success: false, error: 'Veille not found' }, 404);
@@ -248,20 +222,11 @@ veilleIaRoutes.get('/:id/editions', async (c) => {
   const user = c.get('user');
   const veilleId = c.req.param('id');
 
-  if (!user.organizationId) {
-    return c.json({ success: false, error: 'Organization required' }, 403);
-  }
-
-  // Vérifier l'accès (scoped by org)
+  // Vérifier l'accès
   const [veille] = await db
     .select()
     .from(schema.veillesIa)
-    .where(
-      and(
-        eq(schema.veillesIa.id, veilleId),
-        eq(schema.veillesIa.organizationId, user.organizationId)
-      )
-    );
+    .where(eq(schema.veillesIa.id, veilleId));
 
   if (!veille) {
     return c.json({ success: false, error: 'Veille not found' }, 404);
@@ -290,10 +255,6 @@ veilleIaRoutes.post('/', requireAdmin, zValidator('json', createVeilleIaSchema),
   const user = c.get('user');
   const data = c.req.valid('json');
 
-  if (!user.organizationId) {
-    return c.json({ success: false, error: 'Organization required' }, 403);
-  }
-
   const [veille] = await db
     .insert(schema.veillesIa)
     .values({
@@ -303,7 +264,7 @@ veilleIaRoutes.post('/', requireAdmin, zValidator('json', createVeilleIaSchema),
       frequency: data.frequency,
       departments: data.departments,
       userIds: data.userIds || [],
-      organizationId: user.organizationId,
+      organizationId: user.organizationId || null,
       createdBy: user.id,
     })
     .returning();
@@ -337,13 +298,8 @@ veilleIaRoutes.post('/', requireAdmin, zValidator('json', createVeilleIaSchema),
 
 // PUT /api/veille-ia/:id - Update a veille IA (admin only)
 veilleIaRoutes.put('/:id', requireAdmin, zValidator('json', updateVeilleIaSchema), async (c) => {
-  const user = c.get('user');
   const veilleId = c.req.param('id');
   const data = c.req.valid('json');
-
-  if (!user.organizationId) {
-    return c.json({ success: false, error: 'Organization required' }, 403);
-  }
 
   const [veille] = await db
     .update(schema.veillesIa)
@@ -351,12 +307,7 @@ veilleIaRoutes.put('/:id', requireAdmin, zValidator('json', updateVeilleIaSchema
       ...data,
       updatedAt: new Date(),
     })
-    .where(
-      and(
-        eq(schema.veillesIa.id, veilleId),
-        eq(schema.veillesIa.organizationId, user.organizationId)
-      )
-    )
+    .where(eq(schema.veillesIa.id, veilleId))
     .returning();
 
   if (!veille) {
@@ -368,44 +319,24 @@ veilleIaRoutes.put('/:id', requireAdmin, zValidator('json', updateVeilleIaSchema
 
 // DELETE /api/veille-ia/:id - Delete a veille IA (admin only)
 veilleIaRoutes.delete('/:id', requireAdmin, async (c) => {
-  const user = c.get('user');
   const veilleId = c.req.param('id');
-
-  if (!user.organizationId) {
-    return c.json({ success: false, error: 'Organization required' }, 403);
-  }
 
   await db
     .delete(schema.veillesIa)
-    .where(
-      and(
-        eq(schema.veillesIa.id, veilleId),
-        eq(schema.veillesIa.organizationId, user.organizationId)
-      )
-    );
+    .where(eq(schema.veillesIa.id, veilleId));
 
   return c.json({ success: true });
 });
 
 // POST /api/veille-ia/:id/favorite - Toggle favorite status (admin only)
 veilleIaRoutes.post('/:id/favorite', requireAdmin, async (c) => {
-  const user = c.get('user');
   const veilleId = c.req.param('id');
 
-  if (!user.organizationId) {
-    return c.json({ success: false, error: 'Organization required' }, 403);
-  }
-
-  // Get current state (scoped by org)
+  // Get current state
   const [veille] = await db
     .select()
     .from(schema.veillesIa)
-    .where(
-      and(
-        eq(schema.veillesIa.id, veilleId),
-        eq(schema.veillesIa.organizationId, user.organizationId)
-      )
-    );
+    .where(eq(schema.veillesIa.id, veilleId));
 
   if (!veille) {
     return c.json({ success: false, error: 'Veille not found' }, 404);
@@ -415,12 +346,7 @@ veilleIaRoutes.post('/:id/favorite', requireAdmin, async (c) => {
   const [updated] = await db
     .update(schema.veillesIa)
     .set({ isFavorite: !veille.isFavorite, updatedAt: new Date() })
-    .where(
-      and(
-        eq(schema.veillesIa.id, veilleId),
-        eq(schema.veillesIa.organizationId, user.organizationId)
-      )
-    )
+    .where(eq(schema.veillesIa.id, veilleId))
     .returning();
 
   return c.json({ success: true, data: updated });
@@ -428,22 +354,12 @@ veilleIaRoutes.post('/:id/favorite', requireAdmin, async (c) => {
 
 // POST /api/veille-ia/:id/generate - Generate a new edition using Perplexity (admin only)
 veilleIaRoutes.post('/:id/generate', requireAdmin, async (c) => {
-  const user = c.get('user');
   const veilleId = c.req.param('id');
-
-  if (!user.organizationId) {
-    return c.json({ success: false, error: 'Organization required' }, 403);
-  }
 
   const [veille] = await db
     .select()
     .from(schema.veillesIa)
-    .where(
-      and(
-        eq(schema.veillesIa.id, veilleId),
-        eq(schema.veillesIa.organizationId, user.organizationId)
-      )
-    );
+    .where(eq(schema.veillesIa.id, veilleId));
 
   if (!veille) {
     return c.json({ success: false, error: 'Veille not found' }, 404);
@@ -576,21 +492,10 @@ RÈGLES CRITIQUES :
 
 // POST /api/veille-ia/generate-all - Generate all active veilles IA in org (admin only)
 veilleIaRoutes.post('/generate-all', requireAdmin, async (c) => {
-  const user = c.get('user');
-
-  if (!user.organizationId) {
-    return c.json({ success: false, error: 'Organization required' }, 403);
-  }
-
   const veilles = await db
     .select()
     .from(schema.veillesIa)
-    .where(
-      and(
-        eq(schema.veillesIa.isActive, true),
-        eq(schema.veillesIa.organizationId, user.organizationId)
-      )
-    );
+    .where(eq(schema.veillesIa.isActive, true));
 
   console.log(`[Admin] Generating ${veilles.length} veilles IA...`);
 

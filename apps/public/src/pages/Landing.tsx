@@ -124,7 +124,7 @@ export function Landing() {
       {/* HEADER */}
       <header className={`fixed top-0 w-full z-50 px-6 md:px-12 transition-all duration-100 flex items-center justify-between ${scrolled ? 'py-4 bg-white/95 border-b border-black' : 'py-8 bg-transparent'}`}>
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate('/')}>
-          <span className="font-bold tracking-[0.15em] text-xs uppercase text-black" style={{ fontFamily: "'Inter Tight', sans-serif" }}>Dataring</span>
+          <img src="/assets/logo-dataring-black.png" alt="Dataring" className="h-12" />
         </div>
 
         <nav className="flex items-center gap-8 text-xs font-mono tracking-[0.1em] uppercase">

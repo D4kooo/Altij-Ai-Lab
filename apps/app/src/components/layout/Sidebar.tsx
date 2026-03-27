@@ -93,22 +93,6 @@ export function Sidebar() {
         </NavLink>
       </div>
 
-      {/* Organization badge */}
-      {organization && (
-        <div className="px-4 pb-4">
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/50 dark:bg-muted/30">
-            <Briefcase className="h-4 w-4 text-sidebar-muted shrink-0" strokeWidth={1.5} />
-            <div className="min-w-0">
-              <p className="text-[11px] text-sidebar-muted uppercase tracking-wider font-medium">
-                {isFamily ? 'Family' : 'Workspace'}
-              </p>
-              <p className="text-sm font-semibold text-sidebar-foreground truncate">
-                {organization.name}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3">

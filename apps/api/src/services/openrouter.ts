@@ -1,4 +1,6 @@
 import OpenAI from 'openai';
+import type { ToolDefinition } from './tools';
+import { executeTool } from './tools';
 
 let openrouterClient: OpenAI | null = null;
 
@@ -50,7 +52,7 @@ function getOpenRouter(): OpenAI {
 
 // Interface pour les messages avec support multimodal
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string | Array<{
     type: 'text' | 'image_url';
     text?: string;
@@ -129,6 +131,138 @@ export function streamChatCompletion(
   };
 }
 
+/**
+ * Stream chat completion with tool calling support.
+ * Handles the tool-calling loop: model requests tool → execute → send result → resume.
+ */
+export function streamChatWithTools(
+  model: string,
+  messages: ChatMessage[],
+  tools: ToolDefinition[],
+  options: {
+    temperature?: number;
+    maxTokens?: number;
+    onToolCall?: (name: string, args: Record<string, unknown>) => void;
+    onToolResult?: (name: string, result: string) => void;
+  } = {}
+): StreamResult {
+  let usage: { promptTokens: number; completionTokens: number; totalTokens: number } = {
+    promptTokens: 0, completionTokens: 0, totalTokens: 0,
+  };
+
+  const client = getOpenRouter();
+  const MAX_ROUNDS = 5;
+
+  async function* generate(): AsyncGenerator<string> {
+    let currentMessages = [...messages] as OpenAI.Chat.ChatCompletionMessageParam[];
+
+    for (let round = 0; round < MAX_ROUNDS; round++) {
+      const stream = await client.chat.completions.create({
+        model,
+        messages: currentMessages,
+        tools: tools as OpenAI.Chat.ChatCompletionTool[],
+        tool_choice: 'auto',
+        temperature: options.temperature ?? 0.7,
+        max_tokens: options.maxTokens ?? 4096,
+        stream: true,
+        stream_options: { include_usage: true },
+      });
+
+      let assistantContent = '';
+      const toolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map();
+      let hasToolCalls = false;
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta;
+
+        // Accumulate text content and yield it
+        if (delta?.content) {
+          assistantContent += delta.content;
+          yield delta.content;
+        }
+
+        // Accumulate tool calls
+        if (delta?.tool_calls) {
+          hasToolCalls = true;
+          for (const tc of delta.tool_calls) {
+            const existing = toolCalls.get(tc.index);
+            if (!existing) {
+              toolCalls.set(tc.index, {
+                id: tc.id || `call_${round}_${tc.index}`,
+                name: tc.function?.name || '',
+                arguments: tc.function?.arguments || '',
+              });
+            } else {
+              if (tc.function?.name) existing.name = tc.function.name;
+              if (tc.function?.arguments) existing.arguments += tc.function.arguments;
+            }
+          }
+        }
+
+        // Capture usage
+        if (chunk.usage) {
+          usage.promptTokens += chunk.usage.prompt_tokens ?? 0;
+          usage.completionTokens += chunk.usage.completion_tokens ?? 0;
+          usage.totalTokens += chunk.usage.total_tokens ?? 0;
+        }
+      }
+
+      // If no tool calls, we're done
+      if (!hasToolCalls || toolCalls.size === 0) {
+        break;
+      }
+
+      // Build assistant message with tool calls
+      const toolCallsArray = Array.from(toolCalls.values());
+      currentMessages.push({
+        role: 'assistant',
+        content: assistantContent || null,
+        tool_calls: toolCallsArray.map((tc) => ({
+          id: tc.id,
+          type: 'function' as const,
+          function: { name: tc.name, arguments: tc.arguments },
+        })),
+      });
+
+      // Execute each tool call and add results
+      for (const tc of toolCallsArray) {
+        let args: Record<string, unknown> = {};
+        try {
+          args = JSON.parse(tc.arguments);
+        } catch {
+          args = { query: tc.arguments };
+        }
+
+        options.onToolCall?.(tc.name, args);
+
+        // Execute with timeout
+        let result: string;
+        try {
+          const timeoutPromise = new Promise<string>((_, reject) =>
+            setTimeout(() => reject(new Error('Tool timeout')), 10000)
+          );
+          result = await Promise.race([executeTool(tc.name, args), timeoutPromise]);
+        } catch (error) {
+          result = `Erreur lors de l'exécution de ${tc.name}: ${error instanceof Error ? error.message : 'timeout'}`;
+        }
+
+        options.onToolResult?.(tc.name, result);
+
+        currentMessages.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          content: result,
+        } as OpenAI.Chat.ChatCompletionToolMessageParam);
+      }
+    }
+  }
+
+  return {
+    stream: generate(),
+    getUsage: () => usage,
+  };
+}
+
 // Récupérer la liste des modèles OpenRouter
 export async function listModels(): Promise<OpenRouterModel[]> {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -179,7 +313,7 @@ export function fileToBase64DataUrl(
 // Construire les messages avec historique
 export function buildMessagesWithHistory(
   systemPrompt: string | null,
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
+  conversationHistory: Array<{ role: 'user' | 'assistant' | 'tool'; content: string }>,
   newMessage: string,
   attachments?: Array<{ base64: string; mimeType: string; fileName: string }>,
   ragContext?: string,

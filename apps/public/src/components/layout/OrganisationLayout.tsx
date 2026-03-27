@@ -177,7 +177,7 @@ export function OrganisationLayout() {
       </header>
 
       {/* Main content — full width, pages control their own layout */}
-      <main className="flex-1">
+      <main className="flex-1 pt-20">
         <Outlet />
       </main>
 

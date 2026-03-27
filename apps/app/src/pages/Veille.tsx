@@ -36,14 +36,16 @@ export function Veille() {
         <h1 className="text-2xl font-semibold tracking-tight">Veille</h1>
       </motion.div>
 
-      {/* Tab switcher — flat, Notion-style */}
-      <motion.div variants={fadeUp} className="flex gap-1">
+      {/* Tab switcher */}
+      <motion.div variants={fadeUp} className="flex gap-1" role="tablist">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
+            role="tab"
+            aria-selected={activeTab === id}
             onClick={() => setActiveTab(id)}
             className={cn(
-              'flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-100',
+              'flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
               activeTab === id
                 ? 'bg-muted text-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'

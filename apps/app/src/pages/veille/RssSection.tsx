@@ -15,8 +15,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { formatRelativeTime, cn } from '@/lib/utils';
 import { veilleApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -29,7 +27,6 @@ export function RssSection() {
   const [selectedFeed, setSelectedFeed] = useState<string | null>(null);
   const [newFeedUrl, setNewFeedUrl] = useState('');
   const [newFeedName, setNewFeedName] = useState('');
-  const [isOrgLevel, setIsOrgLevel] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const queryClient = useQueryClient();
 
@@ -50,7 +47,6 @@ export function RssSection() {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
       setNewFeedUrl('');
       setNewFeedName('');
-      setIsOrgLevel(false);
       setShowAddForm(false);
     },
   });
@@ -109,12 +105,14 @@ export function RssSection() {
       <div className="w-64 shrink-0 flex flex-col border-r border-border pr-4 mr-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/40">Sources</p>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {showAddForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showAddForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            </button>
+          )}
         </div>
 
         {/* Add form */}
@@ -140,13 +138,7 @@ export function RssSection() {
                   onChange={(e) => setNewFeedName(e.target.value)}
                   className="h-8 text-[13px]"
                 />
-                {isAdmin && (
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="org-level" checked={isOrgLevel} onCheckedChange={(c) => setIsOrgLevel(c === true)} />
-                    <Label htmlFor="org-level" className="text-[12px] cursor-pointer">Partage avec l'equipe</Label>
-                  </div>
-                )}
-                <Button size="sm" className="w-full h-7 text-[12px]" onClick={() => newFeedUrl && addFeedMutation.mutate({ url: newFeedUrl, name: newFeedName || undefined, isOrgLevel: isOrgLevel || undefined })} disabled={!newFeedUrl || addFeedMutation.isPending}>
+                <Button size="sm" className="w-full h-7 text-[12px]" onClick={() => newFeedUrl && addFeedMutation.mutate({ url: newFeedUrl, name: newFeedName || undefined })} disabled={!newFeedUrl || addFeedMutation.isPending}>
                   {addFeedMutation.isPending && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
                   Ajouter
                 </Button>
@@ -174,8 +166,6 @@ export function RssSection() {
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/30" />
             </div>
           ) : feeds?.map((feed) => {
-            const isOrgFeed = feed.userId === null;
-            const canDelete = !isOrgFeed || isAdmin;
             return (
               <div
                 key={feed.id}
@@ -191,8 +181,7 @@ export function RssSection() {
                   <Rss className="h-4 w-4 shrink-0 mr-2" strokeWidth={1.5} />
                 )}
                 <span className="truncate flex-1">{feed.name}</span>
-                {isOrgFeed && <span className="text-[10px] text-muted-foreground/40 shrink-0 mr-1">org</span>}
-                {canDelete && (
+                {isAdmin && (
                   <button
                     className="p-0.5 rounded opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:text-destructive transition-all"
                     onClick={(e) => { e.stopPropagation(); deleteFeedMutation.mutate(feed.id); }}

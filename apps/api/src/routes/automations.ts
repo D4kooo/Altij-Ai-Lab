@@ -121,23 +121,11 @@ automationsRoutes.get('/', async (c) => {
     return c.json({ success: true, data: [] });
   }
 
-  // Filtrer par organisation
-  const automations = user.organizationId
-    ? await db
-        .select()
-        .from(schema.automations)
-        .where(
-          and(
-            eq(schema.automations.isActive, true),
-            eq(schema.automations.organizationId, user.organizationId)
-          )
-        )
-        .orderBy(schema.automations.name)
-    : await db
-        .select()
-        .from(schema.automations)
-        .where(eq(schema.automations.isActive, true))
-        .orderBy(schema.automations.name);
+  const automations = await db
+    .select()
+    .from(schema.automations)
+    .where(eq(schema.automations.isActive, true))
+    .orderBy(schema.automations.name);
 
   // Filtrer par permissions si pas admin
   const filteredAutomations = accessibleIds === null
@@ -277,14 +265,10 @@ automationsRoutes.get('/:id', async (c) => {
   const id = c.req.param('id');
   const user = c.get('user')!;
 
-  const conditions = user.organizationId
-    ? and(eq(schema.automations.id, id), eq(schema.automations.organizationId, user.organizationId))
-    : eq(schema.automations.id, id);
-
   const [automation] = await db
     .select()
     .from(schema.automations)
-    .where(conditions)
+    .where(eq(schema.automations.id, id))
     .limit(1);
 
   if (!automation) {

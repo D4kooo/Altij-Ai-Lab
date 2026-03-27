@@ -10,9 +10,14 @@ import {
   MessageSquare,
   PanelLeftClose,
   PanelLeft,
+  PanelRightClose,
+  PanelRight,
+  Zap,
+  Globe,
+  Database,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { segaApi, chatApi, assistantsApi } from '@/lib/api';
+import { segaApi, chatApi, assistantsApi, skillsApi, toolsApi } from '@/lib/api';
 import { useChatStore } from '@/stores/chatStore';
 import { Button } from '@/components/ui/button';
 import {
@@ -93,6 +98,7 @@ export function Chat() {
   const [modelSearch, setModelSearch] = useState('');
   const [conversationToDelete, setConversationToDelete] = useState<UnifiedConversation | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [detailOpen, setDetailOpen] = useState(false);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -100,6 +106,8 @@ export function Chat() {
   const {
     streamingMessage, isStreaming, isThinking,
     setIsStreaming, setIsThinking, appendToStreamingMessage, clearStreamingMessage,
+    activeTools, activeSkills, activeDataSources,
+    toggleTool, toggleSkill, toggleDataSource,
   } = useChatStore();
 
   // ─── Data ──────────────────────────────────────────────────────────
@@ -116,7 +124,6 @@ export function Chat() {
   const { data: segaConvs } = useQuery({
     queryKey: ['sega-conversations'], queryFn: segaApi.listConversations,
   });
-
   // ─── Merge ─────────────────────────────────────────────────────────
 
   const allConversations = useMemo<UnifiedConversation[]>(() => {
@@ -145,6 +152,19 @@ export function Chat() {
   const isSegaConversation = currentConv?.type === 'sega';
   const currentAssistant = currentConv?.type === 'assistant' && currentConv.assistantId
     ? assistants?.find((a) => a.id === currentConv.assistantId) : null;
+
+  // ─── Side panel data ─────────────────────────────────────────────
+
+  const { data: availableSkills } = useQuery({
+    queryKey: ['skills', currentAssistant?.id],
+    queryFn: () => currentAssistant ? skillsApi.getForAssistant(currentAssistant.id) : skillsApi.list(),
+    enabled: detailOpen,
+  });
+  const { data: availableTools } = useQuery({
+    queryKey: ['builtin-tools'],
+    queryFn: toolsApi.listBuiltin,
+    enabled: detailOpen,
+  });
 
   // ─── Conversation detail ───────────────────────────────────────────
 
@@ -247,7 +267,9 @@ export function Chat() {
         await refetchSegaConv();
         queryClient.invalidateQueries({ queryKey: ['sega-conversations'] });
       } else {
-        await chatApi.sendMessage(conversationId, userMessage, (chunk) => appendToStreamingMessage(chunk));
+        await chatApi.sendMessage(conversationId, userMessage, (chunk) => appendToStreamingMessage(chunk), {
+          activeTools, activeSkills, activeDataSources,
+        });
         await refetchAssistantConv();
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
       }
@@ -421,15 +443,24 @@ export function Chat() {
               <span className="ml-2 text-xs text-muted-foreground/50">{chatSubtitle}</span>
             ) : null}
           </div>
-          <Button
-            variant="ghost" size="sm"
-            onClick={() => currentConv?.type === 'assistant' && currentConv.assistantId ? createConvWithAssistant.mutate(currentConv.assistantId) : createSegaConversation.mutate(selectedModel)}
-            disabled={createSegaConversation.isPending || createConvWithAssistant.isPending}
-            className="hidden sm:flex gap-1.5 text-[12px] h-7 px-2.5 text-muted-foreground hover:text-foreground"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Nouveau
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost" size="sm"
+              onClick={() => currentConv?.type === 'assistant' && currentConv.assistantId ? createConvWithAssistant.mutate(currentConv.assistantId) : createSegaConversation.mutate(selectedModel)}
+              disabled={createSegaConversation.isPending || createConvWithAssistant.isPending}
+              className="hidden sm:flex gap-1.5 text-[12px] h-7 px-2.5 text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Nouveau
+            </Button>
+            <button
+              onClick={() => setDetailOpen(!detailOpen)}
+              aria-label={detailOpen ? 'Fermer les détails' : 'Ouvrir les détails'}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              {detailOpen ? <PanelRightClose className="h-4 w-4" strokeWidth={1.5} /> : <PanelRight className="h-4 w-4" strokeWidth={1.5} />}
+            </button>
+          </div>
         </div>
 
         {/* Messages or Welcome */}
@@ -505,6 +536,125 @@ export function Chat() {
           </div>
         )}
       </div>
+
+      {/* ─── Detail Panel ─── */}
+      {detailOpen && (
+        <div className="hidden lg:flex shrink-0 w-[300px] flex-col border-l border-border overflow-y-auto scrollbar-thin">
+          <div className="p-5 space-y-6">
+
+            {/* Outils */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Outils</h3>
+                <Globe className="h-3.5 w-3.5 text-muted-foreground/30" />
+              </div>
+              <div className="space-y-2">
+                {availableTools?.map((tool) => (
+                  <div key={tool.id} className="flex items-center justify-between py-1.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Database className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[13px] block truncate">{tool.name}</span>
+                        <span className="text-[11px] text-muted-foreground/50 block truncate">{tool.description}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleTool(tool.id)}
+                      className={cn(
+                        'h-5 w-9 rounded-full relative shrink-0 transition-colors',
+                        activeTools.includes(tool.id) ? 'bg-primary' : 'bg-muted'
+                      )}
+                    >
+                      <div className={cn(
+                        'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
+                        activeTools.includes(tool.id) ? 'translate-x-4' : 'translate-x-0.5'
+                      )} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Skills */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Skills</h3>
+                <Zap className="h-3.5 w-3.5 text-muted-foreground/30" />
+              </div>
+              <div className="space-y-2">
+                {availableSkills?.map((skill) => (
+                  <div key={skill.id} className="flex items-center justify-between py-1.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Zap className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                      <span className="text-[13px] truncate">{skill.name}</span>
+                    </div>
+                    <button
+                      onClick={() => toggleSkill(skill.id)}
+                      className={cn(
+                        'h-5 w-9 rounded-full relative shrink-0 transition-colors',
+                        activeSkills.includes(skill.id) ? 'bg-primary' : 'bg-muted'
+                      )}
+                    >
+                      <div className={cn(
+                        'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
+                        activeSkills.includes(skill.id) ? 'translate-x-4' : 'translate-x-0.5'
+                      )} />
+                    </button>
+                  </div>
+                ))}
+                {(!availableSkills || availableSkills.length === 0) && (
+                  <p className="text-[11px] text-muted-foreground/40 italic">Aucun skill configuré</p>
+                )}
+              </div>
+            </div>
+
+            {/* Sources de données (RAG) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Sources de données</h3>
+                <Database className="h-3.5 w-3.5 text-muted-foreground/30" />
+              </div>
+              <div className="space-y-2">
+                {currentAssistant?.dataSources?.map((ds) => (
+                  <div key={ds} className="flex items-center justify-between py-1.5">
+                    <div className="flex items-center gap-2.5">
+                      <Database className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                      <span className="text-[13px]">{ds}</span>
+                    </div>
+                    <button
+                      onClick={() => toggleDataSource(ds)}
+                      className={cn(
+                        'h-5 w-9 rounded-full relative shrink-0 transition-colors',
+                        activeDataSources.includes(ds) ? 'bg-primary' : 'bg-muted'
+                      )}
+                    >
+                      <div className={cn(
+                        'absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform',
+                        activeDataSources.includes(ds) ? 'translate-x-4' : 'translate-x-0.5'
+                      )} />
+                    </button>
+                  </div>
+                ))}
+                {(!currentAssistant?.dataSources || currentAssistant.dataSources.length === 0) && (
+                  <p className="text-[11px] text-muted-foreground/40 italic">Aucune source connectée</p>
+                )}
+              </div>
+            </div>
+
+            {/* Fichiers */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Fichiers</h3>
+                <button className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground/40 italic">Bientôt disponible</p>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Delete confirmation */}
       <AlertDialog open={!!conversationToDelete} onOpenChange={(open) => !open && setConversationToDelete(null)}>
@@ -617,25 +767,22 @@ function WelcomeScreen({ onNewFreeChat, onNewAssistantChat, assistants, isCreati
   isStreaming: boolean;
 }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6">
+    <div className="flex h-full flex-col px-6 pt-[12vh]">
       <motion.div
-        className="max-w-2xl w-full space-y-10"
+        className="max-w-2xl w-full mx-auto space-y-8"
         variants={welcomeContainer}
         initial="hidden"
         animate="visible"
       >
-        {/* Hero */}
-        <motion.div variants={welcomeItem} className="text-center space-y-3">
-          <h1 className="text-3xl font-semibold tracking-tight">
+        {/* Title */}
+        <motion.div variants={welcomeItem}>
+          <h1 className="text-2xl font-semibold tracking-tight">
             Que puis-je faire pour vous ?
           </h1>
-          <p className="text-base text-muted-foreground">
-            Posez une question ou choisissez un assistant spécialisé.
-          </p>
         </motion.div>
 
-        {/* Input bar — ChatGPT style, directly on welcome */}
-        <motion.div variants={welcomeItem} className="max-w-xl mx-auto w-full">
+        {/* Input */}
+        <motion.div variants={welcomeItem} className="w-full">
           <ChatInput
             value={message}
             onChange={onMessageChange}
@@ -645,46 +792,45 @@ function WelcomeScreen({ onNewFreeChat, onNewAssistantChat, assistants, isCreati
           />
         </motion.div>
 
-        {/* Assistant grid */}
-        <motion.div variants={welcomeItem} className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/40 text-center">
-            Ou démarrez avec un assistant
+        {/* Assistants */}
+        <motion.div variants={welcomeItem} className="space-y-4 pb-12">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/40">
+            Assistants
           </p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Chat libre */}
             <motion.button
               onClick={onNewFreeChat}
               disabled={isCreating}
-              className="group flex items-center gap-3.5 p-4 rounded-xl border border-border hover:bg-muted/50 hover:border-muted-foreground/15 transition-all duration-150 text-left"
-              whileHover={{ y: -2 }}
+              className="group flex flex-col gap-3 p-4 rounded-xl border border-dashed border-border hover:border-muted-foreground/20 hover:bg-muted/30 transition-all duration-150 text-left"
               whileTap={{ scale: 0.98 }}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500 shrink-0">
-                <MessageCircle className="h-5 w-5" strokeWidth={1.5} />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
+                <MessageCircle className="h-4.5 w-4.5" strokeWidth={1.5} />
               </div>
-              <div className="min-w-0">
+              <div className="space-y-1">
                 <p className="text-sm font-medium">Chat libre</p>
                 <p className="text-[12px] text-muted-foreground leading-snug">Choisissez votre modèle IA</p>
               </div>
             </motion.button>
 
-            {assistants.slice(0, 5).map((a) => (
+            {assistants.map((a) => (
               <motion.button
                 key={a.id}
                 onClick={() => onNewAssistantChat(a.id)}
                 disabled={isCreating}
-                className="group flex items-center gap-3.5 p-4 rounded-xl border border-border hover:bg-muted/50 hover:border-muted-foreground/15 transition-all duration-150 text-left"
-                whileHover={{ y: -2 }}
+                className="group flex flex-col gap-3 p-4 rounded-xl border border-dashed border-border hover:border-muted-foreground/20 hover:bg-muted/30 transition-all duration-150 text-left"
                 whileTap={{ scale: 0.98 }}
               >
                 <div
-                  className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
                   style={{ backgroundColor: `${a.color}12`, color: a.color }}
                 >
-                  <DynamicIcon name={a.icon || 'Bot'} className="h-5 w-5" strokeWidth={1.5} />
+                  <DynamicIcon name={a.icon || 'Bot'} className="h-4.5 w-4.5" strokeWidth={1.5} />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="space-y-1 min-w-0">
                   <p className="text-sm font-medium truncate">{a.name}</p>
-                  <p className="text-[12px] text-muted-foreground truncate leading-snug">{a.specialty}</p>
+                  <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">{a.description || a.specialty}</p>
                 </div>
               </motion.button>
             ))}
