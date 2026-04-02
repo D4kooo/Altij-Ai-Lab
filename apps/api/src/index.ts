@@ -86,6 +86,14 @@ app.route('/api/breach-check', breachCheckRoutes);
 app.route('/api/mcp-servers', mcpServersRoutes);
 app.route('/api/skills', skillsRoutes);
 
+// Proxy for fuites-infos.fr data (CORS restricted to their domain)
+app.get('/api/fuites-infos', async (c) => {
+  const res = await fetch('https://christopheboutry.com/data/fuites-infos.json');
+  if (!res.ok) return c.json({ error: 'Upstream error' }, 502);
+  const data = await res.json();
+  return c.json(data);
+});
+
 // Production: serve SPAs as static files
 if (process.env.NODE_ENV === 'production') {
   const staticBase = import.meta.dir + '/../static';

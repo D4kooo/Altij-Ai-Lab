@@ -23,6 +23,14 @@ const AlertIcon = () => (
   </svg>
 );
 
+const DatabaseIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+  </svg>
+);
+
 const tools = [
   {
     title: 'Générateur RGPD',
@@ -43,6 +51,12 @@ const tools = [
     href: '/org/outils/alertes',
     icon: AlertIcon,
   },
+  {
+    title: 'Fuites en France',
+    description: 'Catalogue des violations référencées.',
+    href: '/org/outils/fuites',
+    icon: DatabaseIcon,
+  },
 ];
 
 export function OrgTools() {
@@ -58,7 +72,7 @@ export function OrgTools() {
       <aside className="hidden lg:block w-64 shrink-0 border-r-[2px] border-black bg-white">
         <div className="sticky top-14 p-6 pt-24 space-y-6">
           <div>
-            <span className="font-bold text-lg tracking-tight block mb-1" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            <span className="font-heading font-bold text-lg tracking-tight block mb-1">
               Outils
             </span>
             <p className="text-black/40 text-xs">Protégez vos données personnelles</p>
@@ -77,7 +91,7 @@ export function OrgTools() {
                 >
                   <span className="mt-0.5 shrink-0"><tool.icon /></span>
                   <div>
-                    <span className={`text-sm tracking-tight block ${isActive ? 'font-bold' : ''}`} style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                    <span className={`text-sm tracking-tight block ${isActive ? 'font-bold' : ''}`}>
                       {tool.title}
                     </span>
                     <span className="text-xs text-black/30 block mt-0.5">{tool.description}</span>

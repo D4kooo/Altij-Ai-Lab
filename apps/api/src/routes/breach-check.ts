@@ -64,6 +64,72 @@ function classifySeverity(dataTypes: string[]): 'low' | 'medium' | 'high' | 'cri
   return 'low';
 }
 
+// --- HIBP API ---
+async function checkHIBP(email: string, signal: AbortSignal): Promise<BreachResult[]> {
+  const apiKey = process.env.HIBP_API_KEY;
+  if (!apiKey) throw new Error('NO_HIBP_KEY');
+
+  const response = await fetch(
+    `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
+    {
+      headers: {
+        'hibp-api-key': apiKey,
+        'user-agent': 'DataRing-BreachCheck',
+      },
+      signal,
+    }
+  );
+
+  if (response.status === 404) return [];
+  if (response.status === 429) throw new Error('HIBP rate limited');
+  if (!response.ok) throw new Error(`HIBP API returned ${response.status}`);
+
+  const data = await response.json() as Array<{
+    Name: string;
+    BreachDate: string;
+    Description: string;
+    DataClasses: string[];
+  }>;
+
+  return data.map((b) => ({
+    name: b.Name,
+    date: b.BreachDate || '',
+    description: b.Description || '',
+    dataTypes: b.DataClasses || [],
+    severity: classifySeverity(b.DataClasses || []),
+  }));
+}
+
+// --- XposedOrNot API (fallback) ---
+async function checkXposedOrNot(email: string, signal: AbortSignal): Promise<BreachResult[]> {
+  const response = await fetch(
+    `https://api.xposedornot.com/v1/breach-analytics?email=${encodeURIComponent(email)}`,
+    { signal }
+  );
+
+  if (response.status === 404) return [];
+  if (!response.ok) throw new Error(`XposedOrNot API returned ${response.status}`);
+
+  const data = await response.json() as Record<string, unknown>;
+  const exposed = data.ExposedBreaches as Record<string, unknown> | undefined;
+  const breachDetails = (exposed?.breaches_details || []) as Array<Record<string, unknown>>;
+
+  return breachDetails.map((b) => {
+    const dataTypes = (typeof b.xposed_data === 'string'
+      ? (b.xposed_data as string).split(';').map((s: string) => s.trim()).filter(Boolean)
+      : Array.isArray(b.xposed_data) ? b.xposed_data as string[] : []
+    );
+
+    return {
+      name: (b.breach as string) || (b.domain as string) || 'Inconnu',
+      date: (b.xposed_date as string) || (b.breachDate as string) || '',
+      description: (b.details as string) || (b.description as string) || '',
+      dataTypes,
+      severity: classifySeverity(dataTypes),
+    };
+  });
+}
+
 breachCheckRoutes.use('*', authMiddleware);
 
 // POST /api/breach-check - Check email for breaches
@@ -80,54 +146,31 @@ breachCheckRoutes.post('/', zValidator('json', checkEmailSchema), async (c) => {
     }, 429);
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
   try {
-    // Call XposedOrNot API
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    let breaches: BreachResult[];
+    let source: 'hibp' | 'xposedornot';
+    let message: string | undefined;
 
-    const response = await fetch(
-      `https://api.xposedornot.com/v1/check-email/${encodeURIComponent(email)}`,
-      { signal: controller.signal }
-    );
+    // Try HIBP first (more complete), fall back to XposedOrNot
+    try {
+      breaches = await checkHIBP(email, controller.signal);
+      source = 'hibp';
+    } catch (hibpErr) {
+      const isNoKey = hibpErr instanceof Error && hibpErr.message === 'NO_HIBP_KEY';
+      if (!isNoKey) {
+        console.warn('HIBP failed, falling back to XposedOrNot:', hibpErr);
+      }
+      breaches = await checkXposedOrNot(email, controller.signal);
+      source = 'xposedornot';
+      if (!isNoKey) {
+        message = 'Source alternative utilisée (résultats partiels possibles).';
+      }
+    }
+
     clearTimeout(timeout);
-
-    // 404 means no breaches found
-    if (response.status === 404) {
-      return c.json({
-        success: true,
-        data: {
-          email,
-          breachCount: 0,
-          breaches: [],
-        },
-      });
-    }
-
-    if (!response.ok) {
-      throw new Error(`XposedOrNot API returned ${response.status}`);
-    }
-
-    const data = await response.json() as Record<string, unknown>;
-
-    // Parse XposedOrNot response
-    // The API returns: { "ExposedBreaches": { "breaches_details": [...], "breaches_count": N } }
-    const exposed = data.ExposedBreaches as Record<string, unknown> | undefined;
-    const breachDetails = (exposed?.breaches_details || []) as Array<Record<string, unknown>>;
-
-    const breaches: BreachResult[] = breachDetails.map((b) => {
-      const dataTypes = (typeof b.xposed_data === 'string'
-        ? (b.xposed_data as string).split(';').map((s: string) => s.trim()).filter(Boolean)
-        : Array.isArray(b.xposed_data) ? b.xposed_data as string[] : []
-      );
-
-      return {
-        name: (b.breach as string) || (b.domain as string) || 'Inconnu',
-        date: (b.xposed_date as string) || (b.breachDate as string) || '',
-        description: (b.details as string) || (b.description as string) || '',
-        dataTypes,
-        severity: classifySeverity(dataTypes),
-      };
-    });
 
     return c.json({
       success: true,
@@ -135,11 +178,13 @@ breachCheckRoutes.post('/', zValidator('json', checkEmailSchema), async (c) => {
         email,
         breachCount: breaches.length,
         breaches,
+        source,
         remaining: rateCheck.remaining,
+        ...(message && { message }),
       },
     });
   } catch (err) {
-    // If the external API is unavailable, return a graceful fallback
+    clearTimeout(timeout);
     const isAbort = err instanceof Error && err.name === 'AbortError';
     const message = isAbort
       ? 'Le service externe a mis trop de temps à répondre.'

@@ -114,6 +114,32 @@ export const authApi = {
     return fetchApi<User>('/auth/me');
   },
 
+  updateProfile: async (data: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    organizationName?: string;
+    organizationRole?: string;
+  }): Promise<User> => {
+    return fetchApi<User>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  changePassword: async (data: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ message: string; token: string; refreshToken: string }> => {
+    const response = await fetchApi<{ message: string; token: string; refreshToken: string }>('/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    localStorage.setItem('citizen_token', response.token);
+    localStorage.setItem('citizen_refreshToken', response.refreshToken);
+    return response;
+  },
+
   registerCitizen: async (data: {
     email: string;
     password: string;
@@ -434,3 +460,7 @@ export const breachCheckApi = {
 };
 
 export { ApiError };
+
+// CMS API (Payload CMS)
+export { cmsApi } from './cms';
+export type { CMSPage, CMSArticle, CMSNewsletter, CMSFAQ, CMSSiteSettings, CMSCourse, CMSMedia } from './cms';

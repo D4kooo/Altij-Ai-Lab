@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -311,3 +310,94 @@
 .hero-text-enter-delay-2 { animation-delay: 0.12s; }
 .hero-text-enter-delay-3 { animation-delay: 0.18s; }
 .hero-text-enter-delay-4 { animation-delay: 0.24s; }
+
+/* ============================================
+   SKIP NAVIGATION
+   ============================================ */
+
+.skip-nav {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 0.75rem 1.5rem;
+  background: #000;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 2px solid #000;
+}
+
+.skip-nav:focus {
+  top: 0;
+}
+
+/* ============================================
+   STEP TRANSITIONS (Register flow)
+   ============================================ */
+
+.step-content {
+  animation-duration: 0.4s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+.step-enter-forward {
+  animation-name: step-slide-in-right;
+}
+
+.step-enter-backward {
+  animation-name: step-slide-in-left;
+}
+
+@keyframes step-slide-in-right {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes step-slide-in-left {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================
+   LESSON HTML STYLES (ModuleViewer)
+   ============================================ */
+
+.lesson-html h1 { font-weight: 700; font-size: 1.5rem; letter-spacing: -0.03em; margin: 2rem 0 1rem; font-family: 'Inter Tight', sans-serif; }
+.lesson-html h2 { font-weight: 700; font-size: 1.25rem; letter-spacing: -0.02em; margin: 2rem 0 .75rem; font-family: 'Inter Tight', sans-serif; }
+.lesson-html h3 { font-weight: 700; font-size: 1rem; letter-spacing: -0.01em; margin: 1.5rem 0 .5rem; font-family: 'Inter Tight', sans-serif; }
+.lesson-html p { color: rgba(0,0,0,.6); font-size: .875rem; line-height: 1.625; margin-bottom: 1rem; }
+.lesson-html strong { color: #000; font-weight: 600; }
+.lesson-html ul, .lesson-html ol { margin-left: 1rem; margin-bottom: 1rem; }
+.lesson-html ul { list-style: disc; }
+.lesson-html ol { list-style: decimal; }
+.lesson-html li { color: rgba(0,0,0,.6); font-size: .875rem; line-height: 1.625; margin-bottom: .375rem; }
+.lesson-html blockquote { border-left: 3px solid rgba(33,178,170,.3); padding-left: 1rem; margin: 1rem 0; color: rgba(0,0,0,.5); font-size: .875rem; font-style: italic; }
+.lesson-html table { width: 100%; font-size: .875rem; border-collapse: collapse; border: 2px solid #000; margin: 1.5rem 0; }
+.lesson-html thead { background: #000; color: #fff; }
+.lesson-html th { padding: .625rem 1rem; text-align: left; font-family: monospace; font-size: .625rem; letter-spacing: .15em; text-transform: uppercase; }
+.lesson-html td { padding: .625rem 1rem; border-top: 1px solid rgba(0,0,0,.1); color: rgba(0,0,0,.6); }
+.lesson-html code { background: rgba(0,0,0,.05); padding: .125rem .375rem; font-size: .75rem; font-family: monospace; border-radius: .25rem; }
+.lesson-html hr { border: none; border-top: 2px solid rgba(0,0,0,.1); margin: 2rem 0; }
+.lesson-html mark { background: rgba(33,178,170,.2); padding: .125rem .25rem; border-radius: .125rem; }
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-text-enter,
+  .step-content {
+    animation: none !important;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

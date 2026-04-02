@@ -38,7 +38,7 @@ export function SchoolSeniors() {
   }
 
   return (
-    <div className="space-y-10 px-6 lg:px-10 py-8 lg:py-10 pt-20">
+    <div className="space-y-10 px-6 lg:px-10 py-8 lg:py-10 sm:pt-20">
       {/* Back */}
       <NavLink to="/school" className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.15em] uppercase text-black/40 hover:text-black transition-colors duration-100">
         <ArrowLeft size={14} strokeWidth={1.5} /> Parcours
@@ -47,7 +47,7 @@ export function SchoolSeniors() {
       {/* Header */}
       <div>
         <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Seniors · 60+ ans</span>
-        <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95] mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+        <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95] mb-2">
           Votre parcours numérique
         </h1>
         <p className="text-black/50 text-lg leading-relaxed">
@@ -69,7 +69,7 @@ export function SchoolSeniors() {
       <div className="border-2 border-black p-6 sm:p-8">
         <div className="flex items-center gap-3 mb-6">
           <AlertTriangle size={18} strokeWidth={1.5} />
-          <span className="font-bold text-sm tracking-tight uppercase" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+          <span className="font-heading font-bold text-sm tracking-tight uppercase">
             Alertes arnaques
           </span>
         </div>
@@ -80,7 +80,7 @@ export function SchoolSeniors() {
                 {String(i + 1).padStart(2, '0')}.
               </span>
               <div>
-                <p className="font-bold text-sm" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{alert.title}</p>
+                <p className="font-heading font-bold text-sm">{alert.title}</p>
                 <p className="text-black/50 text-sm">{alert.text}</p>
               </div>
             </div>
@@ -108,7 +108,7 @@ export function SchoolSeniors() {
               <div className="flex-1 min-w-0">
                 <span className={`block text-lg tracking-tight truncate ${
                   completed ? 'text-black/40' : 'text-black'
-                }`} style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                }`}>
                   {module.title}
                 </span>
                 {module.hasAudio && (
@@ -142,7 +142,7 @@ export function SchoolSeniors() {
 
       {/* Help */}
       <div className="border-2 border-black p-8 text-center">
-        <p className="font-bold text-lg mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>Besoin d'aide ?</p>
+        <p className="font-heading font-bold text-lg mb-2">Besoin d'aide ?</p>
         <p className="text-black/50 text-sm mb-6 max-w-md mx-auto">
           Contactez notre équipe de bénévoles pour un accompagnement personnalisé.
         </p>

@@ -9,8 +9,8 @@ export function OrgEquipe() {
           Équipe
         </span>
         <h1
-          className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
-          style={{ fontFamily: "'Inter Tight', sans-serif" }}
+          className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
+         
         >
           Gestion d'équipe
         </h1>
@@ -27,8 +27,8 @@ export function OrgEquipe() {
           </div>
           <div>
             <h2
-              className="font-bold text-xl tracking-tighter mb-2"
-              style={{ fontFamily: "'Inter Tight', sans-serif" }}
+              className="font-heading font-bold text-xl tracking-tighter mb-2"
+             
             >
               Invitez vos collaborateurs
             </h2>

@@ -23,6 +23,11 @@ function CGUAnimation() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Respect reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -228,7 +233,7 @@ export function CGUAnalyzer() {
             <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase">Analyseur</span>
             <span className="font-mono text-[9px] tracking-[0.2em] text-[#21B2AA] uppercase border border-[#21B2AA]/30 px-2 py-0.5">IA</span>
           </div>
-          <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+          <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]">
             Comprenez les CGU<br />
             <span className="italic font-normal">en un coup d'oeil.</span>
           </h1>
@@ -325,7 +330,7 @@ export function CGUAnalyzer() {
         <div className="border-2 border-black/15 p-8 sm:p-12 flex flex-col items-center gap-4">
           <Loader2 size={28} className="animate-spin text-black/30" strokeWidth={1.5} />
           <div className="text-center">
-            <p className="font-bold text-sm tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            <p className="font-heading font-bold text-sm tracking-tight">
               Analyse en cours...
             </p>
             <p className="text-black/40 text-xs mt-1">L'IA examine les conditions d'utilisation</p>
@@ -352,13 +357,13 @@ export function CGUAnalyzer() {
           <div className="border-2 border-black p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-start gap-6">
               <div className="shrink-0">
-                <span className="text-5xl font-bold tracking-tighter block" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                <span className="text-5xl font-bold tracking-tighter block">
                   {result.score}
                 </span>
                 <span className="font-mono text-[10px] tracking-[0.15em] text-black/40 uppercase">/100 · {getScoreLabel(result.score)}</span>
               </div>
               <div className="flex-1">
-                <h2 className="font-bold text-xl tracking-tight mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                <h2 className="font-heading font-bold text-xl tracking-tight mb-2">
                   {result.serviceName}
                 </h2>
                 <p className="text-black/50 text-sm leading-relaxed">{result.summary}</p>
@@ -385,7 +390,7 @@ export function CGUAnalyzer() {
                         {getPointLabel(point.type)}
                       </span>
                       <div>
-                        <h4 className="font-bold text-sm tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                        <h4 className="font-heading font-bold text-sm tracking-tight">
                           {point.title}
                         </h4>
                         <p className="text-black/50 text-sm leading-relaxed mt-1">{point.description}</p>
@@ -427,7 +432,7 @@ export function CGUAnalyzer() {
           { title: 'Tracking', text: 'Comment votre activité est suivie.' },
         ].map((item, i) => (
           <div key={i} className={`p-5 ${i < 2 ? 'border-r border-black' : ''}`}>
-            <p className="font-bold text-sm tracking-tight mb-1" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            <p className="font-heading font-bold text-sm tracking-tight mb-1">
               {item.title}
             </p>
             <p className="text-black/40 text-xs leading-relaxed">{item.text}</p>

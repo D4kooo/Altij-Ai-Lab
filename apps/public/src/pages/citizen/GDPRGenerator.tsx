@@ -45,6 +45,11 @@ function GDPRAnimation() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Respect reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -297,7 +302,7 @@ ${formData.userName}`;
 
         <div className="relative z-10 max-w-md">
           <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">RGPD</span>
-          <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+          <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]">
             Exercez vos droits<br />
             <span className="italic font-normal">sur vos données.</span>
           </h1>
@@ -351,7 +356,7 @@ ${formData.userName}`;
                   {String(i + 1).padStart(2, '0')}.
                 </span>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-lg tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                  <h3 className="font-heading font-bold text-lg tracking-tight">
                     {right.title}
                   </h3>
                   <p className="text-black/50 text-sm leading-relaxed mt-1">{right.description}</p>
@@ -399,8 +404,9 @@ ${formData.userName}`;
               </span>
               <div className="space-y-3">
                 <div>
-                  <label className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Nom</label>
+                  <label htmlFor="gdpr-company-name" className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Nom</label>
                   <input
+                    id="gdpr-company-name"
                     value={formData.companyName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, companyName: e.target.value }))}
                     placeholder="Ex: Google, Amazon..."
@@ -408,8 +414,9 @@ ${formData.userName}`;
                   />
                 </div>
                 <div>
-                  <label className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Email DPO</label>
+                  <label htmlFor="gdpr-company-email" className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Email DPO</label>
                   <input
+                    id="gdpr-company-email"
                     type="email"
                     value={formData.companyEmail}
                     onChange={(e) => setFormData((prev) => ({ ...prev, companyEmail: e.target.value }))}
@@ -427,8 +434,9 @@ ${formData.userName}`;
               </span>
               <div className="space-y-3">
                 <div>
-                  <label className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Nom complet</label>
+                  <label htmlFor="gdpr-user-name" className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Nom complet</label>
                   <input
+                    id="gdpr-user-name"
                     value={formData.userName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, userName: e.target.value }))}
                     placeholder="Jean Dupont"
@@ -436,8 +444,9 @@ ${formData.userName}`;
                   />
                 </div>
                 <div>
-                  <label className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Email</label>
+                  <label htmlFor="gdpr-user-email" className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Email</label>
                   <input
+                    id="gdpr-user-email"
                     type="email"
                     value={formData.userEmail}
                     onChange={(e) => setFormData((prev) => ({ ...prev, userEmail: e.target.value }))}

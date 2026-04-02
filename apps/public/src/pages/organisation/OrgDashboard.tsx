@@ -50,8 +50,8 @@ export function OrgDashboard() {
           Tableau de bord
         </span>
         <h1
-          className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
-          style={{ fontFamily: "'Inter Tight', sans-serif" }}
+          className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
+         
         >
           Bienvenue, {organizationName}.
         </h1>
@@ -69,7 +69,7 @@ export function OrgDashboard() {
           >
             <p
               className="text-2xl font-bold tracking-tighter"
-              style={{ fontFamily: "'Inter Tight', sans-serif" }}
+             
             >
               {stat.value}
             </p>
@@ -95,8 +95,8 @@ export function OrgDashboard() {
                 {String(i + 1).padStart(2, '0')}
               </span>
               <h2
-                className="font-bold text-2xl tracking-tighter mb-3"
-                style={{ fontFamily: "'Inter Tight', sans-serif" }}
+                className="font-heading font-bold text-2xl tracking-tighter mb-3"
+               
               >
                 {link.label}
               </h2>

@@ -20,7 +20,9 @@ import { CitizenTools } from '@/pages/citizen/CitizenTools';
 import { GDPRGenerator } from '@/pages/citizen/GDPRGenerator';
 import { CGUAnalyzer } from '@/pages/citizen/CGUAnalyzer';
 import { DataBreachAlerts } from '@/pages/citizen/DataBreachAlerts';
+import { FuitesInfos } from '@/pages/citizen/FuitesInfos';
 import { CollectiveActions } from '@/pages/citizen/CollectiveActions';
+import { Profile } from '@/pages/citizen/Profile';
 
 // Organisation pages (protected)
 import { OrgDashboard } from '@/pages/organisation/OrgDashboard';
@@ -139,9 +141,11 @@ function AppContent() {
           <Route path="gdpr" element={<GDPRGenerator />} />
           <Route path="cgu" element={<CGUAnalyzer />} />
           <Route path="alertes" element={<DataBreachAlerts />} />
+          <Route path="fuites" element={<FuitesInfos />} />
         </Route>
 
         <Route path="/actions" element={<CollectiveActions />} />
+        <Route path="/profil" element={<Profile />} />
       </Route>
 
       {/* Organisation Routes (protected) */}
@@ -160,8 +164,10 @@ function AppContent() {
           <Route path="gdpr" element={<GDPRGenerator />} />
           <Route path="cgu" element={<CGUAnalyzer />} />
           <Route path="alertes" element={<DataBreachAlerts />} />
+          <Route path="fuites" element={<FuitesInfos />} />
         </Route>
         <Route path="/org/equipe" element={<OrgEquipe />} />
+        <Route path="/org/profil" element={<Profile />} />
       </Route>
 
       {/* Fallback */}

@@ -100,7 +100,7 @@ export function CollectiveActions() {
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center justify-between">
                   <span className="text-xs text-black/50">{stat.label}</span>
-                  <span className="font-bold text-sm tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                  <span className="font-heading font-bold text-sm tracking-tight">
                     {stat.value}
                   </span>
                 </div>
@@ -138,8 +138,8 @@ export function CollectiveActions() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
             <h1
-              className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
-              style={{ fontFamily: "'Inter Tight', sans-serif" }}
+              className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
+             
             >
               Actions collectives
             </h1>
@@ -195,8 +195,8 @@ export function CollectiveActions() {
 
                   {/* Title + description */}
                   <h3
-                    className="font-bold text-lg tracking-tight mb-2"
-                    style={{ fontFamily: "'Inter Tight', sans-serif" }}
+                    className="font-heading font-bold text-lg tracking-tight mb-2"
+                   
                   >
                     {campaign.title}
                   </h3>
@@ -253,8 +253,8 @@ export function CollectiveActions() {
         <div className="border-2 border-black p-8 text-center mt-10">
           <Heart size={20} strokeWidth={1.5} className="mx-auto mb-4 text-[#21B2AA]" />
           <h2
-            className="font-bold text-xl tracking-tighter mb-2"
-            style={{ fontFamily: "'Inter Tight', sans-serif" }}
+            className="font-heading font-bold text-xl tracking-tighter mb-2"
+           
           >
             Soutenez nos actions
           </h2>

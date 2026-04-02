@@ -122,16 +122,21 @@ export function Landing() {
       <div className="fixed inset-0 pointer-events-none z-[100] bg-noise opacity-[0.025] mix-blend-multiply" />
 
       {/* HEADER */}
-      <header className={`fixed top-0 w-full z-50 px-6 md:px-12 transition-all duration-100 flex items-center justify-between ${scrolled ? 'py-4 bg-white/95 border-b border-black' : 'py-8 bg-transparent'}`}>
-        <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate('/')}>
+      <header className={`fixed top-0 w-full z-50 px-6 md:px-12 transition-all duration-100 flex items-center justify-between ${scrolled ? 'py-3 sm:py-4 bg-white/95 border-b border-black' : 'py-4 sm:py-8 bg-transparent'}`}>
+        {/* Desktop logo */}
+        <a href="/" className="hidden sm:flex items-center gap-4" aria-label="Dataring — Accueil">
           <img src="/assets/logo-dataring-black.png" alt="Dataring" className="h-12" />
-        </div>
+        </a>
+        {/* Mobile brand */}
+        <a href="/" className="sm:hidden font-mono text-[10px] tracking-[0.25em] uppercase text-black/80 font-medium" aria-label="Dataring — Accueil">
+          Data Ring
+        </a>
 
-        <nav className="flex items-center gap-8 text-xs font-mono tracking-[0.1em] uppercase">
-          <button onClick={() => navigate('/citizen/login')} className="hidden sm:block text-black/40 hover:text-black border-b border-transparent hover:border-black transition-colors duration-100">
+        <nav className="flex items-center gap-3 sm:gap-8 text-xs font-mono tracking-[0.1em] uppercase">
+          <button onClick={() => navigate('/citizen/login')} className="text-black/40 hover:text-black border-b border-transparent hover:border-black transition-colors duration-100 text-[10px] sm:text-[11px] tracking-[0.15em]">
             Connexion
           </button>
-          <button onClick={() => navigate('/citizen/register')} className="px-6 py-3 bg-black text-white text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-white hover:text-black border-2 border-black transition-colors duration-100">
+          <button onClick={() => navigate('/citizen/register')} className="px-4 sm:px-6 py-2.5 sm:py-3 bg-black text-white text-[10px] sm:text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-white hover:text-black border-2 border-black transition-colors duration-100">
             Rejoindre
           </button>
         </nav>
@@ -149,11 +154,11 @@ export function Landing() {
             <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
           </div>
 
-          <div className="relative z-10 w-full px-6 md:px-12 lg:px-20 pt-32 pb-20">
+          <div className="relative z-10 w-full px-6 md:px-12 lg:px-20 pt-20 sm:pt-32 pb-12 sm:pb-20">
             <div className="max-w-3xl">
 
               {/* ─── MODE TOGGLE ─── */}
-              <div className="flex items-center gap-3 mb-12">
+              <div className="flex items-center gap-3 mb-8 sm:mb-12">
                 <div className="inline-flex items-center bg-black/5 rounded-full p-1 gap-0">
                   <button
                     onClick={() => setMode('org')}
@@ -179,7 +184,7 @@ export function Landing() {
                 <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-black/50">{h.badge}</span>
               </div>
 
-              <h1 key={mode + '-title'} className="hero-text-enter hero-text-enter-delay-1 font-bold text-5xl sm:text-6xl lg:text-7xl xl:text-8xl tracking-tighter leading-[0.9] mb-8" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              <h1 key={mode + '-title'} className="hero-text-enter hero-text-enter-delay-1 font-heading font-bold text-5xl sm:text-6xl lg:text-7xl xl:text-8xl tracking-tighter leading-[0.9] mb-8">
                 {h.title}
               </h1>
 
@@ -218,7 +223,7 @@ export function Landing() {
           <div className="relative max-w-6xl mx-auto">
             <div className="mb-16 max-w-2xl">
               <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-6">Cibles</span>
-              <h2 className="font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95] mb-6" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95] mb-6">
                 {mode === 'org' ? <>Pour celles et ceux qui décident…<br /><span className="italic font-normal">et devront répondre de leurs décisions.</span></> : <>Pour toutes et tous,<br /><span className="italic font-normal">quel que soit votre niveau.</span></>}
               </h2>
             </div>
@@ -226,7 +231,7 @@ export function Landing() {
               {a.map((item, i) => (
                 <div key={i} className={`group p-8 transition-colors duration-100 hover:bg-black hover:text-white border-b border-black lg:border-b-0 ${i < 3 ? 'lg:border-r lg:border-black' : ''}`}>
                   <item.icon size={24} strokeWidth={1.5} className="mb-6 text-black group-hover:text-white transition-colors duration-100" />
-                  <h3 className="font-bold text-lg tracking-tight mb-3 transition-colors duration-100" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{item.title}</h3>
+                  <h3 className="font-heading font-bold text-lg tracking-tight mb-3 transition-colors duration-100">{item.title}</h3>
                   <p className="text-black/50 group-hover:text-white/60 text-sm leading-relaxed transition-colors duration-100">{item.text}</p>
                 </div>
               ))}
@@ -241,7 +246,7 @@ export function Landing() {
           <div className="max-w-6xl mx-auto">
             <div className="mb-20 max-w-2xl">
               <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-6">{mode === 'org' ? 'Écoles' : 'Parcours'}</span>
-              <h2 className="font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95]">
                 {mode === 'org' ? <>Trois écoles, une même ambition :<br /><span className="italic font-normal">remettre l'humain au centre de l'IA.</span></> : <>Trois parcours pour reprendre<br /><span className="italic font-normal">le contrôle de votre vie numérique.</span></>}
               </h2>
             </div>
@@ -250,7 +255,7 @@ export function Landing() {
                 <div key={i} className={`group border-t-[2px] border-black ${i === s.length - 1 ? 'border-b-[2px]' : ''} py-12 md:py-16 grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12`}>
                   <div className="md:col-span-1"><span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/50">{item.num}.</span></div>
                   <div className="md:col-span-5">
-                    <h3 className="font-bold text-2xl sm:text-3xl tracking-tight mb-3" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{item.title}</h3>
+                    <h3 className="font-heading font-bold text-2xl sm:text-3xl tracking-tight mb-3">{item.title}</h3>
                     <p className="text-black/40 italic text-lg font-display">{item.quote}</p>
                   </div>
                   <div className="md:col-span-5">
@@ -259,7 +264,10 @@ export function Landing() {
                         <li key={j} className="flex gap-3"><span className="w-1.5 h-1.5 bg-[#21B2AA] rounded-full mt-2 shrink-0" />{li}</li>
                       ))}
                     </ul>
-                    <button className="text-[11px] font-medium tracking-[0.15em] uppercase border-b-2 border-black pb-1 hover:bg-black hover:text-white hover:px-4 hover:py-2 hover:border-transparent transition-all duration-100">
+                    <button
+                      onClick={() => mode === 'particulier' ? navigate('/citizen/register') : document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="text-[11px] font-medium tracking-[0.15em] uppercase border-b-2 border-black pb-1 hover:bg-black hover:text-white hover:px-4 hover:py-2 hover:border-transparent transition-all duration-100"
+                    >
                       {item.cta}
                     </button>
                   </div>
@@ -278,7 +286,7 @@ export function Landing() {
           <div className="relative max-w-6xl mx-auto">
             <div className="mb-16 max-w-2xl">
               <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-6">Formats</span>
-              <h2 className="font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95]">
                 {mode === 'org' ? <>Une académie,<br /><span className="italic font-normal">trois formats complémentaires.</span></> : <>Des outils concrets,<br /><span className="italic font-normal">accessibles à tous.</span></>}
               </h2>
             </div>
@@ -286,17 +294,17 @@ export function Landing() {
               {f.map((item, i) => (
                 <div key={i} className={`group p-8 md:p-10 transition-colors duration-100 hover:bg-black hover:text-white ${i < 2 ? 'md:border-r md:border-black' : ''} ${i < 2 ? 'border-b md:border-b-0 border-black' : ''}`}>
                   <item.icon size={24} strokeWidth={1.5} className="mb-6 text-black group-hover:text-white transition-colors duration-100" />
-                  <h3 className="font-bold text-xl tracking-tight mb-4 transition-colors duration-100" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{item.title}</h3>
+                  <h3 className="font-heading font-bold text-xl tracking-tight mb-4 transition-colors duration-100">{item.title}</h3>
                   <p className="text-black/50 group-hover:text-white/60 text-sm leading-relaxed transition-colors duration-100">{item.text}</p>
                 </div>
               ))}
             </div>
             <div className="mt-12 text-center">
               <button
-                onClick={() => mode === 'particulier' ? navigate('/citizen/register') : undefined}
+                onClick={() => mode === 'particulier' ? navigate('/citizen/register') : document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
                 className="px-8 py-4 border-2 border-black text-black text-[11px] font-medium tracking-[0.2em] uppercase hover:bg-black hover:text-white transition-colors duration-100"
               >
-                {mode === 'org' ? 'Télécharger le catalogue des programmes' : 'Créer mon compte gratuit'}
+                {mode === 'org' ? 'Demander le catalogue des programmes' : 'Créer mon compte gratuit'}
               </button>
             </div>
           </div>
@@ -311,7 +319,7 @@ export function Landing() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
               <div className="lg:col-span-7">
                 <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/70 uppercase block mb-6">{mode === 'org' ? 'Lab IA' : 'Notre engagement'}</span>
-                <h2 className="font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95] mb-10" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95] mb-10">
                   {mode === 'org' ? <>Une académie adossée à un Lab IA,<br /><span className="italic font-normal">pas à des slides théoriques.</span></> : <>100% gratuit, 100% indépendant,<br /><span className="italic font-normal">100% au service du citoyen.</span></>}
                 </h2>
                 <ul className="space-y-6 text-white/60 text-base leading-relaxed">
@@ -352,7 +360,7 @@ export function Landing() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
               <div className="lg:col-span-5">
                 <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-6">Résultats</span>
-                <h2 className="font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95]">
                   {mode === 'org' ? <>Ce que vos équipes sauront faire<br /><span className="italic font-normal">après l'Académie.</span></> : <>Ce que vous saurez faire<br /><span className="italic font-normal">après les parcours.</span></>}
                 </h2>
               </div>
@@ -377,7 +385,7 @@ export function Landing() {
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at top center, #ffffff, transparent 70%)', opacity: 0.04 }} />
           <div className="relative z-10 max-w-3xl mx-auto text-center">
             <div className="flex justify-center mb-12"><div className="w-16 h-[2px] bg-[#21B2AA]/50" /></div>
-            <h2 className="font-bold text-4xl sm:text-5xl lg:text-6xl tracking-tighter leading-[0.95] mb-8" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            <h2 className="font-heading font-bold text-4xl sm:text-5xl lg:text-6xl tracking-tighter leading-[0.95] mb-8">
               {mode === 'org' ? <>Prêt à former des décideurs augmentés…<br /><span className="italic font-normal">mais pas dépossédés ?</span></> : <>Prêt à reprendre le contrôle<br /><span className="italic font-normal">de votre vie numérique ?</span></>}
             </h2>
             <p className="text-lg sm:text-xl text-white/40 font-light leading-relaxed mb-14 max-w-2xl mx-auto">
@@ -386,7 +394,7 @@ export function Landing() {
                 : 'Vos données personnelles sont précieuses. Vos droits numériques sont réels. Il suffit de les connaître pour les exercer. Rejoignez des milliers de citoyens qui reprennent le contrôle.'}
             </p>
             <button
-              onClick={() => mode === 'particulier' ? navigate('/citizen/register') : undefined}
+              onClick={() => mode === 'particulier' ? navigate('/citizen/register') : window.open('mailto:contact@data-ring.net', '_blank')}
               className="px-10 py-4 border-2 border-white text-white text-[11px] font-medium tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-colors duration-100"
             >
               {mode === 'org' ? 'Être recontacté par l\'équipe DataRing' : 'Créer mon compte — c\'est gratuit'}
@@ -399,8 +407,8 @@ export function Landing() {
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
             <span className="font-mono text-[10px] tracking-[0.2em] text-black/40 uppercase">Dataring © {new Date().getFullYear()}</span>
             <div className="flex items-center gap-10 font-mono text-[10px] tracking-[0.15em] text-black/40 uppercase">
-              <span className="hover:text-black border-b border-transparent hover:border-black transition-colors duration-100 cursor-pointer">Mentions Légales</span>
-              <span className="hover:text-black border-b border-transparent hover:border-black transition-colors duration-100 cursor-pointer">Contact</span>
+              <a href="https://www.data-ring.net/mentions-legales" target="_blank" rel="noopener noreferrer" className="hover:text-black border-b border-transparent hover:border-black transition-colors duration-100">Mentions Légales</a>
+              <a href="https://www.data-ring.net" target="_blank" rel="noopener noreferrer" className="hover:text-black border-b border-transparent hover:border-black transition-colors duration-100">Contact</a>
             </div>
             <span className="font-mono text-[10px] tracking-[0.2em] text-[#21B2AA]/60 uppercase">Académie & Lab IA</span>
           </div>

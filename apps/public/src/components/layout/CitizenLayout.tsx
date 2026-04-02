@@ -17,11 +17,15 @@ export function CitizenLayout() {
   return (
     <div className="min-h-[100svh] bg-white text-black font-body selection:bg-[#21B2AA] selection:text-white flex flex-col relative">
 
-      {/* Logo stamp — fixed overlay that bleeds from header into content */}
+      {/* Skip navigation */}
+      <a href="#main-content" className="skip-nav">Aller au contenu</a>
+
+      {/* Logo stamp — fixed overlay that bleeds from header into content (hidden on mobile) */}
       <NavLink
         to="/"
-        className="fixed top-1 left-6 lg:left-10 z-[60] w-32 h-28 bg-white border-2 border-black flex items-center justify-center hover:bg-black group transition-colors duration-200"
+        className="hidden sm:flex fixed top-1 left-6 lg:left-10 z-[60] w-32 h-28 bg-white border-2 border-black items-center justify-center hover:bg-black group transition-colors duration-200"
         style={{ boxShadow: '4px 4px 0 rgba(0,0,0,0.08)' }}
+        aria-label="Retour à l'accueil Dataring"
       >
         <img
           src="/assets/logo-dataring-black.png"
@@ -40,8 +44,13 @@ export function CitizenLayout() {
         <div className="px-6 lg:px-10">
           <div className="flex h-14 items-center justify-between">
 
-            {/* Spacer for logo stamp */}
-            <div className="w-36 shrink-0" />
+            {/* Mobile brand mark */}
+            <NavLink to="/" className="sm:hidden font-mono text-[10px] tracking-[0.25em] uppercase text-black/80 font-medium">
+              Data Ring
+            </NavLink>
+
+            {/* Spacer for logo stamp (hidden on mobile) */}
+            <div className="hidden sm:block w-36 shrink-0" />
 
             {/* Desktop Navigation — tabs */}
             <nav className="hidden md:flex items-center gap-0 font-mono text-[10px] tracking-[0.15em] uppercase">
@@ -75,15 +84,15 @@ export function CitizenLayout() {
                 </a>
               )}
 
-              {/* User initial */}
-              <div className="hidden sm:flex items-center gap-3">
+              {/* User initial — links to profile */}
+              <NavLink to="/profil" className="hidden sm:flex items-center gap-3 hover:opacity-70 transition-opacity duration-100">
                 <div className="w-7 h-7 bg-black text-white flex items-center justify-center text-[10px] font-bold uppercase">
                   {user?.firstName?.charAt(0) || 'U'}
                 </div>
                 <span className="font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase">
                   {user?.firstName}
                 </span>
-              </div>
+              </NavLink>
 
               <button
                 onClick={() => logout()}
@@ -132,6 +141,13 @@ export function CitizenLayout() {
                   Espace Staff
                 </a>
               )}
+              <NavLink
+                to="/profil"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-3 font-mono text-[11px] tracking-[0.15em] uppercase text-black/40 border-b border-black/10"
+              >
+                Mon profil
+              </NavLink>
               <button
                 onClick={() => { logout(); setMobileMenuOpen(false); }}
                 className="block py-3 font-mono text-[11px] tracking-[0.15em] uppercase text-black/40"
@@ -144,7 +160,7 @@ export function CitizenLayout() {
       </header>
 
       {/* Main content — full width, pages control their own layout */}
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <Outlet />
       </main>
 

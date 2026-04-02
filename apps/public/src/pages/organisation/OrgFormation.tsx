@@ -69,7 +69,7 @@ export function OrgFormation() {
         <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase block mb-3">
           Formation
         </span>
-        <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+        <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]">
           Formation professionnelle
         </h1>
         <p className="mt-2 text-black/40 text-sm">
@@ -92,7 +92,7 @@ export function OrgFormation() {
             <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA] uppercase block mb-4">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <h2 className="font-bold text-xl tracking-tighter mb-3" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            <h2 className="font-heading font-bold text-xl tracking-tighter mb-3">
               {cat.label}
             </h2>
             <p className={`text-sm leading-relaxed ${activeCategory === cat.id ? 'text-white/60' : 'text-black/40'}`}>
@@ -142,7 +142,7 @@ export function OrgFormation() {
                     <CourseIcon name={course.icon} className="text-black group-hover:text-white transition-colors" />
                   </div>
                   <div>
-                    <span className="font-bold text-sm tracking-tight block" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                    <span className="font-heading font-bold text-sm tracking-tight block">
                       {course.name}
                     </span>
                     {course.description && (
@@ -216,7 +216,7 @@ function CourseDetail({ courseId }: { courseId: string }) {
           <CourseIcon name={course.icon} />
         </div>
         <div>
-          <h1 className="font-bold text-2xl sm:text-3xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl tracking-tighter leading-[0.95]">
             {course.name}
           </h1>
           {course.description && (
@@ -253,7 +253,7 @@ function CourseDetail({ courseId }: { courseId: string }) {
                     {String(i + 1).padStart(2, '0')}
                   </span>
                   <div>
-                    <span className="font-bold text-sm tracking-tight block" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                    <span className="font-heading font-bold text-sm tracking-tight block">
                       {mod.title}
                     </span>
                     {mod.description && (

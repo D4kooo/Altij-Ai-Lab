@@ -39,7 +39,7 @@ export function SchoolJuniors() {
   }
 
   return (
-    <div className="space-y-10 px-6 lg:px-10 py-8 lg:py-10 pt-20">
+    <div className="space-y-10 px-6 lg:px-10 py-8 lg:py-10 sm:pt-20">
       {/* Back */}
       <NavLink to="/school" className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.15em] uppercase text-black/40 hover:text-black transition-colors duration-100">
         <ArrowLeft size={14} strokeWidth={1.5} /> Parcours
@@ -48,7 +48,7 @@ export function SchoolJuniors() {
       {/* Header */}
       <div>
         <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Juniors · 7–15 ans</span>
-        <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95] mb-6" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+        <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95] mb-6">
           Ton aventure numérique
         </h1>
 
@@ -106,7 +106,7 @@ export function SchoolJuniors() {
               <div className="flex-1 min-w-0">
                 <span className={`block text-base tracking-tight truncate ${
                   completed ? 'text-black/40' : locked ? 'text-black/30' : 'text-black'
-                }`} style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                }`}>
                   {module.title}
                 </span>
               </div>

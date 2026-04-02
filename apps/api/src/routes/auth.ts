@@ -309,6 +309,66 @@ authRoutes.get('/me', authMiddleware, async (c) => {
   });
 });
 
+// PUT /api/auth/profile - Update profile (authenticated)
+const updateProfileSchema = z.object({
+  firstName: z.string().min(1, 'Prénom requis').max(100).optional(),
+  lastName: z.string().min(1, 'Nom requis').max(100).optional(),
+  email: z.string().email('Email invalide').optional(),
+  organizationName: z.string().max(200).optional(),
+  organizationRole: z.string().max(200).optional(),
+});
+
+authRoutes.put('/profile', authMiddleware, zValidator('json', updateProfileSchema, (result, c) => {
+  if (!result.success) {
+    const firstError = result.error.issues[0];
+    return c.json({ success: false, error: firstError.message }, 400);
+  }
+}), async (c) => {
+  const user = c.get('user');
+  const data = c.req.valid('json');
+
+  // If changing email, check it's not already taken
+  if (data.email && data.email.toLowerCase() !== user.email) {
+    const existing = await getUserByEmail(data.email);
+    if (existing) {
+      return c.json({ success: false, error: 'Cet email est déjà utilisé' }, 400);
+    }
+  }
+
+  const updateData: Record<string, string> = {};
+  if (data.firstName) updateData.firstName = data.firstName;
+  if (data.lastName) updateData.lastName = data.lastName;
+  if (data.email) updateData.email = data.email.toLowerCase();
+  if (data.organizationName !== undefined) updateData.organizationName = data.organizationName;
+  if (data.organizationRole !== undefined) updateData.organizationRole = data.organizationRole;
+
+  if (Object.keys(updateData).length === 0) {
+    return c.json({ success: false, error: 'Aucune modification' }, 400);
+  }
+
+  await db.update(users).set(updateData).where(eq(users.id, user.id));
+
+  // Return updated user
+  const [updated] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+
+  return c.json({
+    success: true,
+    data: {
+      id: updated.id,
+      email: updated.email,
+      firstName: updated.firstName,
+      lastName: updated.lastName,
+      role: updated.role,
+      isStaff: updated.isStaff ?? false,
+      accountType: updated.accountType ?? 'particulier',
+      organizationName: updated.organizationName,
+      organizationRole: updated.organizationRole,
+      createdAt: updated.createdAt,
+      lastLoginAt: updated.lastLoginAt,
+    },
+  });
+});
+
 // PUT /api/auth/password - Change password (authenticated)
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Mot de passe actuel requis'),

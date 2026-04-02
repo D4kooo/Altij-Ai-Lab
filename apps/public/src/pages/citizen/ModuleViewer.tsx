@@ -29,25 +29,7 @@ function transformQuizQuestions(quiz: ModuleWithDetails['quiz']): UIQuizQuestion
   });
 }
 
-const lessonHtmlStyles = `
-.lesson-html h1{font-weight:700;font-size:1.5rem;letter-spacing:-0.03em;margin:2rem 0 1rem;font-family:'Inter Tight',sans-serif}
-.lesson-html h2{font-weight:700;font-size:1.25rem;letter-spacing:-0.02em;margin:2rem 0 .75rem;font-family:'Inter Tight',sans-serif}
-.lesson-html h3{font-weight:700;font-size:1rem;letter-spacing:-0.01em;margin:1.5rem 0 .5rem;font-family:'Inter Tight',sans-serif}
-.lesson-html p{color:rgba(0,0,0,.6);font-size:.875rem;line-height:1.625;margin-bottom:1rem}
-.lesson-html strong{color:#000;font-weight:600}
-.lesson-html ul,.lesson-html ol{margin-left:1rem;margin-bottom:1rem}
-.lesson-html ul{list-style:disc}
-.lesson-html ol{list-style:decimal}
-.lesson-html li{color:rgba(0,0,0,.6);font-size:.875rem;line-height:1.625;margin-bottom:.375rem}
-.lesson-html blockquote{border-left:3px solid rgba(33,178,170,.3);padding-left:1rem;margin:1rem 0;color:rgba(0,0,0,.5);font-size:.875rem;font-style:italic}
-.lesson-html table{width:100%;font-size:.875rem;border-collapse:collapse;border:2px solid #000;margin:1.5rem 0}
-.lesson-html thead{background:#000;color:#fff}
-.lesson-html th{padding:.625rem 1rem;text-align:left;font-family:monospace;font-size:.625rem;letter-spacing:.15em;text-transform:uppercase}
-.lesson-html td{padding:.625rem 1rem;border-top:1px solid rgba(0,0,0,.1);color:rgba(0,0,0,.6)}
-.lesson-html code{background:rgba(0,0,0,.05);padding:.125rem .375rem;font-size:.75rem;font-family:monospace;border-radius:.25rem}
-.lesson-html hr{border:none;border-top:2px solid rgba(0,0,0,.1);margin:2rem 0}
-.lesson-html mark{background:rgba(33,178,170,.2);padding:.125rem .25rem;border-radius:.125rem}
-`;
+// Lesson HTML styles are defined in index.css (.lesson-html class)
 
 function LessonContent({ content }: { content: string }) {
   const isHtml = content.trimStart().startsWith('<');
@@ -55,10 +37,7 @@ function LessonContent({ content }: { content: string }) {
   if (isHtml) {
     const sanitized = DOMPurify.sanitize(content);
     return (
-      <>
-        <style>{lessonHtmlStyles}</style>
-        <div className="lesson-html" dangerouslySetInnerHTML={{ __html: sanitized }} />
-      </>
+      <div className="lesson-html" dangerouslySetInnerHTML={{ __html: sanitized }} />
     );
   }
 
@@ -66,9 +45,9 @@ function LessonContent({ content }: { content: string }) {
     <Markdown
       remarkPlugins={[remarkGfm]}
       components={{
-        h1: ({ children }) => <h1 className="font-bold text-2xl tracking-tighter mt-8 mb-4" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{children}</h1>,
-        h2: ({ children }) => <h2 className="font-bold text-xl tracking-tight mt-8 mb-3" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{children}</h2>,
-        h3: ({ children }) => <h3 className="font-bold text-base tracking-tight mt-6 mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>{children}</h3>,
+        h1: ({ children }) => <h1 className="font-heading font-bold text-2xl tracking-tighter mt-8 mb-4">{children}</h1>,
+        h2: ({ children }) => <h2 className="font-heading font-bold text-xl tracking-tight mt-8 mb-3">{children}</h2>,
+        h3: ({ children }) => <h3 className="font-heading font-bold text-base tracking-tight mt-6 mb-2">{children}</h3>,
         p: ({ children }) => <p className="text-black/60 text-sm leading-relaxed mb-4">{children}</p>,
         strong: ({ children }) => <strong className="text-black font-semibold">{children}</strong>,
         ul: ({ children }) => <ul className="space-y-1.5 ml-4 mb-4">{children}</ul>,
@@ -270,7 +249,7 @@ export function ModuleViewer() {
             </span>
           )}
         </div>
-        <h1 className="font-bold text-2xl sm:text-3xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl tracking-tighter leading-[0.95]">
           {moduleData.title}
         </h1>
         {moduleData.description && (
@@ -292,7 +271,7 @@ export function ModuleViewer() {
       {!showQuiz ? (
         currentLesson ? (
           <div className="border-t-[2px] border-black pt-8">
-            <h2 className="font-bold text-xl tracking-tight mb-6" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            <h2 className="font-heading font-bold text-xl tracking-tight mb-6">
               {currentLesson.title}
             </h2>
 
@@ -313,7 +292,7 @@ export function ModuleViewer() {
 
           {quizSubmitted && quizScore !== null && (
             <div className="border-2 border-black p-6 sm:p-8 text-center mb-8">
-              <span className="text-4xl font-bold tracking-tighter block" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              <span className="text-4xl font-bold tracking-tighter block">
                 {quizScore}%
               </span>
               <p className={`text-sm mt-2 ${quizScore >= 70 ? 'text-[#21B2AA]' : 'text-black/50'}`}>
@@ -336,7 +315,7 @@ export function ModuleViewer() {
 
               return (
                 <div key={qIdx} className="space-y-4">
-                  <h3 className="font-bold text-sm tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                  <h3 className="font-heading font-bold text-sm tracking-tight">
                     <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/50 mr-3">
                       {String(qIdx + 1).padStart(2, '0')}.
                     </span>
@@ -423,10 +402,12 @@ export function ModuleViewer() {
         {/* Section dots */}
         {!showQuiz && totalSections > 1 && (
           <div className="flex items-center gap-2">
-            {lessons.map((_, idx) => (
+            {lessons.map((lesson, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentSection(idx)}
+                aria-label={`Section ${idx + 1}: ${lesson.title}`}
+                aria-current={idx === currentSection ? 'step' : undefined}
                 className={`w-2 h-2 transition-all ${
                   idx === currentSection ? 'bg-black w-4' : 'bg-black/15 hover:bg-black/30'
                 }`}

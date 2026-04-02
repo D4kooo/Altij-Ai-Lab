@@ -23,6 +23,14 @@ const AlertIcon = () => (
   </svg>
 );
 
+const DatabaseIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+  </svg>
+);
+
 const tools = [
   {
     title: 'Générateur RGPD',
@@ -43,6 +51,12 @@ const tools = [
     href: '/outils/alertes',
     icon: AlertIcon,
   },
+  {
+    title: 'Fuites en France',
+    description: 'Catalogue des violations référencées.',
+    href: '/outils/fuites',
+    icon: DatabaseIcon,
+  },
 ];
 
 export function CitizenTools() {
@@ -54,12 +68,39 @@ export function CitizenTools() {
   }
 
   return (
-    <div className="flex min-h-[calc(100svh-3.5rem)]">
-      {/* Sidebar */}
+    <div className="flex flex-col lg:flex-row min-h-[calc(100svh-3.5rem)]">
+
+      {/* Mobile nav — horizontal scrollable */}
+      <nav className="lg:hidden border-b-[2px] border-black bg-white overflow-x-auto scrollbar-thin">
+        <div className="flex min-w-max px-4 py-0">
+          {tools.map((tool) => {
+            const isActive = location.pathname === tool.href;
+            return (
+              <NavLink
+                key={tool.href}
+                to={tool.href}
+                className={`flex items-center gap-2 px-4 py-3 font-mono text-[10px] tracking-[0.1em] uppercase whitespace-nowrap border-b-2 transition-colors duration-100 ${
+                  isActive
+                    ? 'border-black text-black font-medium'
+                    : 'border-transparent text-black/40 hover:text-black'
+                }`}
+              >
+                <span className="shrink-0"><tool.icon /></span>
+                {tool.title}
+                {tool.badge && (
+                  <span className="px-1.5 py-0.5 bg-[#21B2AA]/10 text-[#21B2AA] text-[8px] font-bold tracking-wider">{tool.badge}</span>
+                )}
+              </NavLink>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Desktop sidebar */}
       <aside className="hidden lg:block w-64 shrink-0 border-r-[2px] border-black bg-white">
         <div className="sticky top-14 p-6 pt-24 space-y-6">
           <div>
-            <span className="font-bold text-lg tracking-tight block mb-1" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            <span className="font-heading font-bold text-lg tracking-tight block mb-1">
               Outils
             </span>
             <p className="text-black/40 text-xs">Protégez vos données personnelles</p>
@@ -78,7 +119,7 @@ export function CitizenTools() {
                 >
                   <span className="mt-0.5 shrink-0"><tool.icon /></span>
                   <div>
-                    <span className={`text-sm tracking-tight block ${isActive ? 'font-bold' : ''}`} style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                    <span className={`font-heading text-sm tracking-tight block ${isActive ? 'font-bold' : ''}`}>
                       {tool.title}
                     </span>
                     <span className="text-xs text-black/30 block mt-0.5">{tool.description}</span>

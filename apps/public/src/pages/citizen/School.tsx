@@ -29,12 +29,12 @@ export function School() {
   const navigate = useNavigate();
 
   return (
-    <div className="px-6 lg:px-10 pt-36 pb-8 lg:pb-12">
+    <div className="px-6 lg:px-10 pt-8 sm:pt-36 pb-8 lg:pb-12">
       {/* Header */}
       <div className="mb-10">
         <h1
-          className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
-          style={{ fontFamily: "'Inter Tight', sans-serif" }}
+          className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
+         
         >
           Académie
         </h1>
@@ -58,8 +58,8 @@ export function School() {
                 {p.subtitle}
               </span>
               <h2
-                className="font-bold text-2xl sm:text-3xl tracking-tighter mb-4"
-                style={{ fontFamily: "'Inter Tight', sans-serif" }}
+                className="font-heading font-bold text-2xl sm:text-3xl tracking-tighter mb-4"
+               
               >
                 {p.title}
               </h2>
@@ -87,7 +87,7 @@ export function School() {
             key={i}
             className={`p-5 text-center ${i < 3 ? 'border-r border-black/10 md:border-black' : ''} ${i < 2 ? 'border-b md:border-b-0 border-black/10' : i === 2 ? 'border-b md:border-b-0 border-black/10' : ''}`}
           >
-            <p className="text-2xl font-bold tracking-tighter" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+            <p className="text-2xl font-bold tracking-tighter">
               {stat.value}
             </p>
             <p className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase mt-1">{stat.label}</p>

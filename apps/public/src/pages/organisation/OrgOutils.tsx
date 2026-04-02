@@ -40,8 +40,8 @@ export function OrgOutils() {
           Outils
         </span>
         <h1
-          className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
-          style={{ fontFamily: "'Inter Tight', sans-serif" }}
+          className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]"
+         
         >
           Outils professionnels
         </h1>
@@ -72,8 +72,8 @@ export function OrgOutils() {
                 {tool.tag}
               </span>
               <h2
-                className="font-bold text-xl tracking-tighter mb-3"
-                style={{ fontFamily: "'Inter Tight', sans-serif" }}
+                className="font-heading font-bold text-xl tracking-tighter mb-3"
+               
               >
                 {tool.title}
               </h2>

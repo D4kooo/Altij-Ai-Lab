@@ -24,6 +24,11 @@ function BreachAnimation() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Respect reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -246,7 +251,7 @@ export function DataBreachAlerts() {
 
         <div className="relative z-10 max-w-md">
           <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Alertes</span>
-          <h1 className="font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+          <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]">
             Vos données<br />
             <span className="italic font-normal">ont-elles fuité ?</span>
           </h1>
@@ -310,7 +315,7 @@ export function DataBreachAlerts() {
           {breaches.length === 0 ? (
             <div className="border-2 border-black p-8 text-center">
               <ShieldCheck size={32} strokeWidth={1.5} className="mx-auto mb-4 text-[#21B2AA]" />
-              <p className="font-bold text-xl tracking-tight mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              <p className="font-heading font-bold text-xl tracking-tight mb-2">
                 Aucune fuite détectée
               </p>
               <p className="text-black/50 text-sm max-w-md mx-auto leading-relaxed">
@@ -323,7 +328,7 @@ export function DataBreachAlerts() {
               <div className="border-2 border-black p-6 flex items-start gap-4">
                 <AlertTriangle size={20} strokeWidth={1.5} className="shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-lg tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                  <p className="font-heading font-bold text-lg tracking-tight">
                     {breaches.length} fuite{breaches.length > 1 ? 's' : ''} détectée{breaches.length > 1 ? 's' : ''}
                   </p>
                   <p className="text-black/50 text-sm leading-relaxed mt-1">
@@ -345,7 +350,7 @@ export function DataBreachAlerts() {
                         <div className="flex items-start justify-between gap-4 mb-3">
                           <div>
                             <div className="flex items-center gap-3">
-                              <h4 className="font-bold text-lg tracking-tight" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                              <h4 className="font-heading font-bold text-lg tracking-tight">
                                 {breach.name}
                               </h4>
                               <span className={`font-mono text-[8px] tracking-[0.15em] uppercase border px-2 py-0.5 ${severity.style}`}>
@@ -398,7 +403,7 @@ export function DataBreachAlerts() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border-[2px] border-black">
           {securityTips.map((tip, i) => (
             <div key={i} className={`p-5 ${i < 3 ? 'border-r border-black' : ''} ${i < 2 ? 'border-b md:border-b-0' : i === 2 ? 'border-b md:border-b-0' : ''}`}>
-              <p className="font-bold text-sm tracking-tight mb-1" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+              <p className="font-heading font-bold text-sm tracking-tight mb-1">
                 {tip.title}
               </p>
               <p className="text-black/40 text-xs leading-relaxed">{tip.text}</p>
