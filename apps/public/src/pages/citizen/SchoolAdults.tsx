@@ -4,6 +4,27 @@ import { ArrowLeft, ArrowRight, Check, Lock, Loader2 } from 'lucide-react';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
 import { useCoursesData } from '@/hooks/useCoursesData';
 
+type ModuleState = { completed: boolean; locked: boolean; isNext: boolean };
+
+function getModuleButtonClasses(state: ModuleState): string {
+  if (state.locked) return 'opacity-40 cursor-not-allowed';
+  if (state.isNext) return 'bg-black/[0.02] hover:border-black';
+  return 'hover:border-black';
+}
+
+function getModuleTitleClasses(state: ModuleState): string {
+  if (state.completed) return 'text-black/60';
+  if (state.locked) return 'text-black/50';
+  if (state.isNext) return 'font-bold text-black';
+  return 'text-black/70';
+}
+
+function getModuleAriaPrefix(state: ModuleState): string {
+  if (state.completed) return 'Terminé : ';
+  if (state.locked) return 'Verrouillé : ';
+  return '';
+}
+
 export function SchoolAdults() {
   const navigate = useNavigate();
   const { isModuleCompleted, getCompletedCount } = useSchoolProgress();
@@ -83,18 +104,20 @@ export function SchoolAdults() {
             {group.modules.map((module, j) => {
               const i = group.startIndex + j;
               const completed = isModuleCompleted('adultes', module.id);
-              const isNext = i === nextModuleIndex;
-              const locked = j > 0 && !isModuleCompleted('adultes', group.modules[j - 1].id) && !completed;
+              const prevCompleted = j === 0 || isModuleCompleted('adultes', group.modules[j - 1].id);
+              const state: ModuleState = {
+                completed,
+                locked: !prevCompleted && !completed,
+                isNext: i === nextModuleIndex,
+              };
 
               return (
                 <button
                   key={module.id}
-                  onClick={() => !locked && navigate(`/school/adultes/module/${module.id}`)}
-                  disabled={locked}
-                  aria-label={`${completed ? 'Terminé : ' : locked ? 'Verrouillé : ' : ''}${module.title}`}
-                  className={`w-full text-left flex items-center gap-4 py-5 border-b border-black/10 transition-colors duration-100 group ${
-                    locked ? 'opacity-40 cursor-not-allowed' : isNext ? 'bg-black/[0.02] hover:border-black' : 'hover:border-black'
-                  }`}
+                  onClick={() => !state.locked && navigate(`/school/adultes/module/${module.id}`)}
+                  disabled={state.locked}
+                  aria-label={`${getModuleAriaPrefix(state)}${module.title}`}
+                  className={`w-full text-left flex items-center gap-4 py-5 border-b border-black/10 transition-colors duration-100 group ${getModuleButtonClasses(state)}`}
                 >
                   <span className={`font-mono text-[10px] tracking-[0.3em] w-8 shrink-0 ${
                     completed ? 'text-brand-turquoise' : 'text-black/20'
@@ -103,9 +126,7 @@ export function SchoolAdults() {
                   </span>
 
                   <div className="flex-1 min-w-0">
-                    <span className={`block text-base tracking-tight truncate ${
-                      completed ? 'text-black/60' : locked ? 'text-black/50' : isNext ? 'font-bold text-black' : 'text-black/70'
-                    }`}>
+                    <span className={`block text-base tracking-tight truncate ${getModuleTitleClasses(state)}`}>
                       {module.title}
                     </span>
                   </div>

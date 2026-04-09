@@ -128,38 +128,27 @@ export function UserManagement({ open, onOpenChange }: UserManagementProps) {
     setViewMode('edit');
   };
 
+  const validateUserForm = (): string | null => {
+    if (!email.trim()) return 'L\'email est requis';
+    if (!firstName.trim()) return 'Le prénom est requis';
+    if (!lastName.trim()) return 'Le nom est requis';
+    if (viewMode === 'create' && !password) return 'Le mot de passe est requis';
+    if (password && password.length < 8) return 'Le mot de passe doit contenir au moins 8 caractères';
+    if (password && password !== confirmPassword) return 'Les mots de passe ne correspondent pas';
+    return null;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
-    // Validate required fields
-    if (!email.trim()) {
-      setFormError('L\'email est requis');
-      return;
-    }
-    if (!firstName.trim()) {
-      setFormError('Le prénom est requis');
-      return;
-    }
-    if (!lastName.trim()) {
-      setFormError('Le nom est requis');
+    const error = validateUserForm();
+    if (error) {
+      setFormError(error);
       return;
     }
 
     if (viewMode === 'create') {
-      if (!password) {
-        setFormError('Le mot de passe est requis');
-        return;
-      }
-      if (password.length < 8) {
-        setFormError('Le mot de passe doit contenir au moins 8 caractères');
-        return;
-      }
-      if (password !== confirmPassword) {
-        setFormError('Les mots de passe ne correspondent pas');
-        return;
-      }
-
       createMutation.mutate({
         email: email.trim(),
         firstName: firstName.trim(),
@@ -168,29 +157,13 @@ export function UserManagement({ open, onOpenChange }: UserManagementProps) {
         password,
       });
     } else if (editingUser) {
-      // Validate password if provided
-      if (password) {
-        if (password.length < 8) {
-          setFormError('Le mot de passe doit contenir au moins 8 caractères');
-          return;
-        }
-        if (password !== confirmPassword) {
-          setFormError('Les mots de passe ne correspondent pas');
-          return;
-        }
-      }
-
       const updateData: Parameters<typeof usersApi.update>[1] = {
         email: email.trim(),
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         role,
       };
-
-      if (password) {
-        updateData.password = password;
-      }
-
+      if (password) updateData.password = password;
       updateMutation.mutate({ id: editingUser.id, data: updateData });
     }
   };
