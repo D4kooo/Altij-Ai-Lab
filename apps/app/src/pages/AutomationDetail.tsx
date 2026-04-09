@@ -84,6 +84,43 @@ function isLettreMission(automation: { name: string; category: string } | undefi
   return automation?.name === 'Lettre de Mission' || automation?.category === 'Propriété Intellectuelle';
 }
 
+function isFieldFilled(f: InputField, formValues: Record<string, unknown>): boolean {
+  return !f.required || (formValues[f.name] !== undefined && formValues[f.name] !== '');
+}
+
+function hasMissingRequired(fields: InputField[], formValues: Record<string, unknown>): boolean {
+  return fields.some((f) => f.required && formValues[f.name] === undefined);
+}
+
+function arePreviousSectionsComplete(
+  targetSection: string,
+  groupedFields: Map<string, InputField[]>,
+  formValues: Record<string, unknown>
+): boolean {
+  for (const [prevSection, prevFields] of groupedFields) {
+    if (prevSection === targetSection) return true;
+    if (!prevFields.every((f) => isFieldFilled(f, formValues))) return false;
+  }
+  return true;
+}
+
+function computeAutoExpandedSections(
+  current: Set<string>,
+  groupedFields: Map<string, InputField[]>,
+  formValues: Record<string, unknown>
+): Set<string> | null {
+  const next = new Set(current);
+  let changed = false;
+  for (const [section, fields] of groupedFields) {
+    if (next.has(section)) continue;
+    if (!hasMissingRequired(fields, formValues)) continue;
+    if (!arePreviousSectionsComplete(section, groupedFields, formValues)) continue;
+    next.add(section);
+    changed = true;
+  }
+  return changed ? next : null;
+}
+
 export function AutomationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -144,38 +181,9 @@ export function AutomationDetail() {
 
   // Auto-expand sections when their fields become visible
   useEffect(() => {
-    const isFieldFilled = (f: { name: string; required?: boolean }) =>
-      !f.required || (formValues[f.name] !== undefined && formValues[f.name] !== '');
-
-    const arePreviousSectionsComplete = (targetSection: string): boolean => {
-      for (const [prevSection] of groupedFields) {
-        if (prevSection === targetSection) return true;
-        const prevFields = groupedFields.get(prevSection) || [];
-        if (!prevFields.every(isFieldFilled)) return false;
-      }
-      return true;
-    };
-
-    setExpandedSections((prev) => {
-      const newSections = new Set(prev);
-      let changed = false;
-
-      groupedFields.forEach((fields, section) => {
-        const hasVisibleRequiredField = fields.some(
-          (f) => f.required && formValues[f.name] === undefined
-        );
-        if (
-          hasVisibleRequiredField &&
-          !newSections.has(section) &&
-          arePreviousSectionsComplete(section)
-        ) {
-          newSections.add(section);
-          changed = true;
-        }
-      });
-
-      return changed ? newSections : prev;
-    });
+    const nextSections = computeAutoExpandedSections(expandedSections, groupedFields, formValues);
+    if (nextSections) setExpandedSections(nextSections);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupedFields, formValues]);
 
   // Removed auto-scroll - it was causing page jumps

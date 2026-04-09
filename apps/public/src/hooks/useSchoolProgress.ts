@@ -45,6 +45,19 @@ function loadLocalProgress(): ProgressData {
   return defaultProgress;
 }
 
+function revertModuleCompletion(prev: ProgressData, audience: string, moduleId: string): ProgressData {
+  const audienceModules = prev.completedModules[audience] || [];
+  const reverted: ProgressData = {
+    ...prev,
+    completedModules: {
+      ...prev.completedModules,
+      [audience]: audienceModules.filter(id => id !== moduleId),
+    },
+  };
+  saveLocalProgress(reverted);
+  return reverted;
+}
+
 function saveLocalProgress(progress: ProgressData): void {
   try {
     progress.lastUpdated = new Date().toISOString();
@@ -142,23 +155,9 @@ export function useSchoolProgress() {
 
     // POST to API if authenticated
     if (isAuthenticated) {
-      const revertOnError = () => {
-        setProgress(prev => {
-          const audienceModules = prev.completedModules[audience] || [];
-          const reverted: ProgressData = {
-            ...prev,
-            completedModules: {
-              ...prev.completedModules,
-              [audience]: audienceModules.filter(id => id !== moduleId),
-            },
-          };
-          saveLocalProgress(reverted);
-          return reverted;
-        });
-      };
       coursesApi.completeModule(moduleId)
         .then(() => queryClient.invalidateQueries({ queryKey: ['courses', 'progress', 'me'] }))
-        .catch(revertOnError);
+        .catch(() => setProgress(prev => revertModuleCompletion(prev, audience, moduleId)));
     }
   }, [queryClient, isAuthenticated]);
 

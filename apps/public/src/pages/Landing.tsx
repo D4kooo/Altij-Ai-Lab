@@ -14,6 +14,17 @@ function attachVideoFallbackPlay(video: HTMLVideoElement): void {
   document.addEventListener('scroll', retry, { once: true });
 }
 
+function setupHeroVideoAutoplay(video: HTMLVideoElement | null): void {
+  if (!video) return;
+  video.muted = true;
+  const tryPlay = () => {
+    video.play().catch(() => attachVideoFallbackPlay(video));
+  };
+  if (video.readyState >= 3) tryPlay();
+  else video.addEventListener('canplay', tryPlay, { once: true });
+}
+
+
 export function Landing() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -27,14 +38,7 @@ export function Landing() {
   }, []);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = true;
-    const tryPlay = () => {
-      video.play().catch(() => attachVideoFallbackPlay(video));
-    };
-    if (video.readyState >= 3) tryPlay();
-    else video.addEventListener('canplay', tryPlay, { once: true });
+    setupHeroVideoAutoplay(videoRef.current);
   }, []);
 
   // ─── Content variants ──────────────────────────────────────────────
