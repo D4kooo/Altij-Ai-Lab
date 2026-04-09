@@ -136,11 +136,11 @@ export function SchoolAdults() {
                   </span>
 
                   <div className="w-6 shrink-0 flex justify-center">
-                    {completed ? (
+                    {state.completed ? (
                       <Check size={16} strokeWidth={2} className="text-brand-turquoise" />
-                    ) : locked ? (
+                    ) : state.locked ? (
                       <Lock size={14} strokeWidth={1.5} className="text-black/20" />
-                    ) : isNext ? (
+                    ) : state.isNext ? (
                       <ArrowRight size={14} strokeWidth={1.5} className="text-black group-hover:translate-x-1 transition-transform duration-100" />
                     ) : (
                       <span className="w-3 h-3 border border-black/15 rounded-full" />
