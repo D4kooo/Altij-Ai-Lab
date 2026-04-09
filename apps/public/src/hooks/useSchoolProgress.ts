@@ -142,9 +142,7 @@ export function useSchoolProgress() {
 
     // POST to API if authenticated
     if (isAuthenticated) {
-      coursesApi.completeModule(moduleId).then(() => {
-        queryClient.invalidateQueries({ queryKey: ['courses', 'progress', 'me'] });
-      }).catch(() => {
+      const revertOnError = () => {
         setProgress(prev => {
           const audienceModules = prev.completedModules[audience] || [];
           const reverted: ProgressData = {
@@ -157,7 +155,10 @@ export function useSchoolProgress() {
           saveLocalProgress(reverted);
           return reverted;
         });
-      });
+      };
+      coursesApi.completeModule(moduleId)
+        .then(() => queryClient.invalidateQueries({ queryKey: ['courses', 'progress', 'me'] }))
+        .catch(revertOnError);
     }
   }, [queryClient, isAuthenticated]);
 

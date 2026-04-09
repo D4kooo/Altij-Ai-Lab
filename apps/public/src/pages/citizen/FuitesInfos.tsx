@@ -101,7 +101,7 @@ export function FuitesInfos() {
 
   const years = useMemo(() => {
     const set = new Set(data.map(d => d.date?.slice(0, 4)).filter(Boolean));
-    return Array.from(set).sort().reverse();
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
   }, [data]);
 
   const currentYear = new Date().getFullYear().toString();

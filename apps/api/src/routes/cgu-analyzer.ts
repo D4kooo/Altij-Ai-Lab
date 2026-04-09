@@ -16,39 +16,57 @@ const analyzeSchema = z.object({
 
 cguAnalyzerRoutes.use('*', authMiddleware);
 
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function fetchCguFromUrl(url: string): Promise<{ ok: true; text: string } | { ok: false; error: string; status?: number }> {
+  try {
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DataRing-CGUAnalyzer/1.0)' },
+    });
+    if (!response.ok) {
+      return { ok: false, error: `Impossible de récupérer la page: ${response.status}` };
+    }
+    const html = await response.text();
+    return { ok: true, text: stripHtml(html) };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Erreur réseau';
+    return { ok: false, error: `Impossible de récupérer l'URL: ${msg}` };
+  }
+}
+
+function extractJsonPayload(raw: string): string {
+  let jsonStr = raw.trim();
+  if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
+  else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
+  if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
+  return jsonStr.trim();
+}
+
 // POST / — Analyze CGU text or URL
 cguAnalyzerRoutes.post('/', zValidator('json', analyzeSchema), async (c) => {
   const { text, url } = c.req.valid('json');
 
   let cguText = text || '';
 
-  // If URL provided, fetch the page content
   if (url && !text) {
-    try {
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DataRing-CGUAnalyzer/1.0)' },
-      });
-      if (!response.ok) {
-        return c.json({ success: false, error: `Impossible de récupérer la page: ${response.status}` }, 400);
-      }
-      const html = await response.text();
-      // Strip HTML tags, keep text content
-      cguText = html
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/\s+/g, ' ')
-        .trim();
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Erreur réseau';
-      return c.json({ success: false, error: `Impossible de récupérer l'URL: ${msg}` }, 400);
+    const result = await fetchCguFromUrl(url);
+    if (!result.ok) {
+      return c.json({ success: false, error: result.error }, 400);
     }
+    cguText = result.text;
   }
 
   if (!cguText || cguText.length < 50) {
@@ -102,18 +120,7 @@ Identifie entre 4 et 8 points d'attention. Utilise les types :
     );
 
     // Parse JSON from response (handle potential markdown code blocks)
-    let jsonStr = response.trim();
-    if (jsonStr.startsWith('```json')) {
-      jsonStr = jsonStr.slice(7);
-    } else if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.slice(3);
-    }
-    if (jsonStr.endsWith('```')) {
-      jsonStr = jsonStr.slice(0, -3);
-    }
-    jsonStr = jsonStr.trim();
-
-    const analysis = JSON.parse(jsonStr);
+    const analysis = JSON.parse(extractJsonPayload(response));
 
     return c.json({ success: true, data: analysis });
   } catch (error) {

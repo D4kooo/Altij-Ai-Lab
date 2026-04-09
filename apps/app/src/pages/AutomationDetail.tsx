@@ -144,6 +144,18 @@ export function AutomationDetail() {
 
   // Auto-expand sections when their fields become visible
   useEffect(() => {
+    const isFieldFilled = (f: { name: string; required?: boolean }) =>
+      !f.required || (formValues[f.name] !== undefined && formValues[f.name] !== '');
+
+    const arePreviousSectionsComplete = (targetSection: string): boolean => {
+      for (const [prevSection] of groupedFields) {
+        if (prevSection === targetSection) return true;
+        const prevFields = groupedFields.get(prevSection) || [];
+        if (!prevFields.every(isFieldFilled)) return false;
+      }
+      return true;
+    };
+
     setExpandedSections((prev) => {
       const newSections = new Set(prev);
       let changed = false;
@@ -152,25 +164,13 @@ export function AutomationDetail() {
         const hasVisibleRequiredField = fields.some(
           (f) => f.required && formValues[f.name] === undefined
         );
-
-        if (hasVisibleRequiredField && !newSections.has(section)) {
-          let canExpand = true;
-          for (const [prevSection] of groupedFields) {
-            if (prevSection === section) break;
-            const prevFields = groupedFields.get(prevSection) || [];
-            const prevComplete = prevFields.every(
-              (f) => !f.required || (formValues[f.name] !== undefined && formValues[f.name] !== '')
-            );
-            if (!prevComplete) {
-              canExpand = false;
-              break;
-            }
-          }
-
-          if (canExpand) {
-            newSections.add(section);
-            changed = true;
-          }
+        if (
+          hasVisibleRequiredField &&
+          !newSections.has(section) &&
+          arePreviousSectionsComplete(section)
+        ) {
+          newSections.add(section);
+          changed = true;
         }
       });
 

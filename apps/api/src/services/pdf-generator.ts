@@ -209,26 +209,29 @@ function loadPartialTemplate(relativePath: string): string {
   return readFileSync(templatePath, 'utf-8');
 }
 
+function buildClientFields(data: LMTemplateData): { designation: string; signataire: string; email: string } {
+  if (data.client_type === 'societe') {
+    return {
+      designation: `${data.societe_nom}, ${data.societe_forme} au capital de ${new Intl.NumberFormat('fr-FR').format(data.societe_capital || 0)} euros, immatriculée au RCS de ${data.societe_rcs_ville} sous le numéro ${data.societe_rcs_numero}, dont le siège social est situé ${data.adresse_rue}, ${data.adresse_cp} ${data.adresse_ville}`,
+      signataire: `${data.representant_civilite} ${data.representant_nom}, ${data.representant_fonction}`,
+      email: data.representant_email || '',
+    };
+  }
+  const dob = data.personne_date_naissance ? new Date(data.personne_date_naissance).toLocaleDateString('fr-FR') : '';
+  let designation = `${data.personne_civilite} ${data.personne_nom}, né(e) le ${dob} à ${data.personne_lieu_naissance}, demeurant ${data.adresse_rue}, ${data.adresse_cp} ${data.adresse_ville}`;
+  if (data.personne_activite) {
+    designation += `, exerçant la profession de ${data.personne_activite}`;
+  }
+  return {
+    designation,
+    signataire: `${data.personne_civilite} ${data.personne_nom}`,
+    email: data.personne_email || '',
+  };
+}
+
 export function prepareTemplateData(data: LMTemplateData): Record<string, unknown> {
   const avocat = AVOCAT_INFO[data.avocat_signataire] || AVOCAT_INFO.france_charruyer;
-
-  // Build client designation
-  let clientDesignation = '';
-  let clientSignataire = '';
-  let clientEmail = '';
-
-  if (data.client_type === 'societe') {
-    clientDesignation = `${data.societe_nom}, ${data.societe_forme} au capital de ${new Intl.NumberFormat('fr-FR').format(data.societe_capital || 0)} euros, immatriculée au RCS de ${data.societe_rcs_ville} sous le numéro ${data.societe_rcs_numero}, dont le siège social est situé ${data.adresse_rue}, ${data.adresse_cp} ${data.adresse_ville}`;
-    clientSignataire = `${data.representant_civilite} ${data.representant_nom}, ${data.representant_fonction}`;
-    clientEmail = data.representant_email || '';
-  } else {
-    clientDesignation = `${data.personne_civilite} ${data.personne_nom}, né(e) le ${data.personne_date_naissance ? new Date(data.personne_date_naissance).toLocaleDateString('fr-FR') : ''} à ${data.personne_lieu_naissance}, demeurant ${data.adresse_rue}, ${data.adresse_cp} ${data.adresse_ville}`;
-    if (data.personne_activite) {
-      clientDesignation += `, exerçant la profession de ${data.personne_activite}`;
-    }
-    clientSignataire = `${data.personne_civilite} ${data.personne_nom}`;
-    clientEmail = data.personne_email || '';
-  }
+  const { designation: clientDesignation, signataire: clientSignataire, email: clientEmail } = buildClientFields(data);
 
   // Type marque booleans
   const typeMarque = data.type_marque || '';

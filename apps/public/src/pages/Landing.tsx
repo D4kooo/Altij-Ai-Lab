@@ -4,6 +4,16 @@ import { ArrowRight, Scale, ShieldCheck, Database, Users, BookOpen, FlaskConical
 
 type Mode = 'org' | 'particulier';
 
+function attachVideoFallbackPlay(video: HTMLVideoElement): void {
+  const retry = () => {
+    video.play().catch(() => {});
+    document.removeEventListener('click', retry);
+    document.removeEventListener('scroll', retry);
+  };
+  document.addEventListener('click', retry, { once: true });
+  document.addEventListener('scroll', retry, { once: true });
+}
+
 export function Landing() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -21,11 +31,7 @@ export function Landing() {
     if (!video) return;
     video.muted = true;
     const tryPlay = () => {
-      video.play().catch(() => {
-        const handler = () => { video.play().catch(() => {}); document.removeEventListener('click', handler); document.removeEventListener('scroll', handler); };
-        document.addEventListener('click', handler, { once: true });
-        document.addEventListener('scroll', handler, { once: true });
-      });
+      video.play().catch(() => attachVideoFallbackPlay(video));
     };
     if (video.readyState >= 3) tryPlay();
     else video.addEventListener('canplay', tryPlay, { once: true });
