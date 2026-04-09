@@ -133,86 +133,63 @@ function anonymizeText(text: string): {
   };
 }
 
+function extractPdfText(buffer: Buffer): string {
+  const pdfContent = buffer.toString('latin1');
+  const textMatches: string[] = [];
+
+  const textRegex = /\(([^)]+)\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = textRegex.exec(pdfContent)) !== null) {
+    const text = match[1]
+      .replace(/\\n/g, '\n')
+      .replace(/\\r/g, '')
+      .replace(/\\\(/g, '(')
+      .replace(/\\\)/g, ')');
+    if (text.trim() && !/^[\x00-\x1F]+$/.test(text)) {
+      textMatches.push(text);
+    }
+  }
+
+  const streamRegex = /BT\s*(.*?)\s*ET/gs;
+  while ((match = streamRegex.exec(pdfContent)) !== null) {
+    const tjRegex = /\[([^\]]+)\]\s*TJ|\(([^)]+)\)\s*Tj/g;
+    let tjMatch: RegExpExecArray | null;
+    while ((tjMatch = tjRegex.exec(match[1])) !== null) {
+      const text = (tjMatch[1] || tjMatch[2] || '').replace(/\(|\)/g, '');
+      if (text.trim()) textMatches.push(text);
+    }
+  }
+
+  if (textMatches.length > 0) {
+    return textMatches.join(' ').replace(/\s+/g, ' ').trim();
+  }
+  return pdfContent.replace(/[^\x20-\x7E\xA0-\xFF\n]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function extractDocxText(buffer: Buffer): string {
+  const content = buffer.toString('utf-8');
+  const textRegex = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+  const matches: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = textRegex.exec(content)) !== null) {
+    if (match[1].trim()) matches.push(match[1]);
+  }
+  if (matches.length > 0) return matches.join(' ');
+  return content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 async function extractTextFromFile(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
+  const buffer = Buffer.from(await file.arrayBuffer());
   const fileName = file.name.toLowerCase();
 
-  // Texte brut
   if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
     return buffer.toString('utf-8');
   }
-
-  // PDF - extraction basique du texte
-  if (fileName.endsWith('.pdf')) {
-    // Extraction simplifiée - cherche les chaînes de texte dans le PDF
-    const pdfContent = buffer.toString('latin1');
-    const textMatches: string[] = [];
-
-    // Pattern pour extraire le texte entre parenthèses (format PDF basique)
-    const textRegex = /\(([^)]+)\)/g;
-    let match;
-    while ((match = textRegex.exec(pdfContent)) !== null) {
-      const text = match[1]
-        .replace(/\\n/g, '\n')
-        .replace(/\\r/g, '')
-        .replace(/\\\(/g, '(')
-        .replace(/\\\)/g, ')');
-      if (text.trim() && !/^[\x00-\x1F]+$/.test(text)) {
-        textMatches.push(text);
-      }
-    }
-
-    // Pattern alternatif pour les streams de texte
-    const streamRegex = /BT\s*(.*?)\s*ET/gs;
-    while ((match = streamRegex.exec(pdfContent)) !== null) {
-      const streamContent = match[1];
-      const tjRegex = /\[([^\]]+)\]\s*TJ|\(([^)]+)\)\s*Tj/g;
-      let tjMatch;
-      while ((tjMatch = tjRegex.exec(streamContent)) !== null) {
-        const text = (tjMatch[1] || tjMatch[2] || '').replace(/\(|\)/g, '');
-        if (text.trim()) {
-          textMatches.push(text);
-        }
-      }
-    }
-
-    if (textMatches.length > 0) {
-      return textMatches.join(' ').replace(/\s+/g, ' ').trim();
-    }
-
-    // Fallback: retourne le contenu brut filtré
-    return pdfContent.replace(/[^\x20-\x7E\xA0-\xFF\n]/g, ' ').replace(/\s+/g, ' ').trim();
-  }
-
-  // Word (.docx) - extraction basique
-  if (fileName.endsWith('.docx')) {
-    const content = buffer.toString('utf-8');
-    // Cherche le contenu XML du document
-    const textRegex = /<w:t[^>]*>([^<]*)<\/w:t>/g;
-    const matches: string[] = [];
-    let match;
-    while ((match = textRegex.exec(content)) !== null) {
-      if (match[1].trim()) {
-        matches.push(match[1]);
-      }
-    }
-    if (matches.length > 0) {
-      return matches.join(' ');
-    }
-    // Fallback
-    return content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-  }
-
-  // Word (.doc) - très basique
+  if (fileName.endsWith('.pdf')) return extractPdfText(buffer);
+  if (fileName.endsWith('.docx')) return extractDocxText(buffer);
   if (fileName.endsWith('.doc')) {
-    return buffer
-      .toString('latin1')
-      .replace(/[\x00-\x1F]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    return buffer.toString('latin1').replace(/[\x00-\x1F]/g, ' ').replace(/\s+/g, ' ').trim();
   }
-
   throw new Error('Format de fichier non supporté');
 }
 

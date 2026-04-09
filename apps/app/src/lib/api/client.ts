@@ -75,31 +75,26 @@ export async function streamSSE(
   if (!reader) throw new Error('No response body');
 
   const decoder = new TextDecoder();
-
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-
-    const text = decoder.decode(value);
-    const lines = text.split('\n');
-
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        try {
-          const data = JSON.parse(line.slice(6));
-          if (data.chunk) {
-            onChunk(data.chunk);
-          }
-          if (data.error) {
-            throw new Error(data.error);
-          }
-        } catch (e) {
-          if (e instanceof SyntaxError) continue;
-          throw e;
-        }
-      }
+    for (const line of decoder.decode(value).split('\n')) {
+      processSseLine(line, onChunk);
     }
   }
+}
+
+function processSseLine(line: string, onChunk: (chunk: string) => void): void {
+  if (!line.startsWith('data: ')) return;
+  let data: { chunk?: string; error?: string };
+  try {
+    data = JSON.parse(line.slice(6));
+  } catch (e) {
+    if (e instanceof SyntaxError) return;
+    throw e;
+  }
+  if (data.chunk) onChunk(data.chunk);
+  if (data.error) throw new Error(data.error);
 }
 
 async function tryRefreshToken(): Promise<boolean> {

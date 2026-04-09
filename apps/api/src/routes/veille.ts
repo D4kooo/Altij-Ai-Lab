@@ -660,71 +660,61 @@ async function scrapeWebPage(feedId: string, pageUrl: string) {
   }
 }
 
+function tryAddArticle(
+  articles: FeedItem[],
+  seen: Set<string>,
+  item: FeedItem | null,
+  minTitleLength: number,
+  baseUrl: URL,
+  extraFilter?: (item: FeedItem) => boolean,
+): void {
+  if (!item) return;
+  if (item.title.length < minTitleLength) return;
+  if (seen.has(item.url)) return;
+  if (!isValidArticleUrl(item.url, baseUrl)) return;
+  if (extraFilter && !extraFilter(item)) return;
+  seen.add(item.url);
+  articles.push(item);
+}
+
+function parseLinkMatch(match: string, baseUrl: URL): FeedItem | null {
+  const hrefMatch = match.match(/href=["']([^"']+)["']/i);
+  const textMatch = match.match(/<a[^>]*>([^<]+)<\/a>/i) || match.match(/>([^<]+)</);
+  if (!hrefMatch || !textMatch) return null;
+  return {
+    title: stripHtml(textMatch[1]).trim(),
+    url: resolveUrl(hrefMatch[1], baseUrl),
+  };
+}
+
 function extractArticlesFromHtml(html: string, baseUrl: URL): FeedItem[] {
   const articles: FeedItem[] = [];
   const seen = new Set<string>();
 
-  // Look for article-like elements: <article>, <div class="post">, etc.
-  // Extract links with meaningful text
-
   // Pattern 1: <article> tags
-  const articleTags = html.match(/<article[^>]*>[\s\S]*?<\/article>/gi) || [];
-  for (const articleHtml of articleTags) {
-    const item = extractArticleInfo(articleHtml, baseUrl);
-    if (item && !seen.has(item.url)) {
-      seen.add(item.url);
-      articles.push(item);
-    }
+  for (const articleHtml of html.match(/<article[^>]*>[\s\S]*?<\/article>/gi) || []) {
+    tryAddArticle(articles, seen, extractArticleInfo(articleHtml, baseUrl), 0, baseUrl);
   }
 
   // Pattern 2: Links within headings (h1, h2, h3)
-  const headingLinks = html.match(/<h[1-3][^>]*>[\s\S]*?<a[^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>[\s\S]*?<\/h[1-3]>/gi) || [];
-  for (const match of headingLinks) {
-    const hrefMatch = match.match(/href=["']([^"']+)["']/i);
-    const textMatch = match.match(/<a[^>]*>([^<]+)<\/a>/i);
-    if (hrefMatch && textMatch) {
-      const url = resolveUrl(hrefMatch[1], baseUrl);
-      const title = stripHtml(textMatch[1]).trim();
-      if (title.length > 10 && !seen.has(url) && isValidArticleUrl(url, baseUrl)) {
-        seen.add(url);
-        articles.push({ title, url });
-      }
-    }
+  for (const match of html.match(/<h[1-3][^>]*>[\s\S]*?<a[^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>[\s\S]*?<\/h[1-3]>/gi) || []) {
+    tryAddArticle(articles, seen, parseLinkMatch(match, baseUrl), 11, baseUrl);
   }
 
   // Pattern 3: Links with class containing "title", "headline", "post"
-  const titleLinks = html.match(/<a[^>]*class=["'][^"']*(?:title|headline|post|article|entry)[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi) || [];
-  for (const match of titleLinks) {
-    const hrefMatch = match.match(/href=["']([^"']+)["']/i);
-    const textMatch = match.match(/>([^<]+)</);
-    if (hrefMatch && textMatch) {
-      const url = resolveUrl(hrefMatch[1], baseUrl);
-      const title = stripHtml(textMatch[1]).trim();
-      if (title.length > 10 && !seen.has(url) && isValidArticleUrl(url, baseUrl)) {
-        seen.add(url);
-        articles.push({ title, url });
-      }
-    }
+  for (const match of html.match(/<a[^>]*class=["'][^"']*(?:title|headline|post|article|entry)[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi) || []) {
+    tryAddArticle(articles, seen, parseLinkMatch(match, baseUrl), 11, baseUrl);
   }
 
-  // Pattern 4: General links that look like articles (longer text, no common non-article patterns)
-  const allLinks = html.match(/<a[^>]*href=["']([^"'#]+)["'][^>]*>([^<]{15,})<\/a>/gi) || [];
-  for (const match of allLinks) {
-    const hrefMatch = match.match(/href=["']([^"']+)["']/i);
-    const textMatch = match.match(/>([^<]+)</);
-    if (hrefMatch && textMatch && articles.length < 30) {
-      const url = resolveUrl(hrefMatch[1], baseUrl);
-      const title = stripHtml(textMatch[1]).trim();
-
-      // Filter out navigation, footer links, etc.
-      const isNavigation = /menu|nav|footer|header|login|signup|contact|about|privacy|terms/i.test(title);
-      const isFile = /\.(pdf|doc|zip|exe|dmg)$/i.test(url);
-
-      if (title.length > 20 && !seen.has(url) && !isNavigation && !isFile && isValidArticleUrl(url, baseUrl)) {
-        seen.add(url);
-        articles.push({ title, url });
-      }
-    }
+  // Pattern 4: General links that look like articles
+  const navFilter = (item: FeedItem): boolean => {
+    const isNavigation = /menu|nav|footer|header|login|signup|contact|about|privacy|terms/i.test(item.title);
+    const isFile = /\.(pdf|doc|zip|exe|dmg)$/i.test(item.url);
+    return !isNavigation && !isFile;
+  };
+  for (const match of html.match(/<a[^>]*href=["']([^"'#]+)["'][^>]*>([^<]{15,})<\/a>/gi) || []) {
+    if (articles.length >= 30) break;
+    tryAddArticle(articles, seen, parseLinkMatch(match, baseUrl), 21, baseUrl, navFilter);
   }
 
   return articles;
