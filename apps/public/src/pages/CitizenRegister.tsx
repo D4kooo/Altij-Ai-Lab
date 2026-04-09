@@ -67,18 +67,21 @@ export function CitizenRegister() {
     );
   };
 
-  const handleRegister = async () => {
+  function validatePasswords(): boolean {
     setError(null);
-
     if (formData.password !== formData.confirmPassword) {
       setError('Les mots de passe ne correspondent pas');
-      return;
+      return false;
     }
-
     if (formData.password.length < 8) {
       setError('Le mot de passe doit contenir au moins 8 caractères');
-      return;
+      return false;
     }
+    return true;
+  }
+
+  const handleRegister = async () => {
+    if (!validatePasswords()) return;
 
     setIsLoading(true);
 
@@ -98,6 +101,11 @@ export function CitizenRegister() {
       });
 
       await checkAuth();
+
+      if (!useAuthStore.getState().isAuthenticated) {
+        setError("Erreur lors de l'authentification. Veuillez réessayer.");
+        return;
+      }
 
       localStorage.setItem(
         'citizen_onboarding',
@@ -123,19 +131,7 @@ export function CitizenRegister() {
 
   const handleStep2Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
-      return;
-    }
-
-    if (formData.password.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères');
-      return;
-    }
-
-    goTo(3);
+    if (validatePasswords()) goTo(3);
   };
 
   const inputClass = 'w-full px-4 py-3 border-2 border-black/15 bg-white text-sm focus:border-black focus:outline-none transition-colors duration-100 placeholder:text-black/25';
@@ -404,7 +400,7 @@ export function CitizenRegister() {
   };
 
   return (
-    <div className="min-h-[100svh] bg-white text-black font-body selection:bg-[#21B2AA] selection:text-white flex overflow-hidden">
+    <div className="min-h-[100svh] bg-white text-black font-body selection:bg-brand-turquoise selection:text-white flex overflow-hidden">
       {/* Left side - Form */}
       <div className="flex-1 flex flex-col justify-center px-6 lg:px-10 py-12 relative z-10 w-full lg:w-1/2">
         <div className="mx-auto w-full max-w-md relative opacity-0 animate-[float-up_1s_cubic-bezier(0.16,1,0.3,1)_forwards]">
@@ -437,8 +433,8 @@ export function CitizenRegister() {
       <div className="hidden lg:flex flex-1 relative bg-black items-center justify-center p-12 border-l-[4px] border-black">
         <div className="relative z-20 max-w-sm ml-auto mr-12 mt-12 text-right">
           <div className="inline-flex items-center gap-3 justify-end mb-6">
-            <span className="w-12 h-[2px] bg-[#21B2AA]/50" />
-            <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase">
+            <span className="w-12 h-[2px] bg-brand-turquoise/50" />
+            <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase">
               Résistance Citoyenne
             </span>
           </div>
@@ -457,7 +453,7 @@ export function CitizenRegister() {
             ].map((text, i) => (
               <div key={i} className="flex items-center gap-4 justify-end">
                 <span>{text}</span>
-                <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/40">{String(i + 1).padStart(2, '0')}.</span>
+                <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/40">{String(i + 1).padStart(2, '0')}.</span>
               </div>
             ))}
           </div>
@@ -466,5 +462,3 @@ export function CitizenRegister() {
     </div>
   );
 }
-
-export default CitizenRegister;

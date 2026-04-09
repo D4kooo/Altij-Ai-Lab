@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Lock, Loader2, AlertTriangle } from 'lucide-react';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
 import { useCoursesData } from '@/hooks/useCoursesData';
 
@@ -21,7 +21,7 @@ export function SchoolSeniors() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-black/30" />
+        <Loader2 className="h-6 w-6 animate-spin text-black/50" />
       </div>
     );
   }
@@ -46,7 +46,7 @@ export function SchoolSeniors() {
 
       {/* Header */}
       <div>
-        <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Seniors · 60+ ans</span>
+        <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-4">Seniors · 60+ ans</span>
         <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95] mb-2">
           Votre parcours numérique
         </h1>
@@ -59,7 +59,7 @@ export function SchoolSeniors() {
           <div className="flex-1 h-[4px] bg-black/10">
             <div className="h-full bg-black transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <span className="font-mono text-xs tracking-[0.1em] text-black/40">
+          <span className="font-mono text-xs tracking-[0.1em] text-black/60">
             {completedCount}/{totalModules}
           </span>
         </div>
@@ -76,7 +76,7 @@ export function SchoolSeniors() {
         <div className="space-y-4">
           {scamAlerts.map((alert, i) => (
             <div key={i} className="flex gap-3">
-              <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/50 mt-1 shrink-0">
+              <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/50 mt-1 shrink-0">
                 {String(i + 1).padStart(2, '0')}.
               </span>
               <div>
@@ -92,39 +92,45 @@ export function SchoolSeniors() {
       <div className="border-t-[2px] border-black">
         {allModules.map((module, i) => {
           const completed = isModuleCompleted('seniors', module.id);
+          const locked = false; // Seniors: no locking, all modules accessible
 
           return (
             <button
               key={module.id}
-              onClick={() => navigate(`/school/seniors/module/${module.id}`)}
-              className="w-full text-left flex items-center gap-4 py-6 border-b border-black/10 hover:border-black transition-colors duration-100 group"
+              onClick={() => !locked && navigate(`/school/seniors/module/${module.id}`)}
+              disabled={locked}
+              className={`w-full text-left flex items-center gap-4 py-6 border-b border-black/10 transition-colors duration-100 group ${
+                locked ? 'opacity-40 cursor-not-allowed' : 'hover:border-black'
+              }`}
             >
               <span className={`font-mono text-[10px] tracking-[0.3em] w-8 shrink-0 ${
-                completed ? 'text-[#21B2AA]' : 'text-black/20'
+                completed ? 'text-brand-turquoise' : 'text-black/20'
               }`}>
                 {String(i + 1).padStart(2, '0')}.
               </span>
 
               <div className="flex-1 min-w-0">
                 <span className={`block text-lg tracking-tight truncate ${
-                  completed ? 'text-black/40' : 'text-black'
+                  completed ? 'text-black/60' : locked ? 'text-black/50' : 'text-black'
                 }`}>
                   {module.title}
                 </span>
                 {module.hasAudio && (
-                  <span className="font-mono text-[9px] tracking-[0.15em] text-[#21B2AA]/50 uppercase">Audio disponible</span>
+                  <span className="font-mono text-[9px] tracking-[0.15em] text-brand-turquoise/50 uppercase">Audio disponible</span>
                 )}
               </div>
 
-              <span className="font-mono text-[10px] tracking-[0.1em] text-black/30 shrink-0 hidden sm:block">
+              <span className="font-mono text-[10px] tracking-[0.1em] text-black/50 shrink-0 hidden sm:block">
                 {module.duration}
               </span>
 
               <div className="w-6 shrink-0 flex justify-center">
                 {completed ? (
-                  <Check size={18} strokeWidth={2} className="text-[#21B2AA]" />
+                  <Check size={18} strokeWidth={2} className="text-brand-turquoise" />
+                ) : locked ? (
+                  <Lock size={14} strokeWidth={1.5} className="text-black/20" />
                 ) : (
-                  <ArrowRight size={16} strokeWidth={1.5} className="text-black/40 group-hover:translate-x-1 transition-transform duration-100" />
+                  <ArrowRight size={16} strokeWidth={1.5} className="text-black/60 group-hover:translate-x-1 transition-transform duration-100" />
                 )}
               </div>
             </button>
@@ -133,8 +139,8 @@ export function SchoolSeniors() {
       </div>
 
       {/* Tip */}
-      <div className="border-l-[3px] border-[#21B2AA]/30 pl-6 py-2">
-        <p className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase mb-2">Conseil du jour</p>
+      <div className="border-l-[3px] border-brand-turquoise/30 pl-6 py-2">
+        <p className="font-mono text-[10px] tracking-[0.15em] text-black/50 uppercase mb-2">Conseil du jour</p>
         <p className="text-black/50 text-base leading-relaxed">
           En cas de doute sur un email ou un appel, ne faites rien dans l'urgence. Prenez le temps de demander conseil à un proche ou appelez directement l'organisme avec le numéro habituel.
         </p>
@@ -153,5 +159,3 @@ export function SchoolSeniors() {
     </div>
   );
 }
-
-export default SchoolSeniors;

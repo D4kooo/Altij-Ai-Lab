@@ -4,8 +4,7 @@ import { z } from 'zod';
 import { eq, desc, sql } from 'drizzle-orm';
 import type { Env } from '../types';
 import { db, schema } from '../db';
-import { authMiddleware } from '../middleware/auth';
-import { adminMiddleware } from '../middleware/auth';
+import { authMiddleware, adminMiddleware } from '../middleware/auth';
 
 const supervisionRoutes = new Hono<Env>();
 

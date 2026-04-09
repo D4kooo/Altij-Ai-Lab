@@ -13,8 +13,8 @@ export interface User {
   department?: string | null;
   organizationId?: string | null; // Multi-tenant: lien vers l'organisation
   isOnboarded?: boolean; // Multi-tenant: onboarding complété
-  createdAt: Date;
-  lastLoginAt: Date | null;
+  createdAt: string;
+  lastLoginAt: string | null;
 }
 
 // Organization types (Multi-tenant)
@@ -26,7 +26,7 @@ export interface Organization {
   type: OrganizationType;
   ownerId?: string | null;
   settings?: OrganizationSettings;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface OrganizationSettings {
@@ -104,8 +104,8 @@ export interface Assistant {
   isPinned: boolean;
   pinOrder: number | null;
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateAssistantRequest {
@@ -142,8 +142,8 @@ export interface AssistantDocument {
   status: DocumentStatus;
   errorMessage?: string | null;
   chunksCount?: number;
-  createdAt: Date;
-  updatedAt?: Date;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // OpenRouter model type
@@ -165,8 +165,8 @@ export interface Conversation {
   userId: string;
   assistantId: string;
   title: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   assistant?: Assistant;
 }
 
@@ -177,7 +177,7 @@ export interface Message {
   content: string;
   attachments: string[] | null;
   toolCalls?: ToolCallRecord[] | null;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface ConversationWithMessages extends Conversation {
@@ -234,8 +234,8 @@ export interface Automation {
   outputType: 'file' | 'text' | 'json' | 'redirect';
   estimatedDuration: number | null;
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateAutomationRequest {
@@ -260,8 +260,8 @@ export interface AutomationRun {
   output: Record<string, unknown> | null;
   outputFileUrl: string | null;
   errorMessage: string | null;
-  startedAt: Date;
-  completedAt: Date | null;
+  startedAt: string;
+  completedAt: string | null;
   automation?: Automation;
 }
 
@@ -276,7 +276,7 @@ export interface Favorite {
   userId: string;
   itemType: 'assistant' | 'automation';
   itemId: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface CreateFavoriteRequest {
@@ -296,7 +296,7 @@ export interface RecentActivity {
   id: string;
   title: string;
   assistantOrAutomationName: string;
-  timestamp: Date;
+  timestamp: string;
   status?: 'completed' | 'failed' | 'running';
   icon?: string;
   color?: string;
@@ -314,8 +314,8 @@ export interface Skill {
   dataSources: string[];
   isActive: boolean;
   isDefault?: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // API Response types

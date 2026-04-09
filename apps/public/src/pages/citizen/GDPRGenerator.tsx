@@ -68,6 +68,10 @@ function GDPRAnimation() {
     const particles: { x: number; y: number; vx: number; vy: number; life: number; maxLife: number }[] = [];
 
     const draw = () => {
+      if (document.hidden) {
+        animId = requestAnimationFrame(draw);
+        return;
+      }
       const w = canvas.width / 2;
       const h = canvas.height / 2;
       ctx.clearRect(0, 0, w, h);
@@ -159,9 +163,18 @@ function GDPRAnimation() {
     };
 
     draw();
+
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        animId = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
@@ -301,7 +314,7 @@ ${formData.userName}`;
         <GDPRAnimation />
 
         <div className="relative z-10 max-w-md">
-          <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">RGPD</span>
+          <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-4">RGPD</span>
           <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]">
             Exercez vos droits<br />
             <span className="italic font-normal">sur vos données.</span>
@@ -338,7 +351,7 @@ ${formData.userName}`;
       {/* Step 1: Select Right */}
       {step === 1 && (
         <div className="space-y-6">
-          <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase block">
+          <span className="font-mono text-[10px] tracking-[0.3em] text-black/50 uppercase block">
             Quel droit souhaitez-vous exercer ?
           </span>
 
@@ -352,7 +365,7 @@ ${formData.userName}`;
                 }}
                 className="w-full text-left flex items-center gap-4 sm:gap-6 py-6 border-b border-black/10 hover:border-black transition-colors duration-100 group"
               >
-                <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/50 w-8 shrink-0">
+                <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/50 w-8 shrink-0">
                   {String(i + 1).padStart(2, '0')}.
                 </span>
                 <div className="flex-1 min-w-0">
@@ -364,7 +377,7 @@ ${formData.userName}`;
                 <span className="font-mono text-[9px] tracking-[0.15em] text-black/25 uppercase shrink-0 hidden sm:block">
                   {right.article}
                 </span>
-                <ArrowRight size={16} strokeWidth={1.5} className="text-black/30 group-hover:translate-x-1 transition-transform duration-100 shrink-0" />
+                <ArrowRight size={16} strokeWidth={1.5} className="text-black/50 group-hover:translate-x-1 transition-transform duration-100 shrink-0" />
               </button>
             ))}
           </div>
@@ -376,7 +389,7 @@ ${formData.userName}`;
         <div className="space-y-8">
           {/* Popular companies */}
           <div>
-            <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase block mb-4">
+            <span className="font-mono text-[10px] tracking-[0.3em] text-black/50 uppercase block mb-4">
               Entreprises courantes
             </span>
             <div className="flex flex-wrap gap-2">
@@ -399,12 +412,12 @@ ${formData.userName}`;
           <div className="grid sm:grid-cols-2 gap-8">
             {/* Company Info */}
             <div className="space-y-4">
-              <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase block">
+              <span className="font-mono text-[10px] tracking-[0.15em] text-black/50 uppercase block">
                 Entreprise destinataire
               </span>
               <div className="space-y-3">
                 <div>
-                  <label htmlFor="gdpr-company-name" className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Nom</label>
+                  <label htmlFor="gdpr-company-name" className="block font-mono text-[10px] tracking-[0.1em] text-black/60 uppercase mb-2">Nom</label>
                   <input
                     id="gdpr-company-name"
                     value={formData.companyName}
@@ -414,7 +427,7 @@ ${formData.userName}`;
                   />
                 </div>
                 <div>
-                  <label htmlFor="gdpr-company-email" className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Email DPO</label>
+                  <label htmlFor="gdpr-company-email" className="block font-mono text-[10px] tracking-[0.1em] text-black/60 uppercase mb-2">Email DPO</label>
                   <input
                     id="gdpr-company-email"
                     type="email"
@@ -429,12 +442,12 @@ ${formData.userName}`;
 
             {/* User Info */}
             <div className="space-y-4">
-              <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase block">
+              <span className="font-mono text-[10px] tracking-[0.15em] text-black/50 uppercase block">
                 Vos informations
               </span>
               <div className="space-y-3">
                 <div>
-                  <label htmlFor="gdpr-user-name" className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Nom complet</label>
+                  <label htmlFor="gdpr-user-name" className="block font-mono text-[10px] tracking-[0.1em] text-black/60 uppercase mb-2">Nom complet</label>
                   <input
                     id="gdpr-user-name"
                     value={formData.userName}
@@ -444,7 +457,7 @@ ${formData.userName}`;
                   />
                 </div>
                 <div>
-                  <label htmlFor="gdpr-user-email" className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">Email</label>
+                  <label htmlFor="gdpr-user-email" className="block font-mono text-[10px] tracking-[0.1em] text-black/60 uppercase mb-2">Email</label>
                   <input
                     id="gdpr-user-email"
                     type="email"
@@ -461,7 +474,7 @@ ${formData.userName}`;
           {/* Additional Info */}
           {(selectedRight === 'rectification' || selectedRight === 'erasure' || selectedRight === 'portability') && (
             <div>
-              <label className="block font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase mb-2">
+              <label className="block font-mono text-[10px] tracking-[0.1em] text-black/60 uppercase mb-2">
                 Informations complémentaires (optionnel)
               </label>
               <textarea
@@ -500,7 +513,7 @@ ${formData.userName}`;
       {step === 3 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase">
+            <span className="font-mono text-[10px] tracking-[0.3em] text-black/50 uppercase">
               Votre lettre
             </span>
             <button
@@ -521,8 +534,8 @@ ${formData.userName}`;
             </pre>
           </div>
 
-          <div className="border-l-[3px] border-[#21B2AA]/30 pl-6 py-2">
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[#21B2AA]/60 uppercase mb-2">Prochaine étape</p>
+          <div className="border-l-[3px] border-brand-turquoise/30 pl-6 py-2">
+            <p className="font-mono text-[10px] tracking-[0.15em] text-brand-turquoise/60 uppercase mb-2">Prochaine étape</p>
             <p className="text-black/50 text-sm leading-relaxed">
               Envoyez cette lettre à <strong className="text-black">{formData.companyEmail}</strong> depuis votre boîte email ({formData.userEmail}). L'entreprise a légalement un mois pour vous répondre.
             </p>
@@ -543,5 +556,3 @@ ${formData.userName}`;
     </div>
   );
 }
-
-export default GDPRGenerator;

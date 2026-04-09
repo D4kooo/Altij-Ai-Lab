@@ -2,6 +2,8 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { LogOut, Settings, Menu, X } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { LogoStamp } from './LogoStamp';
+import { getOrganizationName } from '@/lib/onboarding';
 
 const navigation = [
   { name: 'Tableau de bord', href: '/org' },
@@ -15,43 +17,15 @@ export function OrganisationLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuthStore();
 
-  const organizationName = useMemo(() => {
-    try {
-      const onboarding = localStorage.getItem('citizen_onboarding');
-      if (onboarding) {
-        const data = JSON.parse(onboarding);
-        return data.organizationName || null;
-      }
-    } catch {
-      // ignore
-    }
-    return null;
-  }, []);
+  const organizationName = useMemo(() => getOrganizationName(), []);
 
   return (
-    <div className="min-h-[100svh] bg-white text-black font-body selection:bg-[#21B2AA] selection:text-white flex flex-col relative">
+    <div className="min-h-[100svh] bg-white text-black font-body selection:bg-brand-turquoise selection:text-white flex flex-col relative">
 
       {/* Skip navigation */}
       <a href="#main-content" className="skip-nav">Aller au contenu</a>
 
-      {/* Logo stamp — fixed overlay that bleeds from header into content (hidden on mobile) */}
-      <NavLink
-        to="/"
-        className="hidden sm:flex fixed top-1 left-6 lg:left-10 z-[60] w-32 h-28 bg-white border-2 border-black items-center justify-center hover:bg-black group transition-colors duration-200"
-        style={{ boxShadow: '4px 4px 0 rgba(0,0,0,0.08)' }}
-        aria-label="Retour à l'accueil Dataring"
-      >
-        <img
-          src="/assets/logo-dataring-black.png"
-          alt="Dataring"
-          className="h-16 group-hover:hidden"
-        />
-        <img
-          src="/assets/logo-dataring.png"
-          alt="Dataring"
-          className="h-16 hidden group-hover:block"
-        />
-      </NavLink>
+      <LogoStamp />
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b-[2px] border-black bg-white">
@@ -113,13 +87,13 @@ export function OrganisationLayout() {
                 <div className="w-7 h-7 bg-black text-white flex items-center justify-center text-[10px] font-bold uppercase">
                   {user?.firstName?.charAt(0) || 'U'}
                 </div>
-                <span className="font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase">
+                <span className="font-mono text-[10px] tracking-[0.1em] text-black/60 uppercase">
                   {user?.firstName}
                 </span>
               </NavLink>
 
               <button
-                onClick={() => logout()}
+                onClick={async () => { await logout(); }}
                 className="hidden sm:block text-black/30 hover:text-black transition-colors duration-100"
                 aria-label="Se déconnecter"
               >
@@ -144,7 +118,7 @@ export function OrganisationLayout() {
             <nav className="px-6 py-4 space-y-0">
               {organizationName && (
                 <div className="py-3 border-b border-black/10">
-                  <span className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase block mb-1">Organisation</span>
+                  <span className="font-mono text-[9px] tracking-[0.15em] text-black/50 uppercase block mb-1">Organisation</span>
                   <span className="font-mono text-[11px] tracking-[0.1em] text-black uppercase">{organizationName}</span>
                 </div>
               )}
@@ -159,7 +133,7 @@ export function OrganisationLayout() {
                     to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`block py-3 font-mono text-[11px] tracking-[0.15em] uppercase border-b border-black/10 transition-colors duration-100 ${
-                      isActive ? 'text-black font-medium' : 'text-black/40'
+                      isActive ? 'text-black font-medium' : 'text-black/60'
                     }`}
                   >
                     {item.name}
@@ -169,7 +143,7 @@ export function OrganisationLayout() {
               {user?.isStaff && (
                 <a
                   href={import.meta.env.VITE_APP_URL || '/app'}
-                  className="block py-3 font-mono text-[11px] tracking-[0.15em] uppercase text-black/40 border-b border-black/10"
+                  className="block py-3 font-mono text-[11px] tracking-[0.15em] uppercase text-black/60 border-b border-black/10"
                 >
                   Espace Staff
                 </a>
@@ -177,13 +151,13 @@ export function OrganisationLayout() {
               <NavLink
                 to="/org/profil"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block py-3 font-mono text-[11px] tracking-[0.15em] uppercase text-black/40 border-b border-black/10"
+                className="block py-3 font-mono text-[11px] tracking-[0.15em] uppercase text-black/60 border-b border-black/10"
               >
                 Mon profil
               </NavLink>
               <button
-                onClick={() => { logout(); setMobileMenuOpen(false); }}
-                className="block py-3 font-mono text-[11px] tracking-[0.15em] uppercase text-black/40"
+                onClick={async () => { await logout(); setMobileMenuOpen(false); }}
+                className="block py-3 font-mono text-[11px] tracking-[0.15em] uppercase text-black/60"
               >
                 Déconnexion
               </button>
@@ -201,10 +175,10 @@ export function OrganisationLayout() {
       <footer className="border-t-[2px] border-black bg-white mt-auto">
         <div className="px-6 lg:px-10 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <span className="font-mono text-[10px] tracking-[0.2em] text-black/30 uppercase">
+            <span className="font-mono text-[10px] tracking-[0.2em] text-black/50 uppercase">
               Dataring © {new Date().getFullYear()}
             </span>
-            <div className="flex items-center gap-8 font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase">
+            <div className="flex items-center gap-8 font-mono text-[10px] tracking-[0.15em] text-black/50 uppercase">
               <a href="https://www.data-ring.net" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors duration-100">
                 data-ring.net
               </a>
@@ -218,5 +192,3 @@ export function OrganisationLayout() {
     </div>
   );
 }
-
-export default OrganisationLayout;

@@ -117,7 +117,7 @@ export function Landing() {
   const r = results[mode];
 
   return (
-    <div className="min-h-screen bg-white text-black font-body selection:bg-[#21B2AA] selection:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-white text-black font-body selection:bg-brand-turquoise selection:text-white overflow-x-hidden">
 
       <div className="fixed inset-0 pointer-events-none z-[100] bg-noise opacity-[0.025] mix-blend-multiply" />
 
@@ -180,7 +180,7 @@ export function Landing() {
               </div>
 
               <div key={mode + '-badge'} className="hero-text-enter flex items-center gap-4 mb-8">
-                <span className="w-12 h-[2px] bg-[#21B2AA]" />
+                <span className="w-12 h-[2px] bg-brand-turquoise" />
                 <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-black/50">{h.badge}</span>
               </div>
 
@@ -222,7 +222,7 @@ export function Landing() {
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, #000 1px, #000 2px)', backgroundSize: '100% 4px', opacity: 0.012 }} />
           <div className="relative max-w-6xl mx-auto">
             <div className="mb-16 max-w-2xl">
-              <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-6">Cibles</span>
+              <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-6">Cibles</span>
               <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95] mb-6">
                 {mode === 'org' ? <>Pour celles et ceux qui décident…<br /><span className="italic font-normal">et devront répondre de leurs décisions.</span></> : <>Pour toutes et tous,<br /><span className="italic font-normal">quel que soit votre niveau.</span></>}
               </h2>
@@ -245,7 +245,7 @@ export function Landing() {
         <section id="ecoles" className="relative py-24 md:py-32 lg:py-40 px-6 md:px-12 lg:px-20">
           <div className="max-w-6xl mx-auto">
             <div className="mb-20 max-w-2xl">
-              <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-6">{mode === 'org' ? 'Écoles' : 'Parcours'}</span>
+              <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-6">{mode === 'org' ? 'Écoles' : 'Parcours'}</span>
               <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95]">
                 {mode === 'org' ? <>Trois écoles, une même ambition :<br /><span className="italic font-normal">remettre l'humain au centre de l'IA.</span></> : <>Trois parcours pour reprendre<br /><span className="italic font-normal">le contrôle de votre vie numérique.</span></>}
               </h2>
@@ -253,7 +253,7 @@ export function Landing() {
             <div className="space-y-0">
               {s.map((item, i) => (
                 <div key={i} className={`group border-t-[2px] border-black ${i === s.length - 1 ? 'border-b-[2px]' : ''} py-12 md:py-16 grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12`}>
-                  <div className="md:col-span-1"><span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/50">{item.num}.</span></div>
+                  <div className="md:col-span-1"><span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/50">{item.num}.</span></div>
                   <div className="md:col-span-5">
                     <h3 className="font-heading font-bold text-2xl sm:text-3xl tracking-tight mb-3">{item.title}</h3>
                     <p className="text-black/40 italic text-lg font-display">{item.quote}</p>
@@ -261,7 +261,7 @@ export function Landing() {
                   <div className="md:col-span-5">
                     <ul className="space-y-3 text-black/60 text-sm leading-relaxed mb-8">
                       {item.items.map((li, j) => (
-                        <li key={j} className="flex gap-3"><span className="w-1.5 h-1.5 bg-[#21B2AA] rounded-full mt-2 shrink-0" />{li}</li>
+                        <li key={j} className="flex gap-3"><span className="w-1.5 h-1.5 bg-brand-turquoise rounded-full mt-2 shrink-0" />{li}</li>
                       ))}
                     </ul>
                     <button
@@ -285,7 +285,7 @@ export function Landing() {
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 40px, #00000008 40px, #00000008 42px)', opacity: 0.5 }} />
           <div className="relative max-w-6xl mx-auto">
             <div className="mb-16 max-w-2xl">
-              <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-6">Formats</span>
+              <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-6">Formats</span>
               <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95]">
                 {mode === 'org' ? <>Une académie,<br /><span className="italic font-normal">trois formats complémentaires.</span></> : <>Des outils concrets,<br /><span className="italic font-normal">accessibles à tous.</span></>}
               </h2>
@@ -318,7 +318,7 @@ export function Landing() {
           <div className="relative max-w-6xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
               <div className="lg:col-span-7">
-                <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/70 uppercase block mb-6">{mode === 'org' ? 'Lab IA' : 'Notre engagement'}</span>
+                <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/70 uppercase block mb-6">{mode === 'org' ? 'Lab IA' : 'Notre engagement'}</span>
                 <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95] mb-10">
                   {mode === 'org' ? <>Une académie adossée à un Lab IA,<br /><span className="italic font-normal">pas à des slides théoriques.</span></> : <>100% gratuit, 100% indépendant,<br /><span className="italic font-normal">100% au service du citoyen.</span></>}
                 </h2>
@@ -359,7 +359,7 @@ export function Landing() {
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
               <div className="lg:col-span-5">
-                <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-6">Résultats</span>
+                <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-6">Résultats</span>
                 <h2 className="font-heading font-bold text-4xl sm:text-5xl tracking-tighter leading-[0.95]">
                   {mode === 'org' ? <>Ce que vos équipes sauront faire<br /><span className="italic font-normal">après l'Académie.</span></> : <>Ce que vous saurez faire<br /><span className="italic font-normal">après les parcours.</span></>}
                 </h2>
@@ -368,7 +368,7 @@ export function Landing() {
                 <ul className="space-y-0">
                   {r.map((item, i) => (
                     <li key={i} className="flex gap-4 py-5 border-b border-black/10 last:border-b-0">
-                      <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/40 mt-1 shrink-0">{String(i + 1).padStart(2, '0')}.</span>
+                      <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/40 mt-1 shrink-0">{String(i + 1).padStart(2, '0')}.</span>
                       <span className="text-black/70 text-base leading-relaxed">{item}</span>
                     </li>
                   ))}
@@ -384,7 +384,7 @@ export function Landing() {
         <section id="contact" className="relative py-32 md:py-40 lg:py-48 px-6 bg-black text-white overflow-hidden">
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at top center, #ffffff, transparent 70%)', opacity: 0.04 }} />
           <div className="relative z-10 max-w-3xl mx-auto text-center">
-            <div className="flex justify-center mb-12"><div className="w-16 h-[2px] bg-[#21B2AA]/50" /></div>
+            <div className="flex justify-center mb-12"><div className="w-16 h-[2px] bg-brand-turquoise/50" /></div>
             <h2 className="font-heading font-bold text-4xl sm:text-5xl lg:text-6xl tracking-tighter leading-[0.95] mb-8">
               {mode === 'org' ? <>Prêt à former des décideurs augmentés…<br /><span className="italic font-normal">mais pas dépossédés ?</span></> : <>Prêt à reprendre le contrôle<br /><span className="italic font-normal">de votre vie numérique ?</span></>}
             </h2>
@@ -410,7 +410,7 @@ export function Landing() {
               <a href="https://www.data-ring.net/mentions-legales" target="_blank" rel="noopener noreferrer" className="hover:text-black border-b border-transparent hover:border-black transition-colors duration-100">Mentions Légales</a>
               <a href="https://www.data-ring.net" target="_blank" rel="noopener noreferrer" className="hover:text-black border-b border-transparent hover:border-black transition-colors duration-100">Contact</a>
             </div>
-            <span className="font-mono text-[10px] tracking-[0.2em] text-[#21B2AA]/60 uppercase">Académie & Lab IA</span>
+            <span className="font-mono text-[10px] tracking-[0.2em] text-brand-turquoise/60 uppercase">Académie & Lab IA</span>
           </div>
         </footer>
 
@@ -418,5 +418,3 @@ export function Landing() {
     </div>
   );
 }
-
-export default Landing;

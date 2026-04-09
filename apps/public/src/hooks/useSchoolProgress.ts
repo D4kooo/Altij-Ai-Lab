@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { coursesApi } from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 
 const STORAGE_KEY = 'dataring-school-progress';
 
@@ -67,19 +68,16 @@ function mergeApiProgress(local: ProgressData): ProgressData {
   };
 }
 
-function isLoggedIn(): boolean {
-  return !!localStorage.getItem('citizen_token');
-}
-
 export function useSchoolProgress() {
   const [progress, setProgress] = useState<ProgressData>(loadLocalProgress);
   const queryClient = useQueryClient();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   // Fetch API progress if authenticated
   const { data: apiProgress } = useQuery({
     queryKey: ['courses', 'progress', 'me'],
     queryFn: () => coursesApi.getMyProgress(),
-    enabled: isLoggedIn(),
+    enabled: isAuthenticated,
     staleTime: 30_000,
   });
 
@@ -116,7 +114,8 @@ export function useSchoolProgress() {
   }, [progress]);
 
   // Mark a module as completed
-  const completeModule = useCallback((audience: string, moduleId: string): void => {
+  // skipApi: true when the backend was already updated (e.g. quiz submission)
+  const completeModule = useCallback((audience: string, moduleId: string, options?: { skipApi?: boolean }): void => {
     setProgress(prev => {
       const audienceModules = prev.completedModules[audience] || [];
       if (audienceModules.includes(moduleId)) {
@@ -135,15 +134,32 @@ export function useSchoolProgress() {
       return newProgress;
     });
 
-    // POST to API if authenticated (fire and forget, ModuleViewer also calls this)
-    if (isLoggedIn()) {
+    if (options?.skipApi) {
+      // Backend already updated (e.g. via quiz submission), just refresh cache
+      queryClient.invalidateQueries({ queryKey: ['courses', 'progress', 'me'] });
+      return;
+    }
+
+    // POST to API if authenticated
+    if (isAuthenticated) {
       coursesApi.completeModule(moduleId).then(() => {
         queryClient.invalidateQueries({ queryKey: ['courses', 'progress', 'me'] });
       }).catch(() => {
-        // Local state already updated; API sync will retry on next page load
+        setProgress(prev => {
+          const audienceModules = prev.completedModules[audience] || [];
+          const reverted: ProgressData = {
+            ...prev,
+            completedModules: {
+              ...prev.completedModules,
+              [audience]: audienceModules.filter(id => id !== moduleId),
+            },
+          };
+          saveLocalProgress(reverted);
+          return reverted;
+        });
       });
     }
-  }, [queryClient]);
+  }, [queryClient, isAuthenticated]);
 
   // Reset a module (mark as not completed) — local only, no API endpoint for this
   const resetModule = useCallback((audience: string, moduleId: string): void => {

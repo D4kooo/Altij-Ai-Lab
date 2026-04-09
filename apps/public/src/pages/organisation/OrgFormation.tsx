@@ -89,7 +89,7 @@ export function OrgFormation() {
               activeCategory === cat.id ? 'bg-black text-white' : 'hover:bg-black hover:text-white'
             }`}
           >
-            <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA] uppercase block mb-4">
+            <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise uppercase block mb-4">
               {String(i + 1).padStart(2, '0')}
             </span>
             <h2 className="font-heading font-bold text-xl tracking-tighter mb-3">
@@ -223,7 +223,7 @@ function CourseDetail({ courseId }: { courseId: string }) {
             <p className="mt-2 text-black/40 text-sm max-w-2xl">{course.description}</p>
           )}
           {course.category && (
-            <span className="inline-block mt-3 font-mono text-[9px] tracking-[0.15em] text-[#21B2AA] uppercase border border-[#21B2AA]/30 px-2 py-0.5">
+            <span className="inline-block mt-3 font-mono text-[9px] tracking-[0.15em] text-brand-turquoise uppercase border border-brand-turquoise/30 px-2 py-0.5">
               {course.category}
             </span>
           )}
@@ -249,7 +249,7 @@ function CourseDetail({ courseId }: { courseId: string }) {
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA] w-8">
+                  <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise w-8">
                     {String(i + 1).padStart(2, '0')}
                   </span>
                   <div>
@@ -287,5 +287,3 @@ function CourseDetail({ courseId }: { courseId: string }) {
     </div>
   );
 }
-
-export default OrgFormation;

@@ -52,8 +52,8 @@ function LessonContent({ content }: { content: string }) {
         strong: ({ children }) => <strong className="text-black font-semibold">{children}</strong>,
         ul: ({ children }) => <ul className="space-y-1.5 ml-4 mb-4">{children}</ul>,
         ol: ({ children }) => <ol className="space-y-1.5 ml-4 mb-4 list-decimal">{children}</ol>,
-        li: ({ children }) => <li className="text-black/60 text-sm leading-relaxed flex gap-2"><span className="text-[#21B2AA]/50 shrink-0">—</span><span>{children}</span></li>,
-        blockquote: ({ children }) => <blockquote className="border-l-[3px] border-[#21B2AA]/30 pl-4 py-1 my-4 text-black/50 text-sm italic">{children}</blockquote>,
+        li: ({ children }) => <li className="text-black/60 text-sm leading-relaxed flex gap-2"><span className="text-brand-turquoise/50 shrink-0">—</span><span>{children}</span></li>,
+        blockquote: ({ children }) => <blockquote className="border-l-[3px] border-brand-turquoise/30 pl-4 py-1 my-4 text-black/50 text-sm italic">{children}</blockquote>,
         table: ({ children }) => <div className="overflow-x-auto my-6"><table className="w-full text-sm border-collapse border-2 border-black">{children}</table></div>,
         thead: ({ children }) => <thead className="bg-black text-white">{children}</thead>,
         th: ({ children }) => <th className="px-4 py-2.5 text-left font-mono text-[10px] tracking-[0.15em] uppercase">{children}</th>,
@@ -135,7 +135,7 @@ export function ModuleViewer() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-black/30" />
+        <Loader2 className="h-6 w-6 animate-spin text-black/50" />
       </div>
     );
   }
@@ -163,7 +163,6 @@ export function ModuleViewer() {
         setShowQuiz(true);
       } else {
         completeModule(validAudience, moduleData.id);
-        coursesApi.completeModule(moduleData.id).catch(() => {});
         navigate(backPath);
       }
     } else {
@@ -205,7 +204,7 @@ export function ModuleViewer() {
       setQuizScore(score);
       setQuizSubmitted(true);
       saveQuizScore(validAudience, moduleData.id, score);
-      if (result.passed) completeModule(validAudience, moduleData.id);
+      if (result.passed) completeModule(validAudience, moduleData.id, { skipApi: true });
     } catch {
       const correctCount = quizQuestions.reduce((count, q, idx) => count + (quizAnswers[idx] === q.correctIndex ? 1 : 0), 0);
       const score = Math.round((correctCount / quizQuestions.length) * 100);
@@ -213,8 +212,7 @@ export function ModuleViewer() {
       setQuizSubmitted(true);
       saveQuizScore(validAudience, moduleData.id, score);
       if (score >= 70) {
-        completeModule(validAudience, moduleData.id);
-        coursesApi.completeModule(moduleData.id).catch(() => {});
+        completeModule(validAudience, moduleData.id, { skipApi: true });
       }
     }
   };
@@ -235,16 +233,16 @@ export function ModuleViewer() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-3 mb-4">
-          <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase">
+          <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase">
             {audienceLabels[validAudience]}
           </span>
           {isCompleted && (
-            <span className="font-mono text-[9px] tracking-[0.2em] text-[#21B2AA] uppercase border border-[#21B2AA]/30 px-2 py-0.5 flex items-center gap-1">
+            <span className="font-mono text-[9px] tracking-[0.2em] text-brand-turquoise uppercase border border-brand-turquoise/30 px-2 py-0.5 flex items-center gap-1">
               <Check size={10} strokeWidth={2} /> Terminé
             </span>
           )}
           {moduleData.hasAudio && (
-            <span className="font-mono text-[9px] tracking-[0.15em] text-[#21B2AA]/50 uppercase flex items-center gap-1">
+            <span className="font-mono text-[9px] tracking-[0.15em] text-brand-turquoise/50 uppercase flex items-center gap-1">
               <Volume2 size={12} strokeWidth={1.5} /> Audio
             </span>
           )}
@@ -261,7 +259,7 @@ export function ModuleViewer() {
           <div className="flex-1 h-[3px] bg-black/10">
             <div className="h-full bg-black transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <span className="font-mono text-[10px] tracking-[0.1em] text-black/40">
+          <span className="font-mono text-[10px] tracking-[0.1em] text-black/60">
             {showQuiz ? 'Quiz' : `${currentSection + 1}/${totalSections}`}
           </span>
         </div>
@@ -278,7 +276,7 @@ export function ModuleViewer() {
             <LessonContent content={currentLesson.content || ''} />
           </div>
         ) : (
-          <div className="text-center py-8 text-black/30 font-mono text-[10px] tracking-[0.15em] uppercase">
+          <div className="text-center py-8 text-black/50 font-mono text-[10px] tracking-[0.15em] uppercase">
             Aucun contenu disponible
           </div>
         )
@@ -286,7 +284,7 @@ export function ModuleViewer() {
         /* Quiz */
         <div className="border-t-[2px] border-black pt-8">
           <div className="mb-8">
-            <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-2">Quiz</span>
+            <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-2">Quiz</span>
             <p className="text-black/50 text-sm">Testez vos connaissances</p>
           </div>
 
@@ -295,7 +293,7 @@ export function ModuleViewer() {
               <span className="text-4xl font-bold tracking-tighter block">
                 {quizScore}%
               </span>
-              <p className={`text-sm mt-2 ${quizScore >= 70 ? 'text-[#21B2AA]' : 'text-black/50'}`}>
+              <p className={`text-sm mt-2 ${quizScore >= 70 ? 'text-brand-turquoise' : 'text-black/50'}`}>
                 {quizScore >= 70
                   ? 'Bravo ! Vous avez réussi le quiz !'
                   : 'Pas tout à fait... Réessayez pour obtenir au moins 70%'}
@@ -316,7 +314,7 @@ export function ModuleViewer() {
               return (
                 <div key={qIdx} className="space-y-4">
                   <h3 className="font-heading font-bold text-sm tracking-tight">
-                    <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/50 mr-3">
+                    <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/50 mr-3">
                       {String(qIdx + 1).padStart(2, '0')}.
                     </span>
                     {question.question}
@@ -328,7 +326,7 @@ export function ModuleViewer() {
 
                       let borderClass = 'border-black/10 hover:border-black/30';
                       if (quizSubmitted) {
-                        if (isCorrectAnswer) borderClass = 'border-[#21B2AA] bg-[#21B2AA]/5';
+                        if (isCorrectAnswer) borderClass = 'border-brand-turquoise bg-brand-turquoise/5';
                         else if (isSelected && !isCorrectAnswer) borderClass = 'border-black bg-black/5';
                       } else if (isSelected) {
                         borderClass = 'border-black';
@@ -345,13 +343,13 @@ export function ModuleViewer() {
                         >
                           <div className="flex items-center gap-3">
                             <span className={`font-mono text-[10px] tracking-[0.1em] w-6 h-6 flex items-center justify-center border ${
-                              isSelected ? 'border-black text-black' : 'border-black/20 text-black/30'
+                              isSelected ? 'border-black text-black' : 'border-black/20 text-black/50'
                             }`}>
                               {String.fromCharCode(65 + oIdx)}
                             </span>
                             <span className="text-sm text-black/70">{option}</span>
                             {quizSubmitted && isCorrectAnswer && (
-                              <Check size={16} strokeWidth={2} className="text-[#21B2AA] ml-auto" />
+                              <Check size={16} strokeWidth={2} className="text-brand-turquoise ml-auto" />
                             )}
                           </div>
                         </button>
@@ -359,7 +357,7 @@ export function ModuleViewer() {
                     })}
                   </div>
                   {quizSubmitted && question.explanation && (
-                    <div className="border-l-[3px] border-[#21B2AA]/30 pl-4 py-1">
+                    <div className="border-l-[3px] border-brand-turquoise/30 pl-4 py-1">
                       <p className="text-sm text-black/50 leading-relaxed">
                         <strong className="text-black">{isCorrect ? 'Correct' : 'Explication'} :</strong> {question.explanation}
                       </p>
@@ -448,5 +446,3 @@ export function ModuleViewer() {
     </div>
   );
 }
-
-export default ModuleViewer;

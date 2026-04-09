@@ -1,22 +1,12 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { getOrganizationName } from '@/lib/onboarding';
 
 export function OrgDashboard() {
   const navigate = useNavigate();
 
-  const organizationName = useMemo(() => {
-    try {
-      const onboarding = localStorage.getItem('citizen_onboarding');
-      if (onboarding) {
-        const data = JSON.parse(onboarding);
-        return data.organizationName || 'votre organisation';
-      }
-    } catch {
-      // ignore
-    }
-    return 'votre organisation';
-  }, []);
+  const organizationName = useMemo(() => getOrganizationName('votre organisation')!, []);
 
   const quickLinks = [
     {
@@ -91,7 +81,7 @@ export function OrgDashboard() {
             } ${i > 0 ? 'border-t-0 md:border-t-2' : ''}`}
           >
             <div>
-              <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA] uppercase block mb-4 group-hover:text-[#21B2AA]">
+              <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise uppercase block mb-4 group-hover:text-brand-turquoise">
                 {String(i + 1).padStart(2, '0')}
               </span>
               <h2
@@ -124,5 +114,3 @@ export function OrgDashboard() {
     </div>
   );
 }
-
-export default OrgDashboard;

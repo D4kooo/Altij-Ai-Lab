@@ -1,4 +1,4 @@
-import { fetchApi, ApiError, API_BASE } from './client';
+import { fetchApi, streamSSE } from './client';
 
 export interface SegaConversation {
   id: string;
@@ -68,50 +68,10 @@ export const segaApi = {
     content: string,
     onChunk: (chunk: string) => void
   ): Promise<void> => {
-    const token = localStorage.getItem('staff_token');
-
-    const response = await fetch(`${API_BASE}/sega/conversations/${conversationId}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ content }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new ApiError(error.error || 'Failed to send message', response.status);
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
-
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const text = decoder.decode(value);
-      const lines = text.split('\n');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.chunk) {
-              onChunk(data.chunk);
-            }
-            if (data.error) {
-              throw new Error(data.error);
-            }
-          } catch (e) {
-            if (e instanceof SyntaxError) continue;
-            throw e;
-          }
-        }
-      }
-    }
+    await streamSSE(
+      `/sega/conversations/${conversationId}/messages`,
+      { content },
+      onChunk
+    );
   },
 };

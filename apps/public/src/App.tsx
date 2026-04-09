@@ -39,17 +39,18 @@ const queryClient = new QueryClient({
   },
 });
 
-// Route de login citoyen (redirige si déjà connecté)
+function FullScreenSpinner() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-white">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#57C5B6]"></div>
+    </div>
+  );
+}
+
 function CitizenAuthRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuthStore();
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#57C5B6]"></div>
-      </div>
-    );
-  }
+  if (isLoading) return <FullScreenSpinner />;
 
   if (isAuthenticated) {
     const accountType = user?.accountType || 'particulier';
@@ -59,18 +60,11 @@ function CitizenAuthRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Route protégée pour les citoyens
 function CitizenRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuthStore();
   const location = useLocation();
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#57C5B6]"></div>
-      </div>
-    );
-  }
+  if (isLoading) return <FullScreenSpinner />;
 
   if (!isAuthenticated) {
     return <Navigate to="/citizen/login" replace />;
@@ -78,14 +72,11 @@ function CitizenRoute({ children }: { children: React.ReactNode }) {
 
   const accountType = user?.accountType || 'particulier';
   const isOrgRoute = location.pathname.startsWith('/org');
-  const isParticulierRoute = !isOrgRoute;
 
-  // Redirect organisation users away from particulier routes
-  if (accountType === 'organisation' && isParticulierRoute) {
+  if (accountType === 'organisation' && !isOrgRoute) {
     return <Navigate to="/org" replace />;
   }
 
-  // Redirect particulier users away from org routes
   if (accountType === 'particulier' && isOrgRoute) {
     return <Navigate to="/school" replace />;
   }

@@ -48,7 +48,7 @@ export function OrgEquipe() {
 
       {/* Coming soon */}
       <div className="border-[2px] border-black border-t-0 p-8 lg:p-10 text-center">
-        <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA] uppercase block mb-3">
+        <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise uppercase block mb-3">
           Bientôt disponible
         </span>
         <p className="text-black/30 text-sm max-w-md mx-auto">
@@ -60,5 +60,3 @@ export function OrgEquipe() {
     </div>
   );
 }
-
-export default OrgEquipe;

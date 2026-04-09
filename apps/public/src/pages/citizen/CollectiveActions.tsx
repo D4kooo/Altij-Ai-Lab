@@ -69,7 +69,7 @@ export function CollectiveActions() {
   if (campaignsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100svh-3.5rem)]">
-        <Loader2 className="h-6 w-6 animate-spin text-black/30" />
+        <Loader2 className="h-6 w-6 animate-spin text-black/50" />
       </div>
     );
   }
@@ -89,7 +89,7 @@ export function CollectiveActions() {
         <div className="sticky top-14 p-6 pt-24 space-y-8">
           {/* Stats */}
           <div>
-            <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase block mb-4">
+            <span className="font-mono text-[10px] tracking-[0.15em] text-black/50 uppercase block mb-4">
               En un coup d'oeil
             </span>
             <div className="space-y-3">
@@ -110,7 +110,7 @@ export function CollectiveActions() {
 
           {/* Category filter */}
           <div>
-            <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase block mb-4">
+            <span className="font-mono text-[10px] tracking-[0.15em] text-black/50 uppercase block mb-4">
               Filtrer par
             </span>
             <nav className="space-y-0">
@@ -143,7 +143,7 @@ export function CollectiveActions() {
             >
               Actions collectives
             </h1>
-            <p className="mt-2 text-black/40 text-sm">
+            <p className="mt-2 text-black/60 text-sm">
               Rejoignez des campagnes citoyennes pour défendre vos droits numériques.
             </p>
           </div>
@@ -151,7 +151,7 @@ export function CollectiveActions() {
 
         {/* Campaign count */}
         <div className="flex items-center justify-between mb-6">
-          <span className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase">
+          <span className="font-mono text-[10px] tracking-[0.15em] text-black/50 uppercase">
             {filteredCampaigns.length} campagne{filteredCampaigns.length > 1 ? 's' : ''}
           </span>
         </div>
@@ -159,7 +159,7 @@ export function CollectiveActions() {
         {/* Campaign list */}
         {filteredCampaigns.length === 0 ? (
           <div className="border-2 border-black/10 p-12 text-center">
-            <p className="text-black/40 text-sm">Aucune campagne pour le moment.</p>
+            <p className="text-black/60 text-sm">Aucune campagne pour le moment.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -176,12 +176,12 @@ export function CollectiveActions() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className={`font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 ${
-                        isActive ? 'bg-black text-white' : 'border border-black/20 text-black/30'
+                        isActive ? 'bg-black text-white' : 'border border-black/20 text-black/50'
                       }`}>
                         {campaign.status === 'active' ? 'Active' : campaign.status === 'upcoming' ? 'À venir' : 'Terminée'}
                       </span>
                       {campaign.category && (
-                        <span className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase">
+                        <span className="font-mono text-[9px] tracking-[0.15em] text-black/50 uppercase">
                           {campaign.category}
                         </span>
                       )}
@@ -212,7 +212,7 @@ export function CollectiveActions() {
                           <div className="flex-1 h-[3px] bg-black/10">
                             <div className="h-full bg-black transition-all duration-300" style={{ width: `${progressPct}%` }} />
                           </div>
-                          <span className="font-mono text-[10px] tracking-[0.1em] text-black/30 shrink-0">
+                          <span className="font-mono text-[10px] tracking-[0.1em] text-black/50 shrink-0">
                             {Math.round(progressPct)}%
                           </span>
                         </div>
@@ -251,14 +251,14 @@ export function CollectiveActions() {
 
         {/* CTA */}
         <div className="border-2 border-black p-8 text-center mt-10">
-          <Heart size={20} strokeWidth={1.5} className="mx-auto mb-4 text-[#21B2AA]" />
+          <Heart size={20} strokeWidth={1.5} className="mx-auto mb-4 text-brand-turquoise" />
           <h2
             className="font-heading font-bold text-xl tracking-tighter mb-2"
            
           >
             Soutenez nos actions
           </h2>
-          <p className="text-black/40 text-sm max-w-md mx-auto mb-6 leading-relaxed">
+          <p className="text-black/60 text-sm max-w-md mx-auto mb-6 leading-relaxed">
             Dataring est une association d'intérêt général. Vos dons nous permettent de mener des actions juridiques.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
@@ -279,7 +279,7 @@ export function CollectiveActions() {
               Devenir membre
             </a>
           </div>
-          <p className="font-mono text-[9px] tracking-[0.1em] text-[#21B2AA]/60 uppercase mt-4">
+          <p className="font-mono text-[9px] tracking-[0.1em] text-brand-turquoise/60 uppercase mt-4">
             66% de votre don est déductible de vos impôts
           </p>
         </div>
@@ -287,5 +287,3 @@ export function CollectiveActions() {
     </div>
   );
 }
-
-export default CollectiveActions;

@@ -15,7 +15,7 @@ const severityLabels: Record<string, { label: string; style: string }> = {
   critical: { label: 'Critique', style: 'border-black bg-black text-white' },
   high: { label: 'Élevée', style: 'border-black/60 text-black' },
   medium: { label: 'Moyenne', style: 'border-black/30 text-black/60' },
-  low: { label: 'Faible', style: 'border-black/15 text-black/40' },
+  low: { label: 'Faible', style: 'border-black/15 text-black/60' },
 };
 
 function BreachAnimation() {
@@ -67,6 +67,10 @@ function BreachAnimation() {
     const sparks: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
 
     const draw = () => {
+      if (document.hidden) {
+        animId = requestAnimationFrame(draw);
+        return;
+      }
       const w = canvas.width / 2;
       const h = canvas.height / 2;
       ctx.clearRect(0, 0, w, h);
@@ -192,9 +196,18 @@ function BreachAnimation() {
     };
 
     draw();
+
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        animId = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
@@ -250,7 +263,7 @@ export function DataBreachAlerts() {
         <BreachAnimation />
 
         <div className="relative z-10 max-w-md">
-          <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Alertes</span>
+          <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-4">Alertes</span>
           <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]">
             Vos données<br />
             <span className="italic font-normal">ont-elles fuité ?</span>
@@ -268,6 +281,7 @@ export function DataBreachAlerts() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            aria-label="Rechercher"
             placeholder="Entrez votre adresse email"
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             className="flex-1 px-4 py-3 border-2 border-black/15 text-sm placeholder:text-black/25 focus:border-black focus:outline-none transition-colors"
@@ -288,7 +302,7 @@ export function DataBreachAlerts() {
           Votre email n'est pas stocké ni partagé. La vérification est anonyme.
         </p>
         {isSearching && (
-          <p className="font-mono text-[9px] tracking-[0.1em] text-black/40 uppercase mt-2">
+          <p className="font-mono text-[9px] tracking-[0.1em] text-black/60 uppercase mt-2">
             La vérification peut prendre quelques secondes...
           </p>
         )}
@@ -305,7 +319,7 @@ export function DataBreachAlerts() {
       {/* Info message (e.g. API unavailable fallback) */}
       {infoMessage && hasSearched && (
         <div className="border border-black/15 p-4">
-          <p className="font-mono text-[10px] tracking-[0.1em] text-black/40 uppercase">{infoMessage}</p>
+          <p className="font-mono text-[10px] tracking-[0.1em] text-black/60 uppercase">{infoMessage}</p>
         </div>
       )}
 
@@ -314,7 +328,7 @@ export function DataBreachAlerts() {
         <div className="space-y-8">
           {breaches.length === 0 ? (
             <div className="border-2 border-black p-8 text-center">
-              <ShieldCheck size={32} strokeWidth={1.5} className="mx-auto mb-4 text-[#21B2AA]" />
+              <ShieldCheck size={32} strokeWidth={1.5} className="mx-auto mb-4 text-brand-turquoise" />
               <p className="font-heading font-bold text-xl tracking-tight mb-2">
                 Aucune fuite détectée
               </p>
@@ -339,7 +353,7 @@ export function DataBreachAlerts() {
 
               {/* Breach List */}
               <div>
-                <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase block mb-6">
+                <span className="font-mono text-[10px] tracking-[0.3em] text-black/50 uppercase block mb-6">
                   Détail des fuites
                 </span>
                 <div className="border-t-[2px] border-black">
@@ -360,7 +374,7 @@ export function DataBreachAlerts() {
                           </div>
                           <div className="text-right shrink-0">
                             {breach.date && (
-                              <span className="font-mono text-[10px] tracking-[0.1em] text-black/40">
+                              <span className="font-mono text-[10px] tracking-[0.1em] text-black/60">
                                 {new Date(breach.date).toLocaleDateString('fr-FR')}
                               </span>
                             )}
@@ -378,7 +392,7 @@ export function DataBreachAlerts() {
                             {breach.dataTypes.map((dataType, i) => (
                               <span
                                 key={i}
-                                className="font-mono text-[9px] tracking-[0.1em] text-black/40 uppercase border border-black/15 px-2 py-1"
+                                className="font-mono text-[9px] tracking-[0.1em] text-black/60 uppercase border border-black/15 px-2 py-1"
                               >
                                 {dataType}
                               </span>
@@ -397,7 +411,7 @@ export function DataBreachAlerts() {
 
       {/* Security Tips */}
       <div>
-        <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase block mb-6">
+        <span className="font-mono text-[10px] tracking-[0.3em] text-black/50 uppercase block mb-6">
           Conseils de sécurité
         </span>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border-[2px] border-black">
@@ -406,7 +420,7 @@ export function DataBreachAlerts() {
               <p className="font-heading font-bold text-sm tracking-tight mb-1">
                 {tip.title}
               </p>
-              <p className="text-black/40 text-xs leading-relaxed">{tip.text}</p>
+              <p className="text-black/60 text-xs leading-relaxed">{tip.text}</p>
             </div>
           ))}
         </div>
@@ -414,5 +428,3 @@ export function DataBreachAlerts() {
     </div>
   );
 }
-
-export default DataBreachAlerts;

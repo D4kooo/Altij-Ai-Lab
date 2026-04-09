@@ -22,7 +22,7 @@ export function SchoolJuniors() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-black/30" />
+        <Loader2 className="h-6 w-6 animate-spin text-black/50" />
       </div>
     );
   }
@@ -47,7 +47,7 @@ export function SchoolJuniors() {
 
       {/* Header */}
       <div>
-        <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Juniors · 7–15 ans</span>
+        <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-4">Juniors · 7–15 ans</span>
         <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95] mb-6">
           Ton aventure numérique
         </h1>
@@ -57,7 +57,7 @@ export function SchoolJuniors() {
           <div className="flex-1 h-[3px] bg-black/10">
             <div className="h-full bg-black transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <span className="font-mono text-[10px] tracking-[0.15em] text-black/40">
+          <span className="font-mono text-[10px] tracking-[0.15em] text-black/60">
             {completedCount}/{totalModules}
           </span>
         </div>
@@ -98,30 +98,30 @@ export function SchoolJuniors() {
               }`}
             >
               <span className={`font-mono text-[10px] tracking-[0.3em] w-8 shrink-0 ${
-                completed ? 'text-[#21B2AA]' : 'text-black/20'
+                completed ? 'text-brand-turquoise' : 'text-black/20'
               }`}>
                 {String(i + 1).padStart(2, '0')}.
               </span>
 
               <div className="flex-1 min-w-0">
                 <span className={`block text-base tracking-tight truncate ${
-                  completed ? 'text-black/40' : locked ? 'text-black/30' : 'text-black'
+                  completed ? 'text-black/60' : locked ? 'text-black/50' : 'text-black'
                 }`}>
                   {module.title}
                 </span>
               </div>
 
-              <span className="font-mono text-[10px] tracking-[0.1em] text-black/30 shrink-0 hidden sm:block">
+              <span className="font-mono text-[10px] tracking-[0.1em] text-black/50 shrink-0 hidden sm:block">
                 {module.duration}
               </span>
 
               <div className="w-6 shrink-0 flex justify-center">
                 {completed ? (
-                  <Check size={16} strokeWidth={2} className="text-[#21B2AA]" />
+                  <Check size={16} strokeWidth={2} className="text-brand-turquoise" />
                 ) : locked ? (
                   <Lock size={14} strokeWidth={1.5} className="text-black/20" />
                 ) : (
-                  <ArrowRight size={14} strokeWidth={1.5} className="text-black/40 group-hover:translate-x-1 transition-transform duration-100" />
+                  <ArrowRight size={14} strokeWidth={1.5} className="text-black/60 group-hover:translate-x-1 transition-transform duration-100" />
                 )}
               </div>
             </button>
@@ -130,8 +130,8 @@ export function SchoolJuniors() {
       </div>
 
       {/* Tip */}
-      <div className="border-l-[3px] border-[#21B2AA]/30 pl-6 py-2">
-        <p className="font-mono text-[10px] tracking-[0.15em] text-black/30 uppercase mb-2">Conseil du jour</p>
+      <div className="border-l-[3px] border-brand-turquoise/30 pl-6 py-2">
+        <p className="font-mono text-[10px] tracking-[0.15em] text-black/50 uppercase mb-2">Conseil du jour</p>
         <p className="text-black/50 text-sm leading-relaxed">
           Ne partage jamais ton mot de passe, même avec tes meilleurs amis. Un mot de passe, c'est comme une brosse à dents : on ne le prête pas !
         </p>
@@ -139,5 +139,3 @@ export function SchoolJuniors() {
     </div>
   );
 }
-
-export default SchoolJuniors;

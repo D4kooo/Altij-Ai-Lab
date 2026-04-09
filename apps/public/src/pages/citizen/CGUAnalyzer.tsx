@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Loader2, Link as LinkIcon } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+import { cguApi } from '@/lib/api';
 
 interface AnalysisPoint {
   type: 'good' | 'warning' | 'danger' | 'info';
@@ -44,6 +43,10 @@ function CGUAnimation() {
     window.addEventListener('resize', resize);
 
     const draw = () => {
+      if (document.hidden) {
+        animId = requestAnimationFrame(draw);
+        return;
+      }
       const w = canvas.width / 2;
       const h = canvas.height / 2;
       ctx.clearRect(0, 0, w, h);
@@ -144,9 +147,18 @@ function CGUAnimation() {
     };
 
     draw();
+
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        animId = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
@@ -173,23 +185,8 @@ export function CGUAnalyzer() {
     setResult(null);
 
     try {
-      const token = localStorage.getItem('citizen_token');
-      const response = await fetch(`${API_BASE}/cgu-analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Erreur lors de l\'analyse');
-      }
-
-      setResult(data.data);
+      const data = await cguApi.analyze(body);
+      setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
@@ -230,8 +227,8 @@ export function CGUAnalyzer() {
 
         <div className="relative z-10 max-w-md">
           <div className="flex items-center gap-3 mb-4">
-            <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase">Analyseur</span>
-            <span className="font-mono text-[9px] tracking-[0.2em] text-[#21B2AA] uppercase border border-[#21B2AA]/30 px-2 py-0.5">IA</span>
+            <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase">Analyseur</span>
+            <span className="font-mono text-[9px] tracking-[0.2em] text-brand-turquoise uppercase border border-brand-turquoise/30 px-2 py-0.5">IA</span>
           </div>
           <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]">
             Comprenez les CGU<br />
@@ -328,12 +325,12 @@ export function CGUAnalyzer() {
       {/* Loading */}
       {isAnalyzing && (
         <div className="border-2 border-black/15 p-8 sm:p-12 flex flex-col items-center gap-4">
-          <Loader2 size={28} className="animate-spin text-black/30" strokeWidth={1.5} />
+          <Loader2 size={28} className="animate-spin text-black/50" strokeWidth={1.5} />
           <div className="text-center">
             <p className="font-heading font-bold text-sm tracking-tight">
               Analyse en cours...
             </p>
-            <p className="text-black/40 text-xs mt-1">L'IA examine les conditions d'utilisation</p>
+            <p className="text-black/60 text-xs mt-1">L'IA examine les conditions d'utilisation</p>
           </div>
           {/* Skeleton lines */}
           <div className="w-full max-w-md space-y-3 mt-4">
@@ -360,7 +357,7 @@ export function CGUAnalyzer() {
                 <span className="text-5xl font-bold tracking-tighter block">
                   {result.score}
                 </span>
-                <span className="font-mono text-[10px] tracking-[0.15em] text-black/40 uppercase">/100 · {getScoreLabel(result.score)}</span>
+                <span className="font-mono text-[10px] tracking-[0.15em] text-black/60 uppercase">/100 · {getScoreLabel(result.score)}</span>
               </div>
               <div className="flex-1">
                 <h2 className="font-heading font-bold text-xl tracking-tight mb-2">
@@ -374,7 +371,7 @@ export function CGUAnalyzer() {
           {/* Points */}
           {result.points.length > 0 && (
             <div>
-              <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase block mb-6">
+              <span className="font-mono text-[10px] tracking-[0.3em] text-black/50 uppercase block mb-6">
                 Points d'attention
               </span>
               <div className="border-t-[2px] border-black">
@@ -384,8 +381,8 @@ export function CGUAnalyzer() {
                       <span className={`font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 border shrink-0 mt-0.5 ${
                         point.type === 'danger' ? 'border-black text-black' :
                         point.type === 'warning' ? 'border-black/40 text-black/60' :
-                        point.type === 'good' ? 'border-[#21B2AA]/40 text-[#21B2AA]' :
-                        'border-black/20 text-black/30'
+                        point.type === 'good' ? 'border-brand-turquoise/40 text-brand-turquoise' :
+                        'border-black/20 text-black/50'
                       }`}>
                         {getPointLabel(point.type)}
                       </span>
@@ -408,10 +405,10 @@ export function CGUAnalyzer() {
           )}
 
           {/* Legend */}
-          <div className="flex flex-wrap gap-6 font-mono text-[9px] tracking-[0.1em] text-black/30 uppercase">
+          <div className="flex flex-wrap gap-6 font-mono text-[9px] tracking-[0.1em] text-black/50 uppercase">
             <span><span className="inline-block w-2 h-2 bg-black mr-2" />Alerte</span>
             <span><span className="inline-block w-2 h-2 bg-black/40 mr-2" />Attention</span>
-            <span><span className="inline-block w-2 h-2 bg-[#21B2AA] mr-2" />OK</span>
+            <span><span className="inline-block w-2 h-2 bg-brand-turquoise mr-2" />OK</span>
             <span><span className="inline-block w-2 h-2 bg-black/15 mr-2" />Info</span>
           </div>
 
@@ -435,12 +432,10 @@ export function CGUAnalyzer() {
             <p className="font-heading font-bold text-sm tracking-tight mb-1">
               {item.title}
             </p>
-            <p className="text-black/40 text-xs leading-relaxed">{item.text}</p>
+            <p className="text-black/60 text-xs leading-relaxed">{item.text}</p>
           </div>
         ))}
       </div>
     </div>
   );
 }
-
-export default CGUAnalyzer;

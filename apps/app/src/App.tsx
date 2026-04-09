@@ -40,7 +40,14 @@ const queryClient = new QueryClient({
   },
 });
 
-// Route protégée pour le staff
+function FullScreenSpinner() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-turquoise"></div>
+    </div>
+  );
+}
+
 function StaffRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const { organization, isLoading: orgLoading, fetchOrganization } = useOrganizationStore();
@@ -51,30 +58,17 @@ function StaffRoute({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, organization, fetchOrganization]);
 
-  if (authLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-turquoise"></div>
-      </div>
-    );
+  if (authLoading || orgLoading) {
+    return <FullScreenSpinner />;
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (orgLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-turquoise"></div>
-      </div>
-    );
-  }
-
   return <>{children}</>;
 }
 
-// Route protégée pour les admins uniquement
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore();
 
@@ -85,16 +79,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Route de login (redirige si déjà connecté)
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-turquoise"></div>
-      </div>
-    );
+    return <FullScreenSpinner />;
   }
 
   if (isAuthenticated) {

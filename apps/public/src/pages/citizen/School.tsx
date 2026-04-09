@@ -3,18 +3,18 @@ import { ArrowRight } from 'lucide-react';
 
 const parcours = [
   {
-    id: 'adultes',
-    title: 'Adultes',
-    subtitle: '16–60 ans',
-    description: 'Maîtrisez vos droits numériques, protégez vos données personnelles et développez votre culture digitale.',
-    href: '/school/adultes',
-  },
-  {
     id: 'juniors',
     title: 'Juniors',
     subtitle: '7–15 ans',
     description: 'Apprends à naviguer en sécurité sur Internet et à protéger tes informations personnelles.',
     href: '/school/juniors',
+  },
+  {
+    id: 'adultes',
+    title: 'Adultes',
+    subtitle: '16–60 ans',
+    description: 'Maîtrisez vos droits numériques, protégez vos données personnelles et développez votre culture digitale.',
+    href: '/school/adultes',
   },
   {
     id: 'seniors',
@@ -38,7 +38,7 @@ export function School() {
         >
           Académie
         </h1>
-        <p className="mt-2 text-black/40 text-sm">
+        <p className="mt-2 text-black/60 text-sm">
           Parcours adaptés à chaque niveau
         </p>
       </div>
@@ -54,7 +54,7 @@ export function School() {
             } ${i > 0 ? 'border-t-0 md:border-t-2' : ''}`}
           >
             <div>
-              <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA] uppercase block mb-4 group-hover:text-[#21B2AA]">
+              <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise uppercase block mb-4 group-hover:text-brand-turquoise">
                 {p.subtitle}
               </span>
               <h2
@@ -68,8 +68,8 @@ export function School() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 mt-8 font-mono text-[10px] tracking-[0.15em] uppercase text-black/30 group-hover:text-white/60">
-              Voir les cours <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-200" />
+            <div className="flex items-center gap-2 mt-8 font-mono text-[10px] tracking-[0.15em] uppercase text-black/50 group-hover:text-white/60">
+              Voir les cours <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" className="group-hover:translate-x-1 transition-transform duration-200" />
             </div>
           </button>
         ))}
@@ -90,12 +90,10 @@ export function School() {
             <p className="text-2xl font-bold tracking-tighter">
               {stat.value}
             </p>
-            <p className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase mt-1">{stat.label}</p>
+            <p className="font-mono text-[9px] tracking-[0.15em] text-black/50 uppercase mt-1">{stat.label}</p>
           </div>
         ))}
       </div>
     </div>
   );
 }
-
-export default School;

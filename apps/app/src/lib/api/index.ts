@@ -1,4 +1,4 @@
-export { fetchApi, ApiError, API_BASE } from './client';
+export { fetchApi, ApiError, API_BASE, streamSSE } from './client';
 export { authApi, usersApi } from './auth';
 export type { AdminUser } from './auth';
 export { assistantsApi } from './assistants';
@@ -41,7 +41,7 @@ export type {
   RoleMember,
   UserPermissions,
 } from './admin';
-export { documentsApi, organizationsApi } from './organizations';
+export { organizationsApi } from './organizations';
 export { coursesApi, campaignsApi, templatesApi } from './cms';
 export { skillsApi, toolsApi } from './skills';
 export type { Skill, BuiltinTool } from './skills';

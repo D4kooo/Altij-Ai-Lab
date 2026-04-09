@@ -1,4 +1,4 @@
-const CMS_BASE = import.meta.env.VITE_CMS_URL || 'http://localhost:3001';
+const CMS_BASE = import.meta.env.VITE_CMS_URL || '';
 
 interface PayloadResponse<T> {
   docs: T[];
@@ -26,7 +26,7 @@ export interface CMSPage {
   title: string;
   slug: string;
   description?: string;
-  content?: any; // Lexical rich text
+  content?: Record<string, unknown>;
   sections?: CMSBlock[];
   status: 'draft' | 'published';
   meta?: { metaTitle?: string; metaDescription?: string; ogImage?: CMSMedia };
@@ -34,7 +34,7 @@ export interface CMSPage {
 
 export interface CMSBlock {
   blockType: 'hero' | 'features' | 'cta' | 'richContent' | 'imageText';
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CMSArticle {
@@ -42,7 +42,7 @@ export interface CMSArticle {
   title: string;
   slug: string;
   excerpt?: string;
-  content: any;
+  content: Record<string, unknown>;
   coverImage?: CMSMedia;
   category?: string;
   tags?: { tag: string }[];
@@ -55,9 +55,9 @@ export interface CMSNewsletter {
   id: string;
   subject: string;
   preheader?: string;
-  content: any;
+  content: Record<string, unknown>;
   coverImage?: CMSMedia;
-  sections?: { title?: string; body?: any; image?: CMSMedia; link?: string; linkText?: string }[];
+  sections?: { title?: string; body?: Record<string, unknown>; image?: CMSMedia; link?: string; linkText?: string }[];
   status: 'draft' | 'scheduled' | 'sent';
   sentAt?: string;
 }
@@ -65,7 +65,7 @@ export interface CMSNewsletter {
 export interface CMSFAQ {
   id: string;
   question: string;
-  answer: any;
+  answer: Record<string, unknown>;
   category: string;
   order: number;
 }

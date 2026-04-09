@@ -9,7 +9,6 @@ import {
   Shield,
   Settings,
   LogOut,
-  Briefcase,
   GraduationCap,
   Megaphone,
   FileText,

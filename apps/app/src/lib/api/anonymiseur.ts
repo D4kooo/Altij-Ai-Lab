@@ -1,6 +1,39 @@
 import type { ApiResponse } from '@altij/shared';
 import { ApiError, API_BASE } from './client';
 
+function authHeaders(): HeadersInit {
+  const token = localStorage.getItem('staff_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function fetchFormData<T>(endpoint: string, formData: FormData): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  const data = await response.json() as ApiResponse<T>;
+  if (!response.ok || !data.success) {
+    throw new ApiError(data.error || 'Request failed', response.status);
+  }
+  return data.data as T;
+}
+
+async function fetchFormDataBlob(endpoint: string, formData: FormData): Promise<Blob> {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new ApiError(errorData.error || 'Request failed', response.status);
+  }
+  return response.blob();
+}
+
 // Anonymiseur Types
 export interface RedactionTerm {
   id: string;
@@ -129,68 +162,30 @@ export interface PreviewPdfResult {
 // Anonymiseur API
 export const anonymiseurApi = {
   analyze: async (file: File, terms: RedactionTerm[]): Promise<AnalysisResult> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
-
-    const response = await fetch(`${API_BASE}/anonymiseur/analyze`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    const data = await response.json() as ApiResponse<AnalysisResult>;
-    if (!response.ok || !data.success) {
-      throw new ApiError(data.error || 'Failed to analyze', response.status);
-    }
-    return data.data as AnalysisResult;
+    return fetchFormData<AnalysisResult>('/anonymiseur/analyze', formData);
   },
 
   anonymize: async (file: File, terms: RedactionTerm[]): Promise<Blob> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
-
-    const response = await fetch(`${API_BASE}/anonymiseur/anonymize`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new ApiError(errorData.error || 'Failed to anonymize', response.status);
-    }
-    return response.blob();
+    return fetchFormDataBlob('/anonymiseur/anonymize', formData);
   },
 
   anonymizeText: async (file: File, terms: RedactionTerm[]): Promise<AnonymizeTextResult> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
-
-    const response = await fetch(`${API_BASE}/anonymiseur/anonymize-text`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    const data = await response.json() as ApiResponse<AnonymizeTextResult>;
-    if (!response.ok || !data.success) {
-      throw new ApiError(data.error || 'Failed to anonymize', response.status);
-    }
-    return data.data as AnonymizeTextResult;
+    return fetchFormData<AnonymizeTextResult>('/anonymiseur/anonymize-text', formData);
   },
 
   getStatus: async (): Promise<AnonymiseurStatus> => {
-    const token = localStorage.getItem('staff_token');
     const response = await fetch(`${API_BASE}/anonymiseur/status`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders(),
     });
-
     const data = await response.json() as ApiResponse<AnonymiseurStatus>;
     if (!response.ok || !data.success) {
       throw new ApiError(data.error || 'Failed to get status', response.status);
@@ -199,21 +194,9 @@ export const anonymiseurApi = {
   },
 
   autoDetect: async (file: File): Promise<AutoDetectResult> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
-
-    const response = await fetch(`${API_BASE}/anonymiseur/auto-detect`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    const data = await response.json() as ApiResponse<AutoDetectResult>;
-    if (!response.ok || !data.success) {
-      throw new ApiError(data.error || 'Failed to auto-detect', response.status);
-    }
-    return data.data as AutoDetectResult;
+    return fetchFormData<AutoDetectResult>('/anonymiseur/auto-detect', formData);
   },
 
   verify: async (
@@ -221,23 +204,11 @@ export const anonymiseurApi = {
     terms: RedactionTerm[],
     autoDetected: DetectedEntity[]
   ): Promise<VerifyResult> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
     formData.append('autoDetected', JSON.stringify(autoDetected));
-
-    const response = await fetch(`${API_BASE}/anonymiseur/verify`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    const data = await response.json() as ApiResponse<VerifyResult>;
-    if (!response.ok || !data.success) {
-      throw new ApiError(data.error || 'Failed to verify', response.status);
-    }
-    return data.data as VerifyResult;
+    return fetchFormData<VerifyResult>('/anonymiseur/verify', formData);
   },
 
   fullPipeline: async (
@@ -247,82 +218,34 @@ export const anonymiseurApi = {
     aiSuggestions: MissedEntity[],
     skipAI: boolean = false
   ): Promise<Blob> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
     formData.append('autoDetected', JSON.stringify(autoDetected));
     formData.append('aiSuggestions', JSON.stringify(aiSuggestions));
     formData.append('skipAI', skipAI.toString());
-
-    const response = await fetch(`${API_BASE}/anonymiseur/full-pipeline`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new ApiError(errorData.error || 'Failed to process', response.status);
-    }
-    return response.blob();
+    return fetchFormDataBlob('/anonymiseur/full-pipeline', formData);
   },
 
   censorPreview: async (file: File, terms: string[]): Promise<CensorPreviewResult> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
-
-    const response = await fetch(`${API_BASE}/anonymiseur/censor-preview`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    const data = await response.json() as ApiResponse<CensorPreviewResult>;
-    if (!response.ok || !data.success) {
-      throw new ApiError(data.error || 'Failed to preview', response.status);
-    }
-    return data.data as CensorPreviewResult;
+    return fetchFormData<CensorPreviewResult>('/anonymiseur/censor-preview', formData);
   },
 
   censor: async (file: File, terms: string[]): Promise<Blob> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
-
-    const response = await fetch(`${API_BASE}/anonymiseur/censor`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new ApiError(errorData.error || 'Failed to censor', response.status);
-    }
-    return response.blob();
+    return fetchFormDataBlob('/anonymiseur/censor', formData);
   },
 
   previewPdf: async (file: File, terms: string[]): Promise<PreviewPdfResult> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('terms', JSON.stringify(terms));
-
-    const response = await fetch(`${API_BASE}/anonymiseur/preview-pdf`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    const data = await response.json() as ApiResponse<PreviewPdfResult>;
-    if (!response.ok || !data.success) {
-      throw new ApiError(data.error || 'Failed to preview PDF', response.status);
-    }
-    return data.data as PreviewPdfResult;
+    return fetchFormData<PreviewPdfResult>('/anonymiseur/preview-pdf', formData);
   },
 
   censorWithZones: async (
@@ -336,21 +259,9 @@ export const anonymiseurApi = {
       height: number;
     }>
   ): Promise<Blob> => {
-    const token = localStorage.getItem('staff_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('zones', JSON.stringify(zones));
-
-    const response = await fetch(`${API_BASE}/anonymiseur/censor-zones`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new ApiError(errorData.error || 'Failed to censor with zones', response.status);
-    }
-    return response.blob();
+    return fetchFormDataBlob('/anonymiseur/censor-zones', formData);
   },
 };

@@ -122,7 +122,6 @@ interface StreamingMessageProps {
   isThinking: boolean;
   assistantIcon?: ComponentType<{ className?: string }>;
   assistantColor?: string;
-  thinkingSteps?: string[];
 }
 
 export function StreamingMessage({

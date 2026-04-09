@@ -89,9 +89,9 @@ app.route('/api/skills', skillsRoutes);
 // Proxy for fuites-infos.fr data (CORS restricted to their domain)
 app.get('/api/fuites-infos', async (c) => {
   const res = await fetch('https://christopheboutry.com/data/fuites-infos.json');
-  if (!res.ok) return c.json({ error: 'Upstream error' }, 502);
+  if (!res.ok) return c.json({ success: false, error: 'Upstream error' }, 502);
   const data = await res.json();
-  return c.json(data);
+  return c.json({ success: true, data });
 });
 
 // Production: serve SPAs as static files

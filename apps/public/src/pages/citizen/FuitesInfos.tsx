@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, Loader2, ExternalLink, ChevronDown, Database, Users, Calendar, X, Copy, Check } from 'lucide-react';
-
-const DATA_URL = '/api/fuites-infos';
+import { fuitesApi } from '@/lib/api';
 
 interface BreachEntry {
   name: string;
@@ -32,7 +31,7 @@ function LogoFallback({ name }: { name: string }) {
   const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div className="w-[60px] h-[44px] bg-black/5 border border-black/10 flex items-center justify-center shrink-0">
-      <span className="font-mono text-[10px] tracking-[0.1em] text-black/40 font-bold">{initials}</span>
+      <span className="font-mono text-[10px] tracking-[0.1em] text-black/60 font-bold">{initials}</span>
     </div>
   );
 }
@@ -48,13 +47,48 @@ export function FuitesInfos() {
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'records_desc' | 'records_asc'>('recent');
   const [selectedBreach, setSelectedBreach] = useState<BreachEntry | null>(null);
   const [copied, setCopied] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selectedBreach) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setSelectedBreach(null); return; }
+      if (e.key !== 'Tab') return;
+
+      const modal = modalRef.current;
+      if (!modal) return;
+      const focusable = modal.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Auto-focus the first focusable element
+    const modal = modalRef.current;
+    if (modal) {
+      const firstBtn = modal.querySelector<HTMLElement>('button');
+      firstBtn?.focus();
+    }
+
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedBreach]);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch(DATA_URL);
-        if (!res.ok) throw new Error('Erreur de chargement');
-        const json: BreachEntry[] = await res.json();
+        const json = await fuitesApi.getInfos();
         setData(json);
       } catch {
         setError('Impossible de charger les données. Réessayez plus tard.');
@@ -113,7 +147,7 @@ export function FuitesInfos() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <Loader2 size={24} className="animate-spin text-black/30" />
+        <Loader2 size={24} className="animate-spin text-black/50" />
       </div>
     );
   }
@@ -130,7 +164,7 @@ export function FuitesInfos() {
     <div className="space-y-10">
       {/* Header */}
       <div>
-        <span className="font-mono text-[10px] tracking-[0.3em] text-[#21B2AA]/60 uppercase block mb-4">Recensement</span>
+        <span className="font-mono text-[10px] tracking-[0.3em] text-brand-turquoise/60 uppercase block mb-4">Recensement</span>
         <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.95]">
           Fuites de donn&eacute;es<br />
           <span className="italic font-normal">en France</span>
@@ -145,8 +179,8 @@ export function FuitesInfos() {
       <div className="grid grid-cols-3 gap-0 border-[2px] border-black">
         <div className="p-5 border-r border-black">
           <div className="flex items-center gap-2 mb-2">
-            <Users size={14} strokeWidth={1.5} className="text-black/30" />
-            <span className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase">Personnes concern&eacute;es</span>
+            <Users size={14} strokeWidth={1.5} className="text-black/50" />
+            <span className="font-mono text-[9px] tracking-[0.15em] text-black/50 uppercase">Personnes concern&eacute;es</span>
           </div>
           <p className="font-heading font-bold text-2xl sm:text-3xl tracking-tighter">
             {formatNumber(stats.totalRecords)}
@@ -154,8 +188,8 @@ export function FuitesInfos() {
         </div>
         <div className="p-5 border-r border-black">
           <div className="flex items-center gap-2 mb-2">
-            <Calendar size={14} strokeWidth={1.5} className="text-black/30" />
-            <span className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase">Fuites en {currentYear}</span>
+            <Calendar size={14} strokeWidth={1.5} className="text-black/50" />
+            <span className="font-mono text-[9px] tracking-[0.15em] text-black/50 uppercase">Fuites en {currentYear}</span>
           </div>
           <p className="font-heading font-bold text-2xl sm:text-3xl tracking-tighter">
             {stats.thisYear}
@@ -163,8 +197,8 @@ export function FuitesInfos() {
         </div>
         <div className="p-5">
           <div className="flex items-center gap-2 mb-2">
-            <Database size={14} strokeWidth={1.5} className="text-black/30" />
-            <span className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase">Total r&eacute;f&eacute;renc&eacute;es</span>
+            <Database size={14} strokeWidth={1.5} className="text-black/50" />
+            <span className="font-mono text-[9px] tracking-[0.15em] text-black/50 uppercase">Total r&eacute;f&eacute;renc&eacute;es</span>
           </div>
           <p className="font-heading font-bold text-2xl sm:text-3xl tracking-tighter">
             {stats.total}
@@ -220,7 +254,7 @@ export function FuitesInfos() {
 
       {/* Breach List */}
       <div>
-        <span className="font-mono text-[10px] tracking-[0.3em] text-black/30 uppercase block mb-6">
+        <span className="font-mono text-[10px] tracking-[0.3em] text-black/50 uppercase block mb-6">
           Incidents référencés
         </span>
 
@@ -261,11 +295,11 @@ export function FuitesInfos() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-heading font-bold text-base tracking-tight truncate group-hover:text-[#21B2AA] transition-colors">
+                      <h3 className="font-heading font-bold text-base tracking-tight truncate group-hover:text-brand-turquoise transition-colors">
                         {breach.name}
                       </h3>
                       <span className={`font-mono text-[8px] tracking-[0.15em] uppercase border px-2 py-0.5 shrink-0 ${
-                        isConfirmed ? 'border-black/60 text-black' : 'border-black/20 text-black/40'
+                        isConfirmed ? 'border-black/60 text-black' : 'border-black/20 text-black/60'
                       }`}>
                         {breach.status}
                       </span>
@@ -287,7 +321,7 @@ export function FuitesInfos() {
                         </span> personnes concernées
                       </p>
                     ) : breach.incident_label ? (
-                      <p className="text-sm text-black/40 mt-2">{breach.incident_label}</p>
+                      <p className="text-sm text-black/60 mt-2">{breach.incident_label}</p>
                     ) : null}
                   </div>
 
@@ -310,6 +344,10 @@ export function FuitesInfos() {
 
           {/* Modal */}
           <div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Détail de la fuite"
             className="relative bg-white border-2 border-black w-full max-w-2xl max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -341,7 +379,7 @@ export function FuitesInfos() {
                       {selectedBreach.name}
                     </h2>
                     <span className={`font-mono text-[8px] tracking-[0.15em] uppercase border px-2 py-0.5 ${
-                      normalizeString(selectedBreach.status) === 'confirmee' ? 'border-black/60 text-black' : 'border-black/20 text-black/40'
+                      normalizeString(selectedBreach.status) === 'confirmee' ? 'border-black/60 text-black' : 'border-black/20 text-black/60'
                     }`}>
                       {selectedBreach.status}
                     </span>
@@ -362,7 +400,7 @@ export function FuitesInfos() {
               {/* Volume */}
               {(selectedBreach.records_count || selectedBreach.incident_label) && (
                 <div className="border-2 border-black p-4">
-                  <span className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase block mb-2">Volume</span>
+                  <span className="font-mono text-[9px] tracking-[0.15em] text-black/50 uppercase block mb-2">Volume</span>
                   {selectedBreach.records_count ? (
                     <p className="font-heading font-bold text-2xl tracking-tighter">
                       {selectedBreach.records_count.toLocaleString('fr-FR')}
@@ -377,7 +415,7 @@ export function FuitesInfos() {
               {/* Description */}
               {selectedBreach.records_count_raw && (
                 <div>
-                  <span className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase block mb-2">Description</span>
+                  <span className="font-mono text-[9px] tracking-[0.15em] text-black/50 uppercase block mb-2">Description</span>
                   <p className="text-sm text-black/60 leading-relaxed">{selectedBreach.records_count_raw}</p>
                 </div>
               )}
@@ -385,7 +423,7 @@ export function FuitesInfos() {
               {/* Data types */}
               {selectedBreach.data_types.length > 0 && (
                 <div>
-                  <span className="font-mono text-[9px] tracking-[0.15em] text-black/30 uppercase block mb-3">Données exposées</span>
+                  <span className="font-mono text-[9px] tracking-[0.15em] text-black/50 uppercase block mb-3">Données exposées</span>
                   <div className="flex flex-wrap gap-2">
                     {selectedBreach.data_types.map((dt, i) => (
                       <span key={i} className="font-mono text-[9px] tracking-[0.1em] text-black/50 uppercase border border-black/15 px-3 py-1.5">
@@ -443,5 +481,3 @@ export function FuitesInfos() {
     </div>
   );
 }
-
-export default FuitesInfos;

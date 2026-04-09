@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Loader2, ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export function CitizenLogin() {
   const navigate = useNavigate();
@@ -26,7 +28,7 @@ export function CitizenLogin() {
   };
 
   return (
-    <div className="min-h-[100svh] bg-white text-black font-body selection:bg-[#21B2AA] selection:text-white flex items-center justify-center relative overflow-hidden px-6">
+    <div className="min-h-[100svh] bg-white text-black font-body selection:bg-brand-turquoise selection:text-white flex items-center justify-center relative overflow-hidden px-6">
 
       <div className="relative z-10 w-full max-w-sm flex flex-col items-center">
         <div className="w-full opacity-0 animate-[float-up_1s_cubic-bezier(0.16,1,0.3,1)_forwards]">
@@ -52,31 +54,25 @@ export function CitizenLogin() {
 
           <form onSubmit={handleSubmit} noValidate className="space-y-5 w-full mb-10">
             <div>
-              <label htmlFor="login-email" className="block font-mono text-[10px] tracking-[0.15em] text-black/40 uppercase mb-2">
-                Adresse Email
-              </label>
-              <input
+              <Label htmlFor="login-email">Adresse Email</Label>
+              <Input
                 id="login-email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-black/15 bg-white text-sm focus:border-black focus:outline-none transition-colors duration-100 placeholder:text-black/25"
                 placeholder="citoyen@email.com"
               />
             </div>
 
             <div>
-              <label htmlFor="login-password" className="block font-mono text-[10px] tracking-[0.15em] text-black/40 uppercase mb-2">
-                Mot de passe
-              </label>
-              <input
+              <Label htmlFor="login-password">Mot de passe</Label>
+              <Input
                 id="login-password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-black/15 bg-white text-sm focus:border-black focus:outline-none transition-colors duration-100 placeholder:text-black/25"
                 placeholder="********"
               />
             </div>
@@ -117,5 +113,3 @@ export function CitizenLogin() {
     </div>
   );
 }
-
-export default CitizenLogin;

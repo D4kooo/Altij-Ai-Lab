@@ -5,6 +5,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { useCoursesData } from '@/hooks/useCoursesData';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
 import { authApi } from '@/lib/api';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { CertificateDiploma } from '@/components/CertificateDiploma';
 
 type Audience = 'juniors' | 'adultes' | 'seniors';
 const AUDIENCES: { key: Audience; label: string; sub: string }[] = [
@@ -13,7 +16,7 @@ const AUDIENCES: { key: Audience; label: string; sub: string }[] = [
   { key: 'seniors', label: 'Seniors', sub: '60+ ans' },
 ];
 
-function CertificationTracker({ audience }: { audience: Audience }) {
+function CertificationTracker({ audience, audienceLabel, onViewCertificate }: { audience: Audience; audienceLabel: string; onViewCertificate: (courseName: string, audienceLabel: string) => void }) {
   const { courses, allModules } = useCoursesData(audience);
   const { isModuleCompleted, getCompletedCount } = useSchoolProgress();
 
@@ -33,26 +36,35 @@ function CertificationTracker({ audience }: { audience: Audience }) {
         return (
           <div key={course.id} className="flex items-center gap-3 py-2 border-b border-black/10">
             <div className="flex-1 min-w-0 flex items-center gap-2">
-              {courseDone && <Check size={12} strokeWidth={2.5} className="text-[#21B2AA] shrink-0" aria-hidden="true" />}
-              <span className={`font-mono text-[10px] tracking-[0.1em] uppercase truncate ${courseDone ? 'text-[#21B2AA]' : 'text-black/70'}`}>
+              {courseDone && <Check size={12} strokeWidth={2.5} className="text-brand-turquoise shrink-0" aria-hidden="true" />}
+              <span className={`font-mono text-[10px] tracking-[0.1em] uppercase truncate ${courseDone ? 'text-brand-turquoise' : 'text-black/70'}`}>
                 {course.name}
               </span>
             </div>
-            <span className="font-mono text-[10px] text-black/50 shrink-0">
-              {courseCompleted}/{courseTotal}
-            </span>
+            {courseDone ? (
+              <button
+                onClick={() => onViewCertificate(course.name, audienceLabel)}
+                className="font-mono text-[9px] tracking-[0.1em] uppercase text-brand-turquoise hover:text-brand-turquoise-dark border border-brand-turquoise/30 hover:border-brand-turquoise px-2 py-0.5 transition-colors duration-100 shrink-0"
+              >
+                Diplôme
+              </button>
+            ) : (
+              <span className="font-mono text-[10px] text-black/50 shrink-0">
+                {courseCompleted}/{courseTotal}
+              </span>
+            )}
           </div>
         );
       })}
 
       {/* Parcours certification status */}
       {totalModules > 0 && (
-        <div className={`mt-4 pt-3 flex items-center gap-3 ${isComplete ? 'border-t-2 border-[#21B2AA]' : ''}`}>
-          <div className={`w-9 h-9 flex items-center justify-center ${isComplete ? 'bg-[#21B2AA] text-white' : 'bg-black/5 text-black/25'}`}>
+        <div className={`mt-4 pt-3 flex items-center gap-3 ${isComplete ? 'border-t-2 border-brand-turquoise' : ''}`}>
+          <div className={`w-9 h-9 flex items-center justify-center ${isComplete ? 'bg-brand-turquoise text-white' : 'bg-black/5 text-black/25'}`}>
             <Award size={18} strokeWidth={1.5} aria-hidden="true" />
           </div>
           <div className="flex-1">
-            <span className={`font-mono text-[11px] tracking-[0.1em] uppercase font-medium ${isComplete ? 'text-[#21B2AA]' : 'text-black/50'}`}>
+            <span className={`font-mono text-[11px] tracking-[0.1em] uppercase font-medium ${isComplete ? 'text-brand-turquoise' : 'text-black/50'}`}>
               {isComplete ? 'Certification obtenue' : `${progress}% complété`}
             </span>
           </div>
@@ -87,6 +99,9 @@ export function Profile() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Certificate modal
+  const [certModal, setCertModal] = useState<{ courseName: string; audienceLabel: string } | null>(null);
 
   const isOrg = user?.accountType === 'organisation';
   const backTo = isOrg ? '/org' : '/school';
@@ -132,9 +147,6 @@ export function Profile() {
     }
   }
 
-  const inputClass = 'w-full px-3 py-2.5 border-2 border-black/15 bg-white text-sm focus:border-black focus:outline-none transition-colors duration-100';
-  const labelClass = 'font-mono text-[10px] tracking-[0.15em] text-black/50 uppercase block mb-1.5';
-
   return (
     <div className="flex flex-col lg:flex-row lg:h-[calc(100svh-3.5rem)]">
 
@@ -168,7 +180,7 @@ export function Profile() {
                 </div>
 
                 {profileMsg && (
-                  <div className={`mb-4 px-3 py-2 font-mono text-[10px] tracking-[0.1em] ${profileMsg.type === 'success' ? 'bg-[#21B2AA]/10 text-[#21B2AA]' : 'bg-red-50 text-red-600'}`}>
+                  <div className={`mb-4 px-3 py-2 font-mono text-[10px] tracking-[0.1em] ${profileMsg.type === 'success' ? 'bg-brand-turquoise/10 text-brand-turquoise' : 'border-2 border-black bg-black/5 text-black'}`}>
                     {profileMsg.text}
                   </div>
                 )}
@@ -177,27 +189,27 @@ export function Profile() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="profile-firstName" className={labelClass}>Prénom</label>
-                        <input id="profile-firstName" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
+                        <Label htmlFor="profile-firstName">Prénom</Label>
+                        <Input id="profile-firstName" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                       </div>
                       <div>
-                        <label htmlFor="profile-lastName" className={labelClass}>Nom</label>
-                        <input id="profile-lastName" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
+                        <Label htmlFor="profile-lastName">Nom</Label>
+                        <Input id="profile-lastName" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                       </div>
                     </div>
                     <div>
-                      <label htmlFor="profile-email" className={labelClass}>Email</label>
-                      <input id="profile-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+                      <Label htmlFor="profile-email">Email</Label>
+                      <Input id="profile-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                     </div>
                     {isOrg && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label htmlFor="profile-orgName" className={labelClass}>Organisation</label>
-                          <input id="profile-orgName" type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} className={inputClass} />
+                          <Label htmlFor="profile-orgName">Organisation</Label>
+                          <Input id="profile-orgName" type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} />
                         </div>
                         <div>
-                          <label htmlFor="profile-orgRole" className={labelClass}>Rôle</label>
-                          <input id="profile-orgRole" type="text" value={orgRole} onChange={(e) => setOrgRole(e.target.value)} className={inputClass} />
+                          <Label htmlFor="profile-orgRole">Rôle</Label>
+                          <Input id="profile-orgRole" type="text" value={orgRole} onChange={(e) => setOrgRole(e.target.value)} />
                         </div>
                       </div>
                     )}
@@ -228,38 +240,38 @@ export function Profile() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <span className={labelClass}>Prénom</span>
+                        <Label>Prénom</Label>
                         <p className="font-heading text-base">{user?.firstName}</p>
                       </div>
                       <div>
-                        <span className={labelClass}>Nom</span>
+                        <Label>Nom</Label>
                         <p className="font-heading text-base">{user?.lastName}</p>
                       </div>
                     </div>
                     <div>
-                      <span className={labelClass}>Email</span>
+                      <Label>Email</Label>
                       <p className="font-heading text-base">{user?.email}</p>
                     </div>
                     {isOrg && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <span className={labelClass}>Organisation</span>
+                          <Label>Organisation</Label>
                           <p className="font-heading text-base">{user?.organizationName || '—'}</p>
                         </div>
                         <div>
-                          <span className={labelClass}>Rôle</span>
+                          <Label>Rôle</Label>
                           <p className="font-heading text-base">{user?.organizationRole || '—'}</p>
                         </div>
                       </div>
                     )}
                     <div>
-                      <span className={labelClass}>Type de compte</span>
+                      <Label>Type de compte</Label>
                       <p className="font-heading text-base">
                         {user?.accountType === 'organisation' ? 'Organisation' : 'Particulier'}
                       </p>
                     </div>
                     <div>
-                      <span className={labelClass}>Membre depuis</span>
+                      <Label>Membre depuis</Label>
                       <p className="font-heading text-base">
                         {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
                       </p>
@@ -285,7 +297,7 @@ export function Profile() {
                 </div>
 
                 {pwMsg && (
-                  <div className={`mb-4 px-3 py-2 font-mono text-[10px] tracking-[0.1em] ${pwMsg.type === 'success' ? 'bg-[#21B2AA]/10 text-[#21B2AA]' : 'bg-red-50 text-red-600'}`}>
+                  <div className={`mb-4 px-3 py-2 font-mono text-[10px] tracking-[0.1em] ${pwMsg.type === 'success' ? 'bg-brand-turquoise/10 text-brand-turquoise' : 'border-2 border-black bg-black/5 text-black'}`}>
                     {pwMsg.text}
                   </div>
                 )}
@@ -293,14 +305,13 @@ export function Profile() {
                 {showPwForm && (
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="pw-current" className={labelClass}>Mot de passe actuel</label>
+                      <Label htmlFor="pw-current">Mot de passe actuel</Label>
                       <div className="relative">
-                        <input
+                        <Input
                           id="pw-current"
                           type={showCurrentPw ? 'text' : 'password'}
                           value={currentPw}
                           onChange={(e) => setCurrentPw(e.target.value)}
-                          className={inputClass}
                           autoComplete="current-password"
                         />
                         <button
@@ -314,14 +325,13 @@ export function Profile() {
                       </div>
                     </div>
                     <div>
-                      <label htmlFor="pw-new" className={labelClass}>Nouveau mot de passe</label>
+                      <Label htmlFor="pw-new">Nouveau mot de passe</Label>
                       <div className="relative">
-                        <input
+                        <Input
                           id="pw-new"
                           type={showNewPw ? 'text' : 'password'}
                           value={newPw}
                           onChange={(e) => setNewPw(e.target.value)}
-                          className={inputClass}
                           autoComplete="new-password"
                         />
                         <button
@@ -333,16 +343,15 @@ export function Profile() {
                           {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
-                      <span className="font-mono text-[9px] text-black/40 mt-1.5 block">Min. 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre, 1 spécial</span>
+                      <span className="font-mono text-[9px] text-black/60 mt-1.5 block">Min. 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre, 1 spécial</span>
                     </div>
                     <div>
-                      <label htmlFor="pw-confirm" className={labelClass}>Confirmer</label>
-                      <input
+                      <Label htmlFor="pw-confirm">Confirmer</Label>
+                      <Input
                         id="pw-confirm"
                         type="password"
                         value={confirmPw}
                         onChange={(e) => setConfirmPw(e.target.value)}
-                        className={inputClass}
                         autoComplete="new-password"
                       />
                     </div>
@@ -386,17 +395,28 @@ export function Profile() {
                   <span className="font-heading text-base font-bold tracking-tight">
                     {a.label}
                   </span>
-                  <span className="font-mono text-[9px] text-black/40 tracking-[0.1em]">{a.sub}</span>
+                  <span className="font-mono text-[9px] text-black/60 tracking-[0.1em]">{a.sub}</span>
                 </div>
-                <CertificationTracker audience={a.key} />
+                <CertificationTracker
+                  audience={a.key}
+                  audienceLabel={a.label}
+                  onViewCertificate={(courseName, audienceLabel) => setCertModal({ courseName, audienceLabel })}
+                />
               </div>
             ))}
           </div>
         </div>
       </div>
 
+      {certModal && (
+        <CertificateDiploma
+          userName={`${user?.firstName || ''} ${user?.lastName || ''}`}
+          audienceLabel={certModal.audienceLabel}
+          courseName={certModal.courseName}
+          completedDate={new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          onClose={() => setCertModal(null)}
+        />
+      )}
     </div>
   );
 }
-
-export default Profile;

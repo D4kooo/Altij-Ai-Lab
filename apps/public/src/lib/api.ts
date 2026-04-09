@@ -173,7 +173,7 @@ export interface Course {
   isPublished: boolean;
   isActive: boolean;
   order: number;
-  moduleCount?: number;
+  moduleCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -399,8 +399,8 @@ export interface DocumentTemplate {
   content: string | null;
   fileUrl: string | null;
   downloadCount: number;
-  hasFile?: boolean;
-  hasContent?: boolean;
+  hasFile: boolean;
+  hasContent: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -456,6 +456,38 @@ export const breachCheckApi = {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
+  },
+};
+
+export const cguApi = {
+  analyze: async (body: { text?: string; url?: string }): Promise<{
+    serviceName: string;
+    score: number;
+    summary: string;
+    points: { type: 'good' | 'warning' | 'danger' | 'info'; title: string; description: string; article?: string }[];
+  }> => {
+    return fetchApi('/cgu-analyze', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+};
+
+export const fuitesApi = {
+  getInfos: async (): Promise<{
+    name: string;
+    service_type: string;
+    date: string;
+    records_count: number | null;
+    records_count_raw: string;
+    data_types: string[];
+    site_url: string | null;
+    logo_url: string;
+    source_url: string | null;
+    status: string;
+    incident_label: string | null;
+  }[]> => {
+    return fetchApi('/fuites-infos');
   },
 };
 
