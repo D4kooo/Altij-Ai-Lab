@@ -209,56 +209,54 @@ const DATA_SOURCE_TO_TOOL: Record<string, string> = {
 /**
  * Get tool definitions for an assistant based on its config
  */
+function collectBuiltinToolNames(
+  tools: { id: string; type: string; enabled: boolean }[] | null | undefined,
+  dataSources: string[] | null | undefined,
+): Set<string> {
+  const names = new Set<string>();
+  for (const tool of tools || []) {
+    if (tool.enabled && tool.type === 'builtin' && BUILTIN_TOOLS[tool.id]) {
+      names.add(tool.id);
+    }
+  }
+  for (const ds of dataSources || []) {
+    const toolName = DATA_SOURCE_TO_TOOL[ds];
+    if (toolName) names.add(toolName);
+  }
+  return names;
+}
+
+async function loadMcpToolDefinitions(
+  tools: { id: string; type: string; enabled: boolean }[] | null | undefined,
+): Promise<ToolDefinition[]> {
+  const definitions: ToolDefinition[] = [];
+  const mcpTools = (tools || []).filter((t) => t.enabled && t.type === 'mcp');
+  for (const mcpTool of mcpTools) {
+    try {
+      const [server] = await db
+        .select()
+        .from(schema.mcpServers)
+        .where(eq(schema.mcpServers.id, mcpTool.id));
+      if (server?.isActive) {
+        const serverTools = await listMcpTools(server as any);
+        definitions.push(...serverTools);
+      }
+    } catch (error) {
+      console.error(`Failed to load MCP tools from ${mcpTool.id}:`, error);
+    }
+  }
+  return definitions;
+}
+
 export async function getToolsForAssistant(assistant: {
   tools?: { id: string; type: string; enabled: boolean }[] | null;
   dataSources?: string[] | null;
 }): Promise<ToolDefinition[]> {
-  const toolNames = new Set<string>();
-
-  // Add tools from explicit config
-  if (assistant.tools) {
-    for (const tool of assistant.tools) {
-      if (tool.enabled && tool.type === 'builtin' && BUILTIN_TOOLS[tool.id]) {
-        toolNames.add(tool.id);
-      }
-    }
-  }
-
-  // Auto-add tools from dataSources
-  if (assistant.dataSources) {
-    for (const ds of assistant.dataSources) {
-      const toolName = DATA_SOURCE_TO_TOOL[ds];
-      if (toolName) {
-        toolNames.add(toolName);
-      }
-    }
-  }
-
-  // Add tools from MCP servers
-  const mcpDefinitions: ToolDefinition[] = [];
-  if (assistant.tools) {
-    const mcpTools = assistant.tools.filter((t) => t.enabled && t.type === 'mcp');
-    for (const mcpTool of mcpTools) {
-      try {
-        const [server] = await db
-          .select()
-          .from(schema.mcpServers)
-          .where(eq(schema.mcpServers.id, mcpTool.id));
-
-        if (server && server.isActive) {
-          const serverTools = await listMcpTools(server as any);
-          mcpDefinitions.push(...serverTools);
-        }
-      } catch (error) {
-        console.error(`Failed to load MCP tools from ${mcpTool.id}:`, error);
-      }
-    }
-  }
-
+  const toolNames = collectBuiltinToolNames(assistant.tools, assistant.dataSources);
+  const mcpDefinitions = await loadMcpToolDefinitions(assistant.tools);
   const builtinDefs = Array.from(toolNames)
     .filter((name) => BUILTIN_TOOLS[name])
     .map((name) => BUILTIN_TOOLS[name].definition);
-
   return [...builtinDefs, ...mcpDefinitions];
 }
 

@@ -28,6 +28,31 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, damping: 28, stiffness: 280 } },
 };
 
+function getGreeting(hour: number): string {
+  if (hour < 12) return 'Bonjour';
+  if (hour < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+}
+
+function getActivityStatusColor(status: string | undefined): string {
+  switch (status) {
+    case 'completed': return 'bg-emerald-500';
+    case 'failed': return 'bg-red-500';
+    case 'running': return 'bg-amber-500';
+    default: return 'bg-muted-foreground/25';
+  }
+}
+
+function getActivityHref(activity: { type: string; id: string }): string {
+  return activity.type === 'conversation' ? `/chat/${activity.id}` : `/automations/runs/${activity.id}`;
+}
+
+function getAssistantsGridClass(count: number): string {
+  if (count <= 2) return 'grid gap-2 grid-cols-2';
+  if (count <= 3) return 'grid gap-2 grid-cols-3';
+  return 'grid gap-2 sm:grid-cols-2 lg:grid-cols-4';
+}
+
 export function Dashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -53,9 +78,7 @@ export function Dashboard() {
   });
 
 
-  const currentHour = new Date().getHours();
-  const greeting =
-    currentHour < 12 ? 'Bonjour' : currentHour < 18 ? 'Bon après-midi' : 'Bonsoir';
+  const greeting = getGreeting(new Date().getHours());
 
   // Last conversations to "resume"
   const lastConversations = recentActivity
@@ -153,11 +176,7 @@ export function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className={cn(
-            'grid gap-2',
-            assistants && assistants.length <= 2 ? 'grid-cols-2' :
-            assistants && assistants.length <= 3 ? 'grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'
-          )}>
+          <div className={getAssistantsGridClass(assistants?.length ?? 0)}>
             {/* New chat shortcut */}
             <motion.button
               variants={fadeUp}
@@ -324,22 +343,10 @@ export function Dashboard() {
             {recentActivity.slice(0, 6).map((activity) => (
               <Link
                 key={`${activity.type}-${activity.id}`}
-                to={
-                  activity.type === 'conversation'
-                    ? `/chat/${activity.id}`
-                    : `/automations/runs/${activity.id}`
-                }
+                to={getActivityHref(activity)}
                 className="group flex items-center gap-3 rounded-lg px-3 py-2 -mx-3 hover:bg-muted/50 transition-colors"
               >
-                <div
-                  className={cn(
-                    'h-1.5 w-1.5 rounded-full shrink-0',
-                    activity.status === 'completed' ? 'bg-emerald-500' :
-                    activity.status === 'failed' ? 'bg-red-500' :
-                    activity.status === 'running' ? 'bg-amber-500' :
-                    'bg-muted-foreground/25'
-                  )}
-                />
+                <div className={cn('h-1.5 w-1.5 rounded-full shrink-0', getActivityStatusColor(activity.status))} />
                 <div
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
                   style={{

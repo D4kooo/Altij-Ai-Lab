@@ -22,6 +22,33 @@ import { redactPdf } from '../services/pdf-redaction';
 
 const app = new Hono();
 
+interface TermVariant {
+  original: string;
+  replacement: string;
+  fromTerm: string;
+}
+
+function buildTermVariants(inputTerms: string[]): TermVariant[] {
+  const variants: TermVariant[] = [];
+  let counter = 1;
+  for (const term of inputTerms) {
+    const trimmed = term.trim();
+    if (!trimmed) continue;
+    variants.push({ original: trimmed, replacement: `[ELEMENT_${counter}]`, fromTerm: trimmed });
+    counter++;
+    const words = trimmed.split(/\s+/).filter(w => w.length >= 2);
+    if (words.length <= 1) continue;
+    for (const word of words) {
+      const exists = variants.some(t => t.original.toLowerCase() === word.toLowerCase());
+      if (exists) continue;
+      variants.push({ original: word, replacement: `[ELEMENT_${counter}]`, fromTerm: trimmed });
+      counter++;
+    }
+  }
+  variants.sort((a, b) => b.original.length - a.original.length);
+  return variants;
+}
+
 // Middleware d'authentification
 app.use('*', authMiddleware);
 
@@ -887,45 +914,7 @@ app.post('/censor', async (c) => {
     const text = ocrResult.text;
     const normalizedText = normalizeText(text);
 
-    // Générer toutes les variantes à censurer
-    // Ex: "Jean Dupont" -> ["Jean Dupont", "Jean", "Dupont"]
-    const allTerms: Array<{ original: string; replacement: string; fromTerm: string }> = [];
-    let counter = 1;
-
-    for (const term of inputTerms) {
-      const trimmed = term.trim();
-      if (!trimmed) continue;
-
-      // Ajouter le terme complet
-      allTerms.push({
-        original: trimmed,
-        replacement: `[ELEMENT_${counter}]`,
-        fromTerm: trimmed,
-      });
-      counter++;
-
-      // Découper en mots et ajouter chaque mot (si plus d'un mot)
-      const words = trimmed.split(/\s+/).filter(w => w.length >= 2);
-      if (words.length > 1) {
-        for (const word of words) {
-          // Vérifier si ce mot n'est pas déjà ajouté
-          const alreadyExists = allTerms.some(t =>
-            t.original.toLowerCase() === word.toLowerCase()
-          );
-          if (!alreadyExists) {
-            allTerms.push({
-              original: word,
-              replacement: `[ELEMENT_${counter}]`,
-              fromTerm: trimmed,
-            });
-            counter++;
-          }
-        }
-      }
-    }
-
-    // Trier par longueur décroissante pour éviter les remplacements partiels
-    allTerms.sort((a, b) => b.original.length - a.original.length);
+    const allTerms = buildTermVariants(inputTerms);
 
     // Compter les occurrences de chaque terme avec pattern flexible
     const termsWithCounts = allTerms.map(term => {
@@ -1106,42 +1095,7 @@ app.post('/preview-pdf', async (c) => {
 
     const normalizedText = normalizeText(originalText);
 
-    // Générer toutes les variantes à censurer
-    const allTerms: Array<{ original: string; replacement: string; fromTerm: string }> = [];
-    let counter = 1;
-
-    for (const term of inputTerms) {
-      const trimmed = term.trim();
-      if (!trimmed) continue;
-
-      allTerms.push({
-        original: trimmed,
-        replacement: `[ELEMENT_${counter}]`,
-        fromTerm: trimmed,
-      });
-      counter++;
-
-      // Découper en mots (si plus d'un mot)
-      const words = trimmed.split(/\s+/).filter(w => w.length >= 2);
-      if (words.length > 1) {
-        for (const word of words) {
-          const alreadyExists = allTerms.some(t =>
-            t.original.toLowerCase() === word.toLowerCase()
-          );
-          if (!alreadyExists) {
-            allTerms.push({
-              original: word,
-              replacement: `[ELEMENT_${counter}]`,
-              fromTerm: trimmed,
-            });
-            counter++;
-          }
-        }
-      }
-    }
-
-    // Trier par longueur décroissante
-    allTerms.sort((a, b) => b.original.length - a.original.length);
+    const allTerms = buildTermVariants(inputTerms);
 
     // Compter les occurrences
     const termsWithCounts = allTerms.map(term => {

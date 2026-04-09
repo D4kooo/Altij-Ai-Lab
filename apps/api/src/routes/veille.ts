@@ -855,52 +855,43 @@ interface FeedItem {
   publishedAt?: Date;
 }
 
+function parseRssItem(itemXml: string): FeedItem | null {
+  const title = extractTag(itemXml, 'title');
+  const link = extractLink(itemXml) || extractTag(itemXml, 'guid');
+  if (!title || !link) return null;
+  const description = extractTag(itemXml, 'description') || extractTag(itemXml, 'content:encoded');
+  const pubDate = extractTag(itemXml, 'pubDate') || extractTag(itemXml, 'dc:date');
+  return {
+    title: stripHtml(title),
+    description: description ? stripHtml(description).substring(0, 500) : undefined,
+    url: link,
+    image: extractMediaImage(itemXml) || extractEnclosure(itemXml),
+    publishedAt: pubDate ? new Date(pubDate) : undefined,
+  };
+}
+
+function parseAtomEntry(entryXml: string): FeedItem | null {
+  const title = extractTag(entryXml, 'title');
+  const link = extractAtomLink(entryXml);
+  if (!title || !link) return null;
+  const summary = extractTag(entryXml, 'summary') || extractTag(entryXml, 'content');
+  const published = extractTag(entryXml, 'published') || extractTag(entryXml, 'updated');
+  return {
+    title: stripHtml(title),
+    description: summary ? stripHtml(summary).substring(0, 500) : undefined,
+    url: link,
+    publishedAt: published ? new Date(published) : undefined,
+  };
+}
+
 function parseRssFeed(xml: string): FeedItem[] {
-  const items: FeedItem[] = [];
-
-  // Try RSS 2.0 format
-  const rssItems = xml.match(/<item[^>]*>[\s\S]*?<\/item>/gi) || [];
-
-  for (const itemXml of rssItems) {
-    const title = extractTag(itemXml, 'title');
-    const link = extractLink(itemXml) || extractTag(itemXml, 'guid');
-    const description = extractTag(itemXml, 'description') || extractTag(itemXml, 'content:encoded');
-    const pubDate = extractTag(itemXml, 'pubDate') || extractTag(itemXml, 'dc:date');
-    const image = extractMediaImage(itemXml) || extractEnclosure(itemXml);
-
-    if (title && link) {
-      items.push({
-        title: stripHtml(title),
-        description: description ? stripHtml(description).substring(0, 500) : undefined,
-        url: link,
-        image,
-        publishedAt: pubDate ? new Date(pubDate) : undefined,
-      });
-    }
-  }
-
-  // Try Atom format if no RSS items found
-  if (items.length === 0) {
-    const atomEntries = xml.match(/<entry[^>]*>[\s\S]*?<\/entry>/gi) || [];
-
-    for (const entryXml of atomEntries) {
-      const title = extractTag(entryXml, 'title');
-      const link = extractAtomLink(entryXml);
-      const summary = extractTag(entryXml, 'summary') || extractTag(entryXml, 'content');
-      const published = extractTag(entryXml, 'published') || extractTag(entryXml, 'updated');
-
-      if (title && link) {
-        items.push({
-          title: stripHtml(title),
-          description: summary ? stripHtml(summary).substring(0, 500) : undefined,
-          url: link,
-          publishedAt: published ? new Date(published) : undefined,
-        });
-      }
-    }
-  }
-
-  return items;
+  const rssItems = (xml.match(/<item[^>]*>[\s\S]*?<\/item>/gi) || [])
+    .map(parseRssItem)
+    .filter((i): i is FeedItem => i !== null);
+  if (rssItems.length > 0) return rssItems;
+  return (xml.match(/<entry[^>]*>[\s\S]*?<\/entry>/gi) || [])
+    .map(parseAtomEntry)
+    .filter((i): i is FeedItem => i !== null);
 }
 
 function extractTag(xml: string, tagName: string): string | undefined {

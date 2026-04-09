@@ -94,33 +94,25 @@ export function Anonymiseur() {
     }
   }, []);
 
+  const acceptPdfFile = useCallback((file: File | undefined, revokePrevious: boolean) => {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) return;
+    if (revokePrevious && pdfUrl) URL.revokeObjectURL(pdfUrl);
+    setSelectedFile(file);
+    setPdfUrl(URL.createObjectURL(file));
+    setRedactionZones([]);
+    setCurrentPage(1);
+  }, [pdfUrl]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-        setSelectedFile(file);
-        setPdfUrl(URL.createObjectURL(file));
-        setRedactionZones([]);
-        setCurrentPage(1);
-      }
-    }
-  }, []);
+    acceptPdfFile(e.dataTransfer.files?.[0], false);
+  }, [acceptPdfFile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-        if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-        setSelectedFile(file);
-        setPdfUrl(URL.createObjectURL(file));
-        setRedactionZones([]);
-        setCurrentPage(1);
-      }
-    }
+    acceptPdfFile(e.target.files?.[0], true);
   };
 
   const handleReset = () => {
