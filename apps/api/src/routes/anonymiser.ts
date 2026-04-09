@@ -7,7 +7,7 @@ const anonymiser = new Hono();
 const patterns: Record<string, { regex: RegExp; replacement: string }> = {
   // Email
   email: {
-    regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    regex: /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9-]{1,63}(?:\.[a-zA-Z0-9-]{1,63}){1,8}/g,
     replacement: '[EMAIL]',
   },
   // Téléphone français (formats variés)
@@ -150,7 +150,7 @@ function extractPdfText(buffer: Buffer): string {
     }
   }
 
-  const streamRegex = /BT\s*(.*?)\s*ET/gs;
+  const streamRegex = /BT\s*([\s\S]{0,100000}?)\s*ET/g;
   while ((match = streamRegex.exec(pdfContent)) !== null) {
     const tjRegex = /\[([^\]]+)\]\s*TJ|\(([^)]+)\)\s*Tj/g;
     let tjMatch: RegExpExecArray | null;

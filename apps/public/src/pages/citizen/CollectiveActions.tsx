@@ -3,11 +3,18 @@ import { Users, Heart, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { campaignsApi, type Campaign } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import {
+  filterCampaignsByCategory,
+  getActiveCampaigns,
+  computeProgressPct,
+  computeTotalParticipants,
+  ALL_CATEGORIES_LABEL,
+} from './CollectiveActions.utils';
 
-const categories = ['Toutes les campagnes', 'Numérique', 'Santé', 'Éducation', 'Environnement'];
+const categories = [ALL_CATEGORIES_LABEL, 'Numérique', 'Santé', 'Éducation', 'Environnement'];
 
 export function CollectiveActions() {
-  const [activeCategory, setActiveCategory] = useState('Toutes les campagnes');
+  const [activeCategory, setActiveCategory] = useState(ALL_CATEGORIES_LABEL);
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
@@ -43,12 +50,10 @@ export function CollectiveActions() {
     },
   });
 
-  const activeCampaigns = campaigns.filter((c) => c.status === 'active');
-  const filteredCampaigns = activeCategory === 'Toutes les campagnes'
-    ? campaigns
-    : campaigns.filter((c) => c.category === activeCategory);
+  const activeCampaigns = getActiveCampaigns(campaigns);
+  const filteredCampaigns = filterCampaignsByCategory(campaigns, activeCategory);
 
-  const totalParticipants = stats?.totalParticipants ?? activeCampaigns.reduce((sum, c) => sum + c.participants, 0);
+  const totalParticipants = stats?.totalParticipants ?? computeTotalParticipants(campaigns);
   const completedCampaigns = stats?.completedCampaigns ?? 0;
 
   const handleJoinLeave = (campaign: Campaign) => {
@@ -164,7 +169,7 @@ export function CollectiveActions() {
         ) : (
           <div className="space-y-4">
             {filteredCampaigns.map((campaign) => {
-              const progressPct = campaign.participantGoal > 0 ? Math.min((campaign.participants / campaign.participantGoal) * 100, 100) : 0;
+              const progressPct = computeProgressPct(campaign.participants, campaign.participantGoal);
               const isActive = campaign.status === 'active';
               const isParticipating = participatingIds.has(campaign.id);
               const isMutatingThis = (joinMutation.isPending && joinMutation.variables === campaign.id) ||

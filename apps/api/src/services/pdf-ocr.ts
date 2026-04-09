@@ -16,12 +16,15 @@ interface OCRResult {
   pageCount?: number;
 }
 
+// Restrict PATH to fixed, trusted system directories to avoid PATH hijacking
+const SAFE_SPAWN_ENV = { PATH: '/usr/local/bin:/usr/bin:/bin' };
+
 /**
  * Check if Poppler's pdftotext is available on the system
  */
 async function isPopplerAvailable(): Promise<boolean> {
   return new Promise((resolve) => {
-    const process = spawn('pdftotext', ['-v']);
+    const process = spawn('pdftotext', ['-v'], { env: SAFE_SPAWN_ENV });
     process.on('error', () => resolve(false));
     process.on('close', (code) => resolve(code === 0 || code === 99)); // pdftotext -v returns 99
   });
@@ -51,7 +54,7 @@ async function extractWithPoppler(pdfBuffer: Buffer): Promise<string> {
         '-enc', 'UTF-8', // Use UTF-8 encoding
         inputPath,
         outputPath,
-      ]);
+      ], { env: SAFE_SPAWN_ENV });
 
       let stderr = '';
       process.stderr.on('data', (data) => {

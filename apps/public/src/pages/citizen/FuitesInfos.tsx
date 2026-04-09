@@ -1,31 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, Loader2, ExternalLink, ChevronDown, Database, Users, Calendar, X, Copy, Check } from 'lucide-react';
 import { fuitesApi } from '@/lib/api';
-
-interface BreachEntry {
-  name: string;
-  service_type: string;
-  date: string;
-  records_count: number | null;
-  records_count_raw: string;
-  data_types: string[];
-  site_url: string | null;
-  logo_url: string;
-  source_url: string | null;
-  status: string;
-  incident_label: string | null;
-}
-
-function formatNumber(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace('.0', '')} Mrd`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.0', '')} M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace('.0', '')} k`;
-  return n.toLocaleString('fr-FR');
-}
-
-function normalizeString(str: string): string {
-  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
+import {
+  formatNumber,
+  normalizeString,
+  extractYears,
+  filterAndSortBreaches,
+  computeStats,
+  type BreachEntry,
+} from './FuitesInfos.utils';
 
 function LogoFallback({ name }: { name: string }) {
   const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -99,50 +82,16 @@ export function FuitesInfos() {
     fetchData();
   }, []);
 
-  const years = useMemo(() => {
-    const set = new Set(data.map(d => d.date?.slice(0, 4)).filter(Boolean));
-    return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [data]);
+  const years = useMemo(() => extractYears(data), [data]);
 
   const currentYear = new Date().getFullYear().toString();
 
-  const filtered = useMemo(() => {
-    let items = [...data];
+  const filtered = useMemo(
+    () => filterAndSortBreaches(data, { search, yearFilter, statusFilter, sortBy }),
+    [data, search, yearFilter, statusFilter, sortBy]
+  );
 
-    if (search.trim()) {
-      const q = normalizeString(search.trim());
-      items = items.filter(d =>
-        normalizeString(d.name).includes(q) ||
-        normalizeString(d.service_type || '').includes(q)
-      );
-    }
-
-    if (yearFilter !== 'all') {
-      items = items.filter(d => d.date?.startsWith(yearFilter));
-    }
-
-    if (statusFilter !== 'all') {
-      items = items.filter(d => normalizeString(d.status) === normalizeString(statusFilter));
-    }
-
-    items.sort((a, b) => {
-      switch (sortBy) {
-        case 'recent': return (b.date || '').localeCompare(a.date || '');
-        case 'oldest': return (a.date || '').localeCompare(b.date || '');
-        case 'records_desc': return (b.records_count || 0) - (a.records_count || 0);
-        case 'records_asc': return (a.records_count || 0) - (b.records_count || 0);
-        default: return 0;
-      }
-    });
-
-    return items;
-  }, [data, search, yearFilter, statusFilter, sortBy]);
-
-  const stats = useMemo(() => {
-    const totalRecords = data.reduce((sum, d) => sum + (d.records_count || 0), 0);
-    const thisYear = data.filter(d => d.date?.startsWith(currentYear)).length;
-    return { totalRecords, thisYear, total: data.length };
-  }, [data, currentYear]);
+  const stats = useMemo(() => computeStats(data, currentYear), [data, currentYear]);
 
   if (loading) {
     return (

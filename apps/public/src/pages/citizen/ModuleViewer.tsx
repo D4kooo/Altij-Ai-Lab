@@ -4,30 +4,14 @@ import { ArrowLeft, Check, ChevronLeft, ChevronRight, Loader2, Volume2 } from 'l
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import DOMPurify from 'dompurify';
-import { coursesApi, type ModuleWithDetails } from '@/lib/api';
+import { coursesApi } from '@/lib/api';
 import { useSchoolProgress } from '@/hooks/useSchoolProgress';
-
-interface UIQuizQuestion {
-  question: string;
-  options: string[];
-  correctIndex: number;
-  explanation: string;
-  questionId: string;
-}
-
-function transformQuizQuestions(quiz: ModuleWithDetails['quiz']): UIQuizQuestion[] {
-  if (!quiz?.questions) return [];
-  return quiz.questions.map((q) => {
-    const correctIdx = q.options.findIndex((o) => o.isCorrect);
-    return {
-      question: q.question,
-      options: q.options.map((o) => o.text),
-      correctIndex: correctIdx >= 0 ? correctIdx : 0,
-      explanation: q.explanation || '',
-      questionId: q.id,
-    };
-  });
-}
+import {
+  transformQuizQuestions,
+  audienceLabels,
+  computeProgress,
+  computeQuizScoreFromAnswers,
+} from './ModuleViewer.utils';
 
 // Lesson HTML styles are defined in index.css (.lesson-html class)
 
@@ -66,13 +50,6 @@ function LessonContent({ content }: { content: string }) {
     </Markdown>
   );
 }
-
-const audienceLabels: Record<string, string> = {
-  juniors: 'Juniors',
-  adultes: 'Adultes',
-  seniors: 'Seniors',
-  organisation: 'Formation',
-};
 
 export function ModuleViewer() {
   const { audience, moduleId, courseId } = useParams<{ audience?: string; moduleId: string; courseId?: string }>();
@@ -154,7 +131,7 @@ export function ModuleViewer() {
   const isCompleted = isModuleCompleted(validAudience, moduleData.id);
   const previousScore = getQuizScore(validAudience, moduleData.id);
   const isLastSection = currentSection === totalSections - 1;
-  const progress = showQuiz ? 100 : totalSections > 0 ? Math.round(((currentSection + 1) / totalSections) * (hasQuiz ? 80 : 100)) : 0;
+  const progress = computeProgress(currentSection, totalSections, showQuiz, hasQuiz);
   const currentLesson = lessons[currentSection];
 
   const handleNext = () => {
@@ -206,8 +183,7 @@ export function ModuleViewer() {
       saveQuizScore(validAudience, moduleData.id, score);
       if (result.passed) completeModule(validAudience, moduleData.id, { skipApi: true });
     } catch {
-      const correctCount = quizQuestions.reduce((count, q, idx) => count + (quizAnswers[idx] === q.correctIndex ? 1 : 0), 0);
-      const score = Math.round((correctCount / quizQuestions.length) * 100);
+      const score = computeQuizScoreFromAnswers(quizQuestions, quizAnswers);
       setQuizScore(score);
       setQuizSubmitted(true);
       saveQuizScore(validAudience, moduleData.id, score);

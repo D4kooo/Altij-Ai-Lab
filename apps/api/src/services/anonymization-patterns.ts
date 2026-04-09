@@ -259,7 +259,7 @@ const PATTERNS: PatternConfig[] = [
 
   // RCS number
   {
-    pattern: /\b(?:RCS|R\.C\.S\.?)\s*[A-Z][A-Za-z\s-]+\s*(?:[A-Z]\s*)?\d{3}[\s.]?\d{3}[\s.]?\d{3}\b/gi,
+    pattern: /\b(?:RCS|R\.C\.S\.?)\s{1,3}[A-Z][A-Za-z-]{1,30}(?:\s[A-Za-z-]{1,30}){0,3}\s{1,3}(?:[A-Z]\s{1,3})?\d{3}[\s.]?\d{3}[\s.]?\d{3}\b/gi,
     type: 'rcs',
     label: 'RCS',
     replacementPrefix: 'RCS',

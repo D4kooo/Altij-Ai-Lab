@@ -576,7 +576,7 @@ chatRoutes.post('/conversations/:id/upload', async (c) => {
     const base64 = Buffer.from(arrayBuffer).toString('base64');
 
     // Generate a unique ID for the file
-    const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const fileId = `file_${Date.now()}_${crypto.randomUUID()}`;
 
     return c.json({
       success: true,

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Loader2, Link as LinkIcon } from 'lucide-react';
 import { cguApi } from '@/lib/api';
+import { getScoreLabel, getPointLabel, type AnalysisPointType } from './CGUAnalyzer.utils';
 
 interface AnalysisPoint {
-  type: 'good' | 'warning' | 'danger' | 'info';
+  type: AnalysisPointType;
   title: string;
   description: string;
   article?: string;
@@ -202,21 +203,6 @@ export function CGUAnalyzer() {
   const handlePasteAnalysis = () => {
     if (!pastedText.trim()) return;
     analyze({ text: pastedText.trim() });
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score >= 70) return 'Bon';
-    if (score >= 50) return 'Moyen';
-    return 'Préoccupant';
-  };
-
-  const getPointLabel = (type: AnalysisPoint['type']) => {
-    switch (type) {
-      case 'good': return 'OK';
-      case 'warning': return 'Attention';
-      case 'danger': return 'Alerte';
-      case 'info': return 'Info';
-    }
   };
 
   return (
